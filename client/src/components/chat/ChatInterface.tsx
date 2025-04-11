@@ -18,13 +18,13 @@ const ChatInterface: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Fetch chat sessions
-  const { data: sessions, isLoading: sessionsLoading } = useQuery({
+  const { data: sessions = [], isLoading: sessionsLoading } = useQuery<ChatSession[]>({
     queryKey: ['/api/chat/sessions'],
     enabled: isOpen,
   });
   
   // Fetch messages for current session
-  const { data: messages, isLoading: messagesLoading } = useQuery({
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<ChatMessage[]>({
     queryKey: ['/api/chat/sessions', currentSessionId, 'messages'],
     enabled: !!currentSessionId && isOpen,
   });
@@ -32,11 +32,11 @@ const ChatInterface: React.FC = () => {
   // Create new session
   const createSessionMutation = useMutation({
     mutationFn: async () => {
-      const session = await apiRequest('/api/chat/sessions', {
-        method: 'POST',
-        body: JSON.stringify({ title: 'New Conversation' }),
+      const response = await apiRequest('POST', '/api/chat/sessions', { 
+        title: 'New Conversation' 
       });
-      return session as ChatSession;
+      const session = await response.json();
+      return session;
     },
     onSuccess: (session) => {
       queryClient.invalidateQueries({ queryKey: ['/api/chat/sessions'] });
@@ -56,11 +56,12 @@ const ChatInterface: React.FC = () => {
     mutationFn: async (content: string) => {
       if (!currentSessionId) return null;
       
-      const message = await apiRequest(`/api/chat/sessions/${currentSessionId}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ content, role: 'user' }),
+      const response = await apiRequest('POST', `/api/chat/sessions/${currentSessionId}/messages`, { 
+        content, 
+        role: 'user' 
       });
-      return message as ChatMessage;
+      const message = await response.json();
+      return message;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/chat/sessions', currentSessionId, 'messages'] });
@@ -78,9 +79,7 @@ const ChatInterface: React.FC = () => {
   // Delete session
   const deleteSessionMutation = useMutation({
     mutationFn: async (sessionId: number) => {
-      await apiRequest(`/api/chat/sessions/${sessionId}`, {
-        method: 'DELETE' as string,
-      });
+      await apiRequest('DELETE', `/api/chat/sessions/${sessionId}`);
       return sessionId;
     },
     onSuccess: (deletedId) => {
