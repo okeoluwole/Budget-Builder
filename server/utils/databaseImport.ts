@@ -8,6 +8,7 @@ import {
   layoutTemplates, InsertLayoutTemplate,
   budgetTemplates, InsertBudgetTemplate
 } from '@shared/schema';
+import { importCurrencyRatesFromJson } from './currencyImport';
 
 // Type definition for the "Sheet" tab in Excel which has the most structured data
 interface SheetRow {
@@ -257,6 +258,9 @@ export async function initializeDatabase(): Promise<void> {
   // Import budget template structure
   const budgetTemplatePath = join(dataDir, 'budget_template_structure.json');
   await importBudgetTemplateToDb(budgetTemplatePath);
+  
+  // Import currency rates from our JSON file with 2025 FX rates
+  await importCurrencyRatesFromJson();
   
   // Fitout costs would be imported from Excel when available
   console.log('Database initialization complete');

@@ -2,6 +2,68 @@ import * as XLSX from 'xlsx';
 import { db } from '../db';
 import { insertCurrencyRateSchema, currencyRates, CurrencyRate } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import fs from 'fs';
+
+/**
+ * Import currency exchange rates from our pre-generated JSON file containing all 2025 FX rates
+ * @param jsonFilePath Path to the JSON file with all currency data
+ */
+export async function importCurrencyRatesFromJson(jsonFilePath: string = 'data/fx_rates_2025.json'): Promise<void> {
+  try {
+    console.log(`Importing currency rates from JSON: ${jsonFilePath}`);
+    
+    // Check if the file exists
+    if (!fs.existsSync(jsonFilePath)) {
+      console.error(`Currency rates JSON file not found: ${jsonFilePath}`);
+      await importSampleCurrencyRates();
+      return;
+    }
+    
+    // Read the JSON file
+    const fileData = fs.readFileSync(jsonFilePath, 'utf8');
+    const rates = JSON.parse(fileData);
+    
+    if (!Array.isArray(rates) || rates.length === 0) {
+      console.error('Invalid or empty currency rates data in JSON file');
+      await importSampleCurrencyRates();
+      return;
+    }
+    
+    console.log(`Found ${rates.length} currency rates in JSON file`);
+    
+    // Delete all existing rates (clean approach to avoid duplicates)
+    await db.delete(currencyRates);
+    
+    // Insert all rates from the JSON file
+    let insertCount = 0;
+    let errorCount = 0;
+    
+    for (const rate of rates) {
+      try {
+        // Validate data using zod schema
+        const currencyData = insertCurrencyRateSchema.parse({
+          country: rate.country,
+          currencyName: rate.currencyName,
+          currencyCode: rate.currencyCode,
+          exchangeRate: rate.exchangeRate
+        });
+        
+        // Insert new rate
+        await db.insert(currencyRates).values(currencyData);
+        insertCount++;
+      } catch (error) {
+        console.error(`Error processing currency rate:`, rate, error);
+        errorCount++;
+      }
+    }
+    
+    console.log(`Currency rates import from JSON completed: ${insertCount} inserted, ${errorCount} errors`);
+  } catch (error) {
+    console.error('Error importing currency rates from JSON:', error);
+    // Fall back to sample rates if JSON import fails
+    await importSampleCurrencyRates();
+  }
+}
 
 /**
  * Import currency exchange rates from Excel
@@ -9,69 +71,87 @@ import { eq } from 'drizzle-orm';
  */
 export async function importCurrencyRatesFromExcel(filePath: string): Promise<void> {
   try {
-    console.log(`Importing currency rates from ${filePath}`);
+    console.log(`Importing currency rates from Excel: ${filePath}`);
     
     // Read Excel file
     const workbook = XLSX.readFile(filePath);
     
-    // Look for specific sheets related to currency data
-    // Budget Template 1 contains a sheet named 'FX Rates 2025'
-    const sheetName = 'FX Rates 2025';
+    // Look for the 2025 FX Rates sheet (used in Budget Template 2)
+    let sheetName = '2025 FX Rates';
     
     if (!workbook.Sheets[sheetName]) {
-      console.error(`Sheet '${sheetName}' not found in Excel file`);
-      // Look for any other sheet that might contain currency data
-      const availableSheets = workbook.SheetNames;
-      console.log(`Available sheets: ${availableSheets.join(', ')}`);
+      // Try alternative name (used in Budget Template 1)
+      sheetName = 'FX Rates 2025';
       
-      // Try the first sheet as fallback
-      if (availableSheets.length > 0) {
-        const fallbackSheet = availableSheets[0];
-        console.log(`Using ${fallbackSheet} as fallback`);
-        const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[fallbackSheet]);
-        console.log('Sample data from fallback sheet:', sheetData.slice(0, 2));
+      if (!workbook.Sheets[sheetName]) {
+        console.error(`FX rates sheet not found in Excel file`);
+        // Look for any sheet that might contain currency data
+        const availableSheets = workbook.SheetNames;
+        console.log(`Available sheets: ${availableSheets.join(', ')}`);
+        
+        // Fall back to loading sample rates
+        await importSampleCurrencyRates();
+        return;
       }
-      
-      throw new Error(`Currency rates sheet '${sheetName}' not found in Excel file`);
     }
     
     // Convert sheet to JSON
     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-    console.log(`Found ${sheetData.length} currency rate records in Excel`);
+    console.log(`Found ${sheetData.length} rows in Excel sheet`);
     
-    // Sample the data to understand structure
-    if (sheetData.length > 0) {
-      console.log('Sample currency rate record:', sheetData[0]);
-    }
+    // Delete all existing rates (clean approach to avoid duplicates)
+    await db.delete(currencyRates);
     
     // Process each row and insert into database
     let insertCount = 0;
-    let updateCount = 0;
     let errorCount = 0;
     
-    for (const row of sheetData) {
-      // Cast row to a record with string keys
-      const rowData = row as Record<string, unknown>;
+    // Find header row to determine column structure
+    let headerRowIndex = -1;
+    for (let i = 0; i < sheetData.length; i++) {
+      const row = sheetData[i] as Record<string, unknown>;
+      if (row['COUNTRY'] || row['Country']) {
+        headerRowIndex = i;
+        break;
+      }
+    }
+    
+    if (headerRowIndex === -1) {
+      console.error('Could not find header row in Excel sheet');
+      await importSampleCurrencyRates();
+      return;
+    }
+    
+    // Skip the header row and process all data rows
+    for (let i = headerRowIndex + 1; i < sheetData.length; i++) {
+      const rowData = sheetData[i] as Record<string, unknown>;
       
       // Check if row has the expected currency data
-      // Adjust property names based on actual Excel structure
       const country = (rowData['Country'] as string) || (rowData['COUNTRY'] as string) || '';
       const currencyName = (rowData['Currency'] as string) || (rowData['CURRENCY'] as string) || '';
       const currencyCode = (rowData['Code'] as string) || (rowData['CODE'] as string) || (rowData['Currency Code'] as string) || '';
-      const exchangeRate = parseFloat(String(rowData['2025 FX Rate'] || rowData['Rate'] || rowData['RATE'] || '0'));
+      
+      // Check for 2nd Pass Budget Rate (6th column/index 5) first, then fall back to other potential rate columns
+      // The following checks all possible column names for the rate, including array indexing for unnamed columns
+      let exchangeRate = 0;
+      // Try the 6th column (index 5) for 2nd Pass Budget Rate
+      if (rowData[5] !== undefined && !isNaN(parseFloat(String(rowData[5])))) {
+        exchangeRate = parseFloat(String(rowData[5]));
+      } else if (rowData['RATE'] !== undefined && !isNaN(parseFloat(String(rowData['RATE'])))) {
+        exchangeRate = parseFloat(String(rowData['RATE']));
+      } else if (rowData['Rate'] !== undefined && !isNaN(parseFloat(String(rowData['Rate'])))) {
+        exchangeRate = parseFloat(String(rowData['Rate']));
+      } else if (rowData['2025 FX Rate'] !== undefined && !isNaN(parseFloat(String(rowData['2025 FX Rate'])))) {
+        exchangeRate = parseFloat(String(rowData['2025 FX Rate']));
+      }
       
       if (!country || !currencyName || !currencyCode || isNaN(exchangeRate) || exchangeRate <= 0) {
-        console.warn(`Skipping invalid currency row:`, row);
+        console.warn(`Skipping invalid currency row at index ${i}:`, rowData);
         errorCount++;
         continue;
       }
       
       try {
-        // Check if currency already exists
-        const existingCurrency = await db.select()
-          .from(currencyRates)
-          .where(eq(currencyRates.currencyCode, currencyCode));
-        
         // Validate data using zod schema
         const currencyData = insertCurrencyRateSchema.parse({
           country,
@@ -80,26 +160,71 @@ export async function importCurrencyRatesFromExcel(filePath: string): Promise<vo
           exchangeRate
         });
         
-        if (existingCurrency.length > 0) {
-          // Update existing currency
-          await db.update(currencyRates)
-            .set(currencyData)
-            .where(eq(currencyRates.currencyCode, currencyCode));
-          updateCount++;
-        } else {
-          // Insert new currency
-          await db.insert(currencyRates).values(currencyData);
-          insertCount++;
-        }
+        // Insert new currency
+        await db.insert(currencyRates).values(currencyData);
+        insertCount++;
       } catch (error) {
-        console.error(`Error processing currency row:`, row, error);
+        console.error(`Error processing currency row:`, rowData, error);
         errorCount++;
       }
     }
     
-    console.log(`Currency rates import completed: ${insertCount} inserted, ${updateCount} updated, ${errorCount} errors`);
+    console.log(`Currency rates import from Excel completed: ${insertCount} inserted, ${errorCount} errors`);
   } catch (error) {
-    console.error('Error importing currency rates:', error);
+    console.error('Error importing currency rates from Excel:', error);
+    // Fall back to sample rates
+    await importSampleCurrencyRates();
+  }
+}
+
+/**
+ * Import a curated set of sample currency rates as a fallback
+ * Uses the 2025 FX rates from the Budget Template
+ */
+async function importSampleCurrencyRates(): Promise<void> {
+  try {
+    console.log('Importing sample currency rates as fallback');
+    
+    // Delete all existing rates
+    await db.delete(currencyRates);
+    
+    // Sample of 2025 FX rates from the Budget Template
+    const sampleRates = [
+      { country: 'EURO', currencyName: 'EURO', currencyCode: 'EUR', exchangeRate: 1.05 },
+      { country: 'United Kingdom', currencyName: 'POUND', currencyCode: 'GBP', exchangeRate: 1.27 },
+      { country: 'Ireland', currencyName: 'Euro', currencyCode: 'EUR', exchangeRate: 1.05 },
+      { country: 'France', currencyName: 'Euro', currencyCode: 'EUR', exchangeRate: 1.05 },
+      { country: 'Germany', currencyName: 'Euro', currencyCode: 'EUR', exchangeRate: 1.05 },
+      { country: 'Italy', currencyName: 'Euro', currencyCode: 'EUR', exchangeRate: 1.05 },
+      { country: 'Spain', currencyName: 'Euro', currencyCode: 'EUR', exchangeRate: 1.05 },
+      { country: 'United States', currencyName: 'DOLLAR', currencyCode: 'USD', exchangeRate: 1.0 },
+      { country: 'Canada', currencyName: 'DOLLAR', currencyCode: 'CAD', exchangeRate: 0.7335 },
+      { country: 'Australia', currencyName: 'DOLLAR', currencyCode: 'AUD', exchangeRate: 0.65 },
+      { country: 'China', currencyName: 'YUAN', currencyCode: 'CNY', exchangeRate: 0.139 },
+      { country: 'Japan', currencyName: 'YEN', currencyCode: 'JPY', exchangeRate: 0.00662 },
+      { country: 'India', currencyName: 'RUPEE', currencyCode: 'INR', exchangeRate: 0.01203 },
+      { country: 'Singapore', currencyName: 'DOLLAR', currencyCode: 'SGD', exchangeRate: 0.74 },
+      { country: 'Mexico', currencyName: 'PESO', currencyCode: 'MXN', exchangeRate: 0.0594 },
+      { country: 'Brazil', currencyName: 'REAL', currencyCode: 'BRL', exchangeRate: 0.186 },
+      { country: 'South Africa', currencyName: 'RAND', currencyCode: 'ZAR', exchangeRate: 0.054 },
+    ];
+    
+    let insertCount = 0;
+    
+    for (const rate of sampleRates) {
+      try {
+        // Validate and insert
+        const currencyData = insertCurrencyRateSchema.parse(rate);
+        await db.insert(currencyRates).values(currencyData);
+        insertCount++;
+      } catch (error) {
+        console.error(`Error inserting sample rate:`, rate, error);
+      }
+    }
+    
+    console.log(`Sample currency rates import completed: ${insertCount} inserted`);
+  } catch (error) {
+    console.error('Error importing sample currency rates:', error);
     throw error;
   }
 }
