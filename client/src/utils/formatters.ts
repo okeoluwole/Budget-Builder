@@ -34,10 +34,12 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 // Currency code to exchange rate mapping (2nd Pass Budget Rate from 2025 FX Rates)
+// IMPORTANT: These are USD-to-Local rates from the 2025 FX Rates sheet
+// For example, 1 USD = 1.05 EUR means EUR rate is 1.05
 const CURRENCY_RATES: Record<string, number> = {
   'USD': 1.0,
-  'EUR': 1.05, // EUR to USD rate
-  'GBP': 1.27, // GBP to USD rate
+  'EUR': 1.05, // 1 USD = 1.05 EUR (2025 FX Rate)
+  'GBP': 1.27, // 1 USD = 1.27 GBP (2025 FX Rate)
   // Add more as needed
 };
 

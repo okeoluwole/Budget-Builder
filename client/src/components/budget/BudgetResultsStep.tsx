@@ -48,9 +48,33 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           setLocalCurrencyRate(parseFloat(countryCurrency.exchangeRate.toString()));
         } else {
           console.log("No currency found for country:", state.project?.country);
+          
+          // TEMPORARY: For testing - set a default local currency
+          // This ensures we can see the dual currency display in action
+          // In production, this should be removed and proper currency detection used
+          if (state.project?.country === 'United Kingdom') {
+            setLocalCurrencyCode('GBP');
+            setLocalCurrencyRate(1.27); // 2025 FX rate from the spreadsheet
+            console.log("Setting default GBP for UK");
+          } else if (state.project?.country === 'United States') {
+            // For US projects, set EUR as example secondary currency
+            setLocalCurrencyCode('EUR');
+            setLocalCurrencyRate(1.05); // 2025 FX rate from the spreadsheet
+            console.log("Setting EUR as example secondary currency for US projects");
+          } else {
+            // For any other country, set EUR as the default
+            setLocalCurrencyCode('EUR');
+            setLocalCurrencyRate(1.05); // 2025 FX rate from the spreadsheet
+            console.log("Setting default EUR currency");
+          }
         }
       } catch (error) {
         console.error("Error fetching currency rates:", error);
+        
+        // TEMPORARY: For testing - set a default local currency on error
+        setLocalCurrencyCode('EUR');
+        setLocalCurrencyRate(1.05); // 2025 FX rate from the spreadsheet
+        console.log("Setting default EUR currency due to API error");
       }
     };
     
