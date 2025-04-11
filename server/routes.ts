@@ -257,6 +257,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Get layout templates
+  app.get('/api/layout-templates', async (req, res) => {
+    try {
+      // Get all layout template records from the database
+      const records = await db.select().from(layoutTemplates);
+      
+      if (records.length === 0) {
+        // Fall back to JSON file if no database records
+        const dataPath = path.join(process.cwd(), 'data', 'layout_templates.json');
+        if (!fs.existsSync(dataPath)) {
+          return res.status(404).json({ message: 'Layout templates data not found' });
+        }
+        
+        const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+        return res.json(data);
+      }
+      
+      // Transform database records to the expected format
+      const data = records.map(record => ({
+        name: record.name,
+        description: record.description,
+        benefits: record.benefits ? JSON.parse(record.benefits) : [],
+        spaceTypes: record.defaultAllocation
+      }));
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error fetching layout templates:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch layout templates',
+        error: error.message
+      });
+    }
+  });
 
   // Budget template structure from database
   app.get('/api/budget-template', async (req, res) => {
