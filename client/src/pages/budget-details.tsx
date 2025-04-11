@@ -16,6 +16,7 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
   const budgetId = parseInt(params.id);
   const { toast } = useToast();
   const [project, setProject] = useState<Project | null>(null);
+  const [importingCurrency, setImportingCurrency] = useState(false);
   
   // Fetch budget details
   const { data: budget, isLoading: budgetLoading } = useQuery({
@@ -115,6 +116,12 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
                   ? formatCurrency(budget.totalCost, project?.currency || 'USD') 
                   : 'Not calculated'}
               </p>
+              {budget.localCurrencyCode && budget.localCurrencyCode !== (project?.currency || 'USD') && 
+               budget.localCurrencyTotalCost && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {formatCurrency(budget.localCurrencyTotalCost, budget.localCurrencyCode)}
+                </p>
+              )}
             </div>
             
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
@@ -161,6 +168,10 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
               budgetBreakdown={budget.costsBreakdown}
               totalCost={budget.totalCost}
               currency={project?.currency || 'USD'}
+              localCurrencyCode={budget.localCurrencyCode}
+              localCurrencyRate={budget.localCurrencyRate}
+              localCurrencyTotalCost={budget.localCurrencyTotalCost}
+              localCurrencyCostsBreakdown={budget.localCurrencyCostsBreakdown}
             />
           ) : (
             <div className="text-center py-8 bg-gray-50 rounded-lg">

@@ -22,8 +22,8 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
   localCurrencyCostsBreakdown
 }) => {
   const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
-  const [showLocalCurrency, setShowLocalCurrency] = useState(
-    localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && localCurrencyTotalCost
+  const [showLocalCurrency, setShowLocalCurrency] = useState<boolean>(
+    Boolean(localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && localCurrencyTotalCost)
   );
   
   if (!budgetBreakdown || !totalCost) {
@@ -102,7 +102,7 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                   ? 'bg-emerald-600 text-white' 
                   : 'bg-blue-600 text-white'
               }`}
-              onClick={() => setShowLocalCurrency(!showLocalCurrency)}
+              onClick={() => setShowLocalCurrency((prev) => !prev)}
             >
               {showLocalCurrency ? localCurrencyCode : currency}
             </button>

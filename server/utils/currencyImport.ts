@@ -50,12 +50,15 @@ export async function importCurrencyRatesFromExcel(filePath: string): Promise<vo
     let errorCount = 0;
     
     for (const row of sheetData) {
+      // Cast row to a record with string keys
+      const rowData = row as Record<string, unknown>;
+      
       // Check if row has the expected currency data
       // Adjust property names based on actual Excel structure
-      const country = row['Country'] || row['COUNTRY'] || '';
-      const currencyName = row['Currency'] || row['CURRENCY'] || '';
-      const currencyCode = row['Code'] || row['CODE'] || row['Currency Code'] || '';
-      const exchangeRate = parseFloat(row['2025 FX Rate'] || row['Rate'] || row['RATE'] || '0');
+      const country = (rowData['Country'] as string) || (rowData['COUNTRY'] as string) || '';
+      const currencyName = (rowData['Currency'] as string) || (rowData['CURRENCY'] as string) || '';
+      const currencyCode = (rowData['Code'] as string) || (rowData['CODE'] as string) || (rowData['Currency Code'] as string) || '';
+      const exchangeRate = parseFloat(String(rowData['2025 FX Rate'] || rowData['Rate'] || rowData['RATE'] || '0'));
       
       if (!country || !currencyName || !currencyCode || isNaN(exchangeRate) || exchangeRate <= 0) {
         console.warn(`Skipping invalid currency row:`, row);
