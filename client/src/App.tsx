@@ -11,6 +11,7 @@ import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import AppLayout from "@/components/layouts/AppLayout";
 import { BudgetProvider } from "@/contexts/BudgetContext";
+import ChatInterface from "@/components/chat/ChatInterface";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <AppLayout>
           <Router />
         </AppLayout>
+        <ChatInterface />
         <Toaster />
       </BudgetProvider>
     </QueryClientProvider>
