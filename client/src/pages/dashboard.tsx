@@ -12,16 +12,23 @@ const Dashboard: React.FC = () => {
   const [latestBudgetTotals, setLatestBudgetTotals] = useState<Record<number, number>>({});
   
   const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({ 
-    queryKey: ['/api/projects']
+    queryKey: ['/api/projects'],
+    staleTime: 30000 // 30 seconds
   });
   
   const { data: budgets = [], isLoading: budgetsLoading } = useQuery<Budget[]>({ 
-    queryKey: ['/api/budgets']
+    queryKey: ['/api/budgets'],
+    staleTime: 30000 // 30 seconds
   });
 
   // Process data when it's loaded
   useEffect(() => {
-    if (projects && budgets) {
+    if (!projectsLoading && !budgetsLoading && projects.length >= 0 && budgets.length >= 0) {
+      // Skip processing if both arrays are empty
+      if (projects.length === 0 && budgets.length === 0) {
+        return;
+      }
+      
       // Get recent budgets with their project data
       const budgetsWithProjects = budgets.map((budget: Budget) => ({
         ...budget,
@@ -30,12 +37,12 @@ const Dashboard: React.FC = () => {
       
       // Sort by updated date descending
       const sortedBudgets = [...budgetsWithProjects].sort((a, b) => 
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
       );
       
       // Get recent projects
       const sortedProjects = [...projects].sort((a: Project, b: Project) => 
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
       );
       
       // Calculate budget counts per project
@@ -43,19 +50,21 @@ const Dashboard: React.FC = () => {
       const latestTotals: Record<number, number> = {};
       
       budgets.forEach((budget: Budget) => {
-        counts[budget.projectId] = (counts[budget.projectId] || 0) + 1;
-        
-        // Track latest budget total for each project
-        if (budget.totalCost && 
-            (!latestTotals[budget.projectId] || 
-             new Date(budget.updatedAt).getTime() > new Date(
-               budgets.find((b: Budget) => 
-                 b.projectId === budget.projectId && 
-                 latestTotals[budget.projectId] === b.totalCost
-               )?.updatedAt || 0
-             ).getTime())
-           ) {
-          latestTotals[budget.projectId] = budget.totalCost;
+        if (budget && budget.projectId) {
+          counts[budget.projectId] = (counts[budget.projectId] || 0) + 1;
+          
+          // Track latest budget total for each project
+          if (budget.totalCost && 
+              (!latestTotals[budget.projectId] || 
+               new Date(budget.updatedAt || 0).getTime() > new Date(
+                 budgets.find((b: Budget) => 
+                   b && b.projectId === budget.projectId && 
+                   latestTotals[budget.projectId] === b.totalCost
+                 )?.updatedAt || 0
+               ).getTime())
+             ) {
+            latestTotals[budget.projectId] = budget.totalCost;
+          }
         }
       });
       
@@ -64,7 +73,7 @@ const Dashboard: React.FC = () => {
       setProjectBudgetCounts(counts);
       setLatestBudgetTotals(latestTotals);
     }
-  }, [projects, budgets]);
+  }, [projects, budgets, projectsLoading, budgetsLoading]);
 
   return (
     <div className="max-w-7xl mx-auto">
