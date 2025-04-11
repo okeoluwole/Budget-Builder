@@ -15,22 +15,37 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
     return null;
   }
 
-  // Process data for charts - only include fitout and space costs
-  const chartData = Object.entries(budgetBreakdown)
+  // Only include space costs for chart data
+  // First, get the fitout cost
+  const fitoutCost = budgetBreakdown['FITOUT COSTS'] || totalCost;
+  
+  // Create chart data only for space allocations (not including total fitout)
+  let chartData = Object.entries(budgetBreakdown)
     .filter(([key, value]) => {
-      // Only include FITOUT COSTS and space allocations
+      // Only include space allocations (not the fitout total)
       return (
-        (key === 'FITOUT COSTS' || key.startsWith('SPACE:')) && 
+        key.startsWith('SPACE:') && 
         typeof value === 'number' && 
         value > 0
       );
     })
     .map(([key, value]) => ({
-      name: key === 'FITOUT COSTS' ? 'FITOUT COSTS' : key.replace('SPACE:', ''),
+      name: key.replace('SPACE:', ''),
       value: value as number,
-      percentage: ((value as number) / totalCost) * 100
+      percentage: ((value as number) / fitoutCost) * 100
     }))
     .sort((a, b) => b.value - a.value);
+    
+  // If no space allocation data is found, create a default allocation
+  if (chartData.length === 0) {
+    chartData = [
+      { name: 'Team Workspace', value: fitoutCost * 0.5, percentage: 50 },
+      { name: 'Team Meeting Area', value: fitoutCost * 0.2, percentage: 20 },
+      { name: 'Shared Meeting Rooms', value: fitoutCost * 0.15, percentage: 15 },
+      { name: 'Social Area', value: fitoutCost * 0.1, percentage: 10 },
+      { name: 'Support/Ancillary', value: fitoutCost * 0.05, percentage: 5 }
+    ];
+  }
   
   // Colors for the chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
@@ -38,7 +53,7 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium text-gray-800">Fitout Costs Breakdown</h3>
+        <h3 className="text-lg font-medium text-gray-800">Space Allocation Breakdown</h3>
         <div className="flex space-x-2">
           <button
             type="button"
@@ -78,7 +93,7 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
                   outerRadius={120}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+                  label={({ name, percentage }) => `${name}: ${percentage.toFixed(0)}%`}
                 >
                   {chartData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -132,6 +147,19 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
+              {/* Display the total fitout costs first */}
+              <tr className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  FITOUT COSTS
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                  {formatCurrency(fitoutCost, currency)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                  100.0%
+                </td>
+              </tr>
+              {/* Display space allocation breakdown */}
               {chartData.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -145,12 +173,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
                   </td>
                 </tr>
               ))}
+              {/* Total row (same as fitout costs) */}
               <tr className="bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                   Total
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
-                  {formatCurrency(totalCost, currency)}
+                  {formatCurrency(fitoutCost, currency)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
                   100%
