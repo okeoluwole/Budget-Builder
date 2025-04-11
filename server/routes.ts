@@ -19,6 +19,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat AI routes
   app.use('/api/chat', chatRoutes);
   
+  // Direct API handlers for chat functionality for better compatibility
+  app.get('/api/chat/sessions', async (req, res) => {
+    try {
+      const userId = req.query.userId ? Number(req.query.userId) : undefined;
+      const sessions = await storage.getAllChatSessions(userId);
+      res.json(sessions);
+    } catch (error) {
+      console.error('Error fetching chat sessions:', error);
+      res.status(500).json({ message: 'Failed to fetch chat sessions' });
+    }
+  });
+  
+  // Create new chat session
+  app.post('/api/chat/sessions', async (req, res) => {
+    try {
+      const { title = 'New Conversation' } = req.body;
+      const session = await storage.createChatSession({ title });
+      res.status(201).json(session);
+    } catch (error) {
+      console.error('Error creating chat session:', error);
+      res.status(500).json({ message: 'Failed to create chat session' });
+    }
+  });
+  
+  // Get messages for a specific session
+  app.get('/api/chat/sessions/:id/messages', async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const messages = await storage.getChatMessagesBySession(sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+      res.status(500).json({ message: 'Failed to fetch chat messages' });
+    }
+  });
+  
+  // Send a message in a session
+  app.post('/api/chat/sessions/:id/messages', async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const { content, role = 'user' } = req.body;
+      
+      // Create user message
+      const userMessage = await storage.addChatMessage({
+        sessionId,
+        content,
+        role: role as 'user' | 'assistant' | 'system',
+      });
+      
+      // Get context for AI response
+      const context = {};
+      
+      // Get AI response using OpenAI
+      const aiResponse = await openaiUtil.getChatCompletion(content, context as any);
+      
+      // Store AI response
+      const assistantMessage = await storage.addChatMessage({
+        sessionId,
+        content: aiResponse,
+        role: 'assistant',
+      });
+      
+      // Return both messages
+      res.status(201).json([userMessage, assistantMessage]);
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      res.status(500).json({ message: 'Failed to process chat message' });
+    }
+  });
+  
+  // Delete a chat session
+  app.delete('/api/chat/sessions/:id', async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const success = await storage.deleteChatSession(sessionId);
+      if (!success) {
+        return res.status(404).json({ message: 'Chat session not found' });
+      }
+      res.status(200).json({ message: 'Chat session deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+      res.status(500).json({ message: 'Failed to delete chat session' });
+    }
+  });
+  
   // Projects
   app.get('/api/projects', async (req, res) => {
     try {
