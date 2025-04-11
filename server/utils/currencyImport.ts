@@ -3,6 +3,7 @@ import path from 'path';
 import { read, utils } from 'xlsx';
 import { db } from '../db';
 import { currencyRates, InsertCurrencyRate } from '@shared/schema';
+import { eq, sql } from 'drizzle-orm';
 
 /**
  * Import currency exchange rates from Excel
@@ -15,7 +16,7 @@ export async function importCurrencyRatesFromExcel(filePath: string): Promise<vo
   const workbook = read(fs.readFileSync(filePath));
   
   // Find the sheet with FX rates
-  const fxRatesSheetName = '2025 FX Rates';
+  let fxRatesSheetName = '2025 FX Rates';
   if (!workbook.SheetNames.includes(fxRatesSheetName)) {
     // Try to find a sheet with a similar name
     const possibleSheets = workbook.SheetNames.filter(name => 
@@ -71,9 +72,8 @@ export async function importCurrencyRatesFromExcel(filePath: string): Promise<vo
     await db.delete(currencyRates);
     
     // Insert new records
-    const result = await db.insert(currencyRates).values(records);
+    await db.insert(currencyRates).values(records);
     console.log(`Imported ${records.length} currency rates successfully`);
-    return result;
   } else {
     console.log('No valid currency records found to import');
   }

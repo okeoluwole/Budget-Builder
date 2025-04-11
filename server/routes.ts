@@ -364,6 +364,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import currency rates from Excel
+  app.post('/api/admin/import-currency-rates', async (req, res) => {
+    try {
+      // Import the currency import function
+      const { importCurrencyRatesFromExcel } = await import('./utils/currencyImport');
+      
+      // Build file path - use Budget Template 1
+      const filePath = path.join(process.cwd(), 'attached_assets', 'Budget Template 1.xlsx');
+      
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        console.error(`File not found at ${filePath}`);
+        return res.status(404).json({ message: 'Currency rates Excel file not found' });
+      }
+      
+      // Import currency rates from Excel
+      await importCurrencyRatesFromExcel(filePath);
+      
+      // Fetch the imported data from the database
+      const { getAllCurrencyRates } = await import('./utils/currencyImport');
+      const currencyRatesData = await getAllCurrencyRates();
+      
+      res.status(200).json({ 
+        message: 'Currency rates imported successfully', 
+        count: currencyRatesData.length,
+        data: currencyRatesData.slice(0, 10) // Only return first 10 records to avoid huge response
+      });
+    } catch (error: any) {
+      console.error('Error importing currency rates:', error);
+      res.status(500).json({ 
+        message: 'Failed to import currency rates', 
+        error: error.message
+      });
+    }
+  });
+
   // Initialize database with reference data
   app.post('/api/admin/initialize-database', async (req, res) => {
     try {

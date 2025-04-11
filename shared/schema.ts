@@ -50,6 +50,9 @@ export const budgets = pgTable("budgets", {
   layout: text("layout").notNull(), // Activity, Team, Event
   spaceAllocation: json("space_allocation").notNull(),
   totalCost: real("total_cost"),
+  localCurrencyCode: text("local_currency_code").default("USD"),
+  localCurrencyRate: real("local_currency_rate"),
+  localCurrencyTotalCost: real("local_currency_total_cost"),
   costsBreakdown: json("costs_breakdown"),
   status: text("status").default("draft").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
