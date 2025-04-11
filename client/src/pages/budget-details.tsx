@@ -19,14 +19,17 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
   const [importingCurrency, setImportingCurrency] = useState(false);
   
   // Fetch budget details
-  const { data: budget, isLoading: budgetLoading } = useQuery({
+  const { data: budget, isLoading: budgetLoading } = useQuery<Budget>({
     queryKey: [`/api/budgets/${budgetId}`],
   });
   
   // Fetch project details when budget is loaded
-  const { data: projectData, isLoading: projectLoading } = useQuery({
-    queryKey: budget ? [`/api/projects/${budget.projectId}`] : null,
-    enabled: !!budget,
+  const projectQueryEnabled = !!budget && typeof budget.projectId === 'number';
+  const projectQueryKey = projectQueryEnabled ? [`/api/projects/${budget.projectId}`] : ['disabled-project-query'];
+  
+  const { data: projectData, isLoading: projectLoading } = useQuery<Project>({
+    queryKey: projectQueryKey,
+    enabled: projectQueryEnabled,
   });
   
   // Set project when data is loaded
@@ -49,6 +52,39 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
         description: `Budget exported successfully in ${format.toUpperCase()} format.`,
       });
     }, 1500);
+  };
+  
+  const handleImportCurrencyRates = async () => {
+    setImportingCurrency(true);
+    
+    try {
+      const response = await fetch('/api/admin/import-currency-rates', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Import failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      toast({
+        title: "Success",
+        description: `Currency rates imported successfully. Imported ${result.count} currency rates.`,
+      });
+      
+      // Refresh the budget to get updated currency data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error importing currency rates:', error);
+      toast({
+        title: "Error",
+        description: `Failed to import currency rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setImportingCurrency(false);
+    }
   };
   
   if (budgetLoading || projectLoading) {
@@ -168,10 +204,10 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
               budgetBreakdown={budget.costsBreakdown}
               totalCost={budget.totalCost}
               currency={project?.currency || 'USD'}
-              localCurrencyCode={budget.localCurrencyCode}
-              localCurrencyRate={budget.localCurrencyRate}
-              localCurrencyTotalCost={budget.localCurrencyTotalCost}
-              localCurrencyCostsBreakdown={budget.localCurrencyCostsBreakdown}
+              localCurrencyCode={budget.localCurrencyCode ? budget.localCurrencyCode : undefined}
+              localCurrencyRate={budget.localCurrencyRate ? budget.localCurrencyRate : undefined}
+              localCurrencyTotalCost={budget.localCurrencyTotalCost ? budget.localCurrencyTotalCost : undefined}
+              localCurrencyCostsBreakdown={budget.costsBreakdown ? budget.costsBreakdown : undefined}
             />
           ) : (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
@@ -186,7 +222,8 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
       </div>
       
       {/* Space Allocation */}
-      {budget.spaceAllocation && Object.keys(budget.spaceAllocation).length > 0 && project && (
+      {budget.spaceAllocation && typeof budget.spaceAllocation === 'object' && 
+      Object.keys(budget.spaceAllocation as object).length > 0 && project && (
         <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
           <div className="p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Space Allocation</h2>
@@ -244,6 +281,55 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
           </div>
         </div>
       )}
+      
+      {/* Currency Tools */}
+      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Currency Tools</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Import Currency Rates</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Import 2025 FX rate data from Excel to enable local currency conversion.
+              </p>
+              <button
+                onClick={handleImportCurrencyRates}
+                disabled={importingCurrency}
+                className={`px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  importingCurrency ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {importingCurrency ? (
+                  <>
+                    <svg className="inline-block animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Importing...
+                  </>
+                ) : (
+                  'Import Currency Rates'
+                )}
+              </button>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Current Currency</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                {budget.localCurrencyCode ? (
+                  <>
+                    Local currency is set to <span className="font-semibold">{budget.localCurrencyCode}</span>
+                    {budget.localCurrencyRate && (
+                      <> at rate of <span className="font-semibold">{budget.localCurrencyRate.toFixed(4)}</span> per USD</>
+                    )}
+                  </>
+                ) : (
+                  'No local currency is currently set. Import currency rates to enable dual currency support.'
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
       
       {/* Actions */}
       <div className="flex justify-between">

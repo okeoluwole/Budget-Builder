@@ -8,9 +8,10 @@ import { importFitoutCostsFromExcel } from "./utils/databaseImport";
 import { parseExcelFile } from "./utils/excelReader";
 import { db } from "./db";
 import { 
-  fitoutCosts, specifications, layoutTemplates, budgetTemplates 
+  fitoutCosts, specifications, layoutTemplates, budgetTemplates, currencyRates
 } from "@shared/schema";
 import chatRoutes from './routes/chat';
+import { importCurrencyRatesFromExcel, getAllCurrencyRates } from './utils/currencyImport';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes with /api prefix
