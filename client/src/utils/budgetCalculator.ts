@@ -135,6 +135,9 @@ export const calculateBudget = async ({
     let localCurrencyTotalCost: number | undefined;
     let localCurrencyCostsBreakdown: { [key: string]: number } | undefined;
     
+    console.log("Budget Calculator - Looking for currency:", localCurrencyCode);
+    console.log("Project country:", project.country);
+    
     if (localCurrencyCode && localCurrencyCode !== 'USD') {
       try {
         // Fetch currency rates if not already cached
@@ -143,6 +146,7 @@ export const calculateBudget = async ({
           const ratesRes = await apiRequest('GET', '/api/currency-rates', undefined);
           const ratesData = await ratesRes.json();
           cachedCurrencyRates = ratesData;
+          console.log("Cache updated with currency rates:", cachedCurrencyRates.length);
         }
         
         // Find the exchange rate for the selected currency
@@ -150,12 +154,16 @@ export const calculateBudget = async ({
           rate.currencyCode === localCurrencyCode
         );
         
+        console.log("Currency data found:", currencyData);
+        
         if (currencyData) {
           localCurrencyRate = parseFloat(currencyData.exchangeRate.toString());
+          console.log("Applied exchange rate:", localCurrencyRate);
           
           // Convert USD to local currency
           if (localCurrencyRate > 0) {
             localCurrencyTotalCost = parseFloat((inflatedTotalCost * localCurrencyRate).toFixed(2));
+            console.log("Local currency total:", localCurrencyTotalCost);
             
             // Convert cost breakdown to local currency
             localCurrencyCostsBreakdown = {};

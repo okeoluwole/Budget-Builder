@@ -37,20 +37,53 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         const ratesRes = await apiRequest('GET', '/api/currency-rates', undefined);
         const ratesData = await ratesRes.json();
         
-        // Find currency for the project country
+        console.log("Available currency rates:", ratesData.map(r => r.country));
+        console.log("Project country:", state.project?.country);
+        
+        // Find currency for the project country - case insensitive
         const countryCurrency = ratesData.find((rate: any) => 
           rate.country.toLowerCase() === state.project?.country.toLowerCase()
         );
         
         if (countryCurrency) {
-          console.log("Found currency for country:", countryCurrency);
+          console.log("Found exact currency match for country:", countryCurrency);
           setLocalCurrencyCode(countryCurrency.currencyCode);
           setLocalCurrencyRate(parseFloat(countryCurrency.exchangeRate.toString()));
         } else {
-          console.log("No currency found for country:", state.project?.country);
+          console.log("No exact currency match found for country:", state.project?.country);
+          
+          // Try common country matches
+          const countryMappings: Record<string, string> = {
+            'germany': 'EURO',
+            'france': 'EURO',
+            'italy': 'EURO',
+            'spain': 'EURO',
+            'ireland': 'EURO',
+            'united kingdom': 'UNITED KINGDOM',
+            'uk': 'UNITED KINGDOM',
+            'united states': 'UNITED STATES',
+            'usa': 'UNITED STATES',
+            'canada': 'CANADA',
+            'australia': 'AUSTRALIA',
+            'japan': 'JAPAN'
+          };
+          
+          const mappedCountry = countryMappings[state.project?.country.toLowerCase()];
+          
+          if (mappedCountry) {
+            const mappedMatch = ratesData.find((rate: any) => 
+              rate.country.toLowerCase() === mappedCountry.toLowerCase()
+            );
+            
+            if (mappedMatch) {
+              console.log("Found mapped currency match:", mappedMatch);
+              setLocalCurrencyCode(mappedMatch.currencyCode);
+              setLocalCurrencyRate(parseFloat(mappedMatch.exchangeRate.toString()));
+              return;
+            }
+          }
           
           // If no exact match for country name is found, try a partial match
-          // This allows for variations in country name formatting
           const partialMatch = ratesData.find((rate: any) => 
             state.project?.country.toLowerCase().includes(rate.country.toLowerCase()) ||
             rate.country.toLowerCase().includes(state.project?.country.toLowerCase())
@@ -61,6 +94,17 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
             setLocalCurrencyCode(partialMatch.currencyCode);
             setLocalCurrencyRate(parseFloat(partialMatch.exchangeRate.toString()));
           } else {
+            // Try find currency by code if country is a currency zone
+            if (state.project?.country.toLowerCase() === 'eurozone') {
+              const euroMatch = ratesData.find((rate: any) => rate.currencyCode === 'EUR');
+              if (euroMatch) {
+                console.log("Found Eurozone currency match:", euroMatch);
+                setLocalCurrencyCode(euroMatch.currencyCode);
+                setLocalCurrencyRate(parseFloat(euroMatch.exchangeRate.toString()));
+                return;
+              }
+            }
+            
             console.log("No currency match found for country:", state.project?.country);
             // Default to USD if no match found
             setLocalCurrencyCode(null);

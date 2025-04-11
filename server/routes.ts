@@ -464,11 +464,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'No currency rates found in database' });
       }
       
+      console.log("Returning currency rates:", currencyRates.length);
+      console.log("Sample EUR:", currencyRates.find((rate: any) => rate.currencyCode === 'EUR'));
+      console.log("Sample GBP:", currencyRates.find((rate: any) => rate.currencyCode === 'GBP'));
+      
       res.json(currencyRates);
     } catch (error: any) {
       console.error('Error fetching currency rates:', error);
       res.status(500).json({ 
         message: 'Failed to fetch currency rates', 
+        error: error.message
+      });
+    }
+  });
+  
+  // Debug currency rates for a specific country
+  app.get('/api/currency-rates/:code', async (req, res) => {
+    try {
+      const { code } = req.params;
+      const { getCurrencyExchangeRate } = await import('./utils/currencyImport');
+      
+      const rate = await getCurrencyExchangeRate(code.toUpperCase());
+      
+      if (rate === null) {
+        return res.status(404).json({ message: `Currency code ${code} not found` });
+      }
+      
+      res.json({ code: code.toUpperCase(), rate });
+    } catch (error: any) {
+      console.error(`Error fetching currency rate for ${req.params.code}:`, error);
+      res.status(500).json({ 
+        message: 'Failed to fetch currency rate', 
         error: error.message
       });
     }
