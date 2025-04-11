@@ -34,9 +34,9 @@ const BudgetsList: React.FC<BudgetsListProps> = ({ budgets, loading }) => {
           <p className="mt-1 text-sm text-gray-500">Get started by creating a new budget.</p>
           <div className="mt-4">
             <Link href="/new-budget">
-              <a className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+              <div className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary cursor-pointer">
                 Create New Budget
-              </a>
+              </div>
             </Link>
           </div>
         </div>
@@ -126,7 +126,7 @@ const BudgetsList: React.FC<BudgetsListProps> = ({ budgets, loading }) => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <Link href={`/budget/${budget.id}`}>
-                    <a className="text-primary hover:text-primary-dark">{getActionText(budget.status)}</a>
+                    <div className="text-primary hover:text-primary-dark cursor-pointer">{getActionText(budget.status)}</div>
                   </Link>
                 </td>
               </tr>

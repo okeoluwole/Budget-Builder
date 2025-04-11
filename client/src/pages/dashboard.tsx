@@ -11,11 +11,11 @@ const Dashboard: React.FC = () => {
   const [projectBudgetCounts, setProjectBudgetCounts] = useState<Record<number, number>>({});
   const [latestBudgetTotals, setLatestBudgetTotals] = useState<Record<number, number>>({});
   
-  const { data: projects, isLoading: projectsLoading } = useQuery({ 
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({ 
     queryKey: ['/api/projects']
   });
   
-  const { data: budgets, isLoading: budgetsLoading } = useQuery({ 
+  const { data: budgets = [], isLoading: budgetsLoading } = useQuery<Budget[]>({ 
     queryKey: ['/api/budgets']
   });
 
@@ -71,14 +71,14 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
         <Link href="/new-budget">
-          <a className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+          <div className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer">
             <span className="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               Create New Budget
             </span>
-          </a>
+          </div>
         </Link>
       </div>
 
@@ -184,9 +184,9 @@ const Dashboard: React.FC = () => {
       {!budgetsLoading && recentBudgets.length > 0 && (
         <div className="mt-4 text-right">
           <Link href="/projects">
-            <a className="text-primary hover:text-primary-dark font-medium text-sm">
+            <div className="text-primary hover:text-primary-dark font-medium text-sm cursor-pointer inline-block">
               View All Projects →
-            </a>
+            </div>
           </Link>
         </div>
       )}

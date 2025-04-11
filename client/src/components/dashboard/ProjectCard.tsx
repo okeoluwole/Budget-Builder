@@ -67,15 +67,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         
         <div className="flex justify-between items-center pt-3 border-t border-gray-200">
           <Link href={`/projects/${project.id}`}>
-            <a className="text-sm text-primary hover:text-primary-dark font-medium">
+            <div className="text-sm text-primary hover:text-primary-dark font-medium cursor-pointer">
               View Details
-            </a>
+            </div>
           </Link>
           
           <Link href={`/new-budget?projectId=${project.id}`}>
-            <a className="text-sm bg-white text-primary hover:bg-gray-50 font-medium px-3 py-1 rounded border border-primary">
+            <div className="text-sm bg-white text-primary hover:bg-gray-50 font-medium px-3 py-1 rounded border border-primary cursor-pointer">
               New Budget
-            </a>
+            </div>
           </Link>
         </div>
       </div>
