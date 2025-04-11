@@ -15,14 +15,30 @@ export const formatCurrency = (
   }
 
   try {
-    const formatter = new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      ...options
-    });
-    return formatter.format(value);
+    // Custom format to match the screenshot, with currency code at start
+    if (currencyCode === 'USD') {
+      return `US$${value.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        ...options
+      })}`;
+    } else if (currencyCode === 'EUR') {
+      return `€${value.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        ...options
+      })}`;
+    } else {
+      // Fall back to standard formatter for other currencies
+      const formatter = new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        ...options
+      });
+      return formatter.format(value);
+    }
   } catch (error) {
     console.error('Error formatting currency:', error);
     return `${currencyCode} ${value.toLocaleString()}`;
