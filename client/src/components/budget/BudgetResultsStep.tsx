@@ -35,6 +35,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
       try {
         // Map countries to their ISO currency codes
         const countryToCurrency: Record<string, string> = {
+          // Europe
           'Austria': 'EUR',
           'Belgium': 'EUR',
           'Bulgaria': 'BGN',
@@ -65,8 +66,13 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           'United Kingdom': 'GBP',
           'Switzerland': 'CHF',
           'Norway': 'NOK',
+          
+          // North America
           'United States': 'USD',
           'Canada': 'CAD',
+          'Mexico': 'MXN',
+          
+          // Asia Pacific
           'Australia': 'AUD',
           'New Zealand': 'NZD',
           'Japan': 'JPY',
@@ -74,11 +80,39 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           'Singapore': 'SGD',
           'Hong Kong': 'HKD',
           'India': 'INR',
+          'Indonesia': 'IDR',
+          'Malaysia': 'MYR',
+          'Philippines': 'PHP',
+          'South Korea': 'KRW',
+          'Taiwan': 'TWD',
+          'Thailand': 'THB',
+          'Vietnam': 'VND',
+          
+          // South America
           'Brazil': 'BRL',
-          'Mexico': 'MXN',
+          'Argentina': 'ARS',
+          'Chile': 'CLP',
+          'Colombia': 'COP',
+          'Peru': 'PEN',
+          'Venezuela': 'VES',
+          
+          // Africa
           'South Africa': 'ZAR',
-          'Russia': 'RUB',
-          'Argentina': 'ARS'
+          'Nigeria': 'NGN',
+          'Egypt': 'EGP',
+          'Kenya': 'KES',
+          'Morocco': 'MAD',
+          'Ghana': 'GHS',
+          
+          // Middle East
+          'Saudi Arabia': 'SAR',
+          'United Arab Emirates': 'AED',
+          'Qatar': 'QAR',
+          'Israel': 'ILS',
+          'Turkey': 'TRY',
+          
+          // Other
+          'Russia': 'RUB'
         };
         
         const currencyCode = countryToCurrency[state.project.country] || 'USD';
@@ -360,24 +394,14 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
               <div className="bg-gray-100 p-6 rounded-lg mb-6 text-center">
                 <h3 className="text-lg font-medium text-gray-700 mb-2">Total Budget Estimate</h3>
                 
-                {/* Debug local currency information */}
-                <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-left">
-                  <div>Debug Info:</div>
-                  <div>Country: {state.project?.country}</div>
-                  <div>Currency Code: {localCurrencyCode || 'None'}</div>
-                  <div>Exchange Rate: {localCurrencyRate || 'N/A'}</div>
-                </div>
-                
                 <div className="text-4xl font-bold text-gray-900 mb-2">
                   {formatCurrency(totalCost, 'USD')}
                 </div>
                 
-                {/* This is just for debugging, will be removed */}
-                
-                {/* Dynamic values from state - should match one of the above */}
+                {/* Show only the local currency conversion for the selected country */}
                 {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                  <div className="text-2xl font-bold text-gray-700 mb-2 border-t pt-2 border-gray-300">
-                    Dynamic: {formatCurrency(totalCost * localCurrencyRate, localCurrencyCode)}
+                  <div className="text-2xl font-bold text-gray-700 mb-2">
+                    {formatCurrency(totalCost * localCurrencyRate, localCurrencyCode)}
                   </div>
                 )}
                 
