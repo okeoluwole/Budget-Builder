@@ -22,9 +22,8 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
   localCurrencyCostsBreakdown
 }) => {
   const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
-  const [showLocalCurrency, setShowLocalCurrency] = useState<boolean>(
-    Boolean(localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && localCurrencyTotalCost)
-  );
+  // Always show both currencies side by side
+  const hasLocalCurrency = Boolean(localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && localCurrencyTotalCost);
   
   if (!budgetBreakdown || !totalCost) {
     return null;
@@ -93,19 +92,11 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
             Bar Chart
           </button>
           
-          {/* Currency toggle button - only show if local currency is available */}
-          {localCurrencyCode && localCurrencyCode !== currency && localCurrencyRate && localCurrencyTotalCost && (
-            <button
-              type="button"
-              className={`px-3 py-1 text-xs font-medium rounded-md ml-2 ${
-                showLocalCurrency 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'bg-blue-600 text-white'
-              }`}
-              onClick={() => setShowLocalCurrency((prev) => !prev)}
-            >
-              {showLocalCurrency ? localCurrencyCode : currency}
-            </button>
+          {/* Display currency information if local currency is available */}
+          {hasLocalCurrency && (
+            <div className="px-3 py-1 ml-2 text-xs font-medium bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-md">
+              {currency} / {localCurrencyCode}
+            </div>
           )}
         </div>
       </div>
