@@ -4,6 +4,17 @@ import { storage } from "./storage";
 import fs from "fs";
 import path from "path";
 import { FitoutCostData, SpecificationData, BudgetCategory } from "@shared/schema";
+import { 
+  importFitoutCostsFromExcel, 
+  importSpecificationsToDb, 
+  importLayoutTemplatesToDb, 
+  importBudgetTemplateToDb,
+  initializeDatabase
+} from "./utils/databaseImport";
+import { db } from "./db";
+import { 
+  fitoutCosts, specifications, layoutTemplates, budgetTemplates 
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes with /api prefix
