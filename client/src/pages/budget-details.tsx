@@ -207,7 +207,7 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
               localCurrencyCode={budget.localCurrencyCode ? budget.localCurrencyCode : undefined}
               localCurrencyRate={budget.localCurrencyRate ? budget.localCurrencyRate : undefined}
               localCurrencyTotalCost={budget.localCurrencyTotalCost ? budget.localCurrencyTotalCost : undefined}
-              localCurrencyCostsBreakdown={budget.costsBreakdown ? budget.costsBreakdown : undefined}
+              localCurrencyCostsBreakdown={budget.costsBreakdown ? budget.costsBreakdown as { [key: string]: number } : undefined}
             />
           ) : (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
@@ -223,7 +223,7 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
       
       {/* Space Allocation */}
       {budget.spaceAllocation && typeof budget.spaceAllocation === 'object' && 
-      Object.keys(budget.spaceAllocation as object).length > 0 && project && (
+      Object.keys(budget.spaceAllocation as Record<string, {percentage: number, area: number}>).length > 0 && project && (
         <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
           <div className="p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Space Allocation</h2>
