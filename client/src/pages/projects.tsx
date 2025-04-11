@@ -9,13 +9,15 @@ const Projects: React.FC = () => {
   const [latestBudgetTotals, setLatestBudgetTotals] = useState<Record<number, number>>({});
   
   // Fetch all projects
-  const { data: projects, isLoading: projectsLoading } = useQuery({ 
-    queryKey: ['/api/projects']
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({ 
+    queryKey: ['/api/projects'],
+    staleTime: 30000 // 30 seconds
   });
   
   // Fetch all budgets
-  const { data: budgets, isLoading: budgetsLoading } = useQuery({ 
-    queryKey: ['/api/budgets']
+  const { data: budgets = [], isLoading: budgetsLoading } = useQuery<Budget[]>({ 
+    queryKey: ['/api/budgets'],
+    staleTime: 30000 // 30 seconds
   });
 
   // Process budget data when loaded
@@ -52,14 +54,14 @@ const Projects: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">All Projects</h1>
         <Link href="/new-budget">
-          <a className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+          <div className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer">
             <span className="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               Create New Budget
             </span>
-          </a>
+          </div>
         </Link>
       </div>
       
@@ -92,9 +94,9 @@ const Projects: React.FC = () => {
           <p className="mt-2 text-gray-600">Get started by creating a new project with a budget.</p>
           <div className="mt-6">
             <Link href="/new-budget">
-              <a className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+              <div className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary cursor-pointer">
                 Create New Budget
-              </a>
+              </div>
             </Link>
           </div>
         </div>

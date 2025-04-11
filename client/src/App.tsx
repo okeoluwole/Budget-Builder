@@ -10,6 +10,7 @@ import Projects from "@/pages/projects";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import AppLayout from "@/components/layouts/AppLayout";
+import { BudgetProvider } from "@/contexts/BudgetContext";
 
 function Router() {
   return (
@@ -28,10 +29,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppLayout>
-        <Router />
-      </AppLayout>
-      <Toaster />
+      <BudgetProvider>
+        <AppLayout>
+          <Router />
+        </AppLayout>
+        <Toaster />
+      </BudgetProvider>
     </QueryClientProvider>
   );
 }
