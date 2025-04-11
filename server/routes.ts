@@ -10,6 +10,7 @@ import { db } from "./db";
 import { 
   fitoutCosts, specifications, layoutTemplates, budgetTemplates 
 } from "@shared/schema";
+import chatRoutes from './routes/chat';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes with /api prefix

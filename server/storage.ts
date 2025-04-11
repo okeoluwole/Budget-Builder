@@ -1,11 +1,13 @@
 import { 
-  users, projects, budgets,
+  users, projects, budgets, chatSessions, chatMessages,
   type User, type InsertUser,
   type Project, type InsertProject,
-  type Budget, type InsertBudget
+  type Budget, type InsertBudget,
+  type ChatSession, type InsertChatSession,
+  type ChatMessage, type InsertChatMessage
 } from "@shared/schema";
 import { db } from './db';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 // Interface for storage operations
 export interface IStorage {
