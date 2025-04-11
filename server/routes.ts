@@ -100,35 +100,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Fitout cost data
-  app.get('/api/fitout-costs', (req, res) => {
+  // Fitout cost data from database
+  app.get('/api/fitout-costs', async (req, res) => {
     try {
-      const dataPath = path.join(process.cwd(), 'data', 'fitout_costs.json');
-      if (!fs.existsSync(dataPath)) {
-        return res.status(404).json({ message: 'Fitout cost data not found' });
+      // Get all fitout cost records from the database
+      const records = await db.select().from(fitoutCosts);
+      
+      if (records.length === 0) {
+        return res.status(404).json({ message: 'No fitout cost data found in database' });
       }
       
-      const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as FitoutCostData[];
+      // Transform database records to FitoutCostData format
+      const data: FitoutCostData[] = records.map(record => ({
+        country: record.country,
+        city: record.city,
+        region: record.region,
+        costs: {
+          sqm: {
+            Activity: {
+              Low: parseFloat(record.activityLowSqm || '0'),
+              Medium: parseFloat(record.activityMediumSqm || '0'),
+              High: parseFloat(record.activityHighSqm || '0')
+            },
+            Team: {
+              Low: parseFloat(record.teamLowSqm || '0'),
+              Medium: parseFloat(record.teamMediumSqm || '0'),
+              High: parseFloat(record.teamHighSqm || '0')
+            },
+            Event: {
+              Low: parseFloat(record.eventLowSqm || '0'),
+              Medium: parseFloat(record.eventMediumSqm || '0'),
+              High: parseFloat(record.eventHighSqm || '0')
+            }
+          },
+          sqft: {
+            Activity: {
+              Low: parseFloat(record.activityLowSqft || '0'),
+              Medium: parseFloat(record.activityMediumSqft || '0'),
+              High: parseFloat(record.activityHighSqft || '0')
+            },
+            Team: {
+              Low: parseFloat(record.teamLowSqft || '0'),
+              Medium: parseFloat(record.teamMediumSqft || '0'),
+              High: parseFloat(record.teamHighSqft || '0')
+            },
+            Event: {
+              Low: parseFloat(record.eventLowSqft || '0'),
+              Medium: parseFloat(record.eventMediumSqft || '0'),
+              High: parseFloat(record.eventHighSqft || '0')
+            }
+          }
+        },
+        locationFactors: {
+          EMEA: parseFloat(record.locationFactorEMEA || '1.0'),
+          AMERICA: parseFloat(record.locationFactorAMERICA || '1.0'),
+          APAC: parseFloat(record.locationFactorAPAC || '1.0')
+        }
+      }));
+      
       res.json(data);
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to fetch fitout cost data' });
+    } catch (error: any) {
+      console.error('Error fetching fitout cost data:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch fitout cost data',
+        error: error.message
+      });
     }
   });
 
-  // Countries and cities
-  app.get('/api/locations', (req, res) => {
+  // Countries and cities from database
+  app.get('/api/locations', async (req, res) => {
     try {
-      const dataPath = path.join(process.cwd(), 'data', 'fitout_costs.json');
-      if (!fs.existsSync(dataPath)) {
-        return res.status(404).json({ message: 'Location data not found' });
-      }
+      // Get all fitout cost records from the database
+      const records = await db.select().from(fitoutCosts);
       
-      const fitoutData = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as FitoutCostData[];
+      if (records.length === 0) {
+        return res.status(404).json({ message: 'No location data found in database' });
+      }
       
       // Extract unique countries and their cities
       const locations: { [country: string]: string[] } = {};
       
-      fitoutData.forEach(item => {
+      records.forEach(item => {
         if (!locations[item.country]) {
           locations[item.country] = [];
         }
@@ -137,39 +190,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      res.json(locations);
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to fetch locations' });
+      // Sort countries and cities alphabetically
+      const sortedLocations: { [country: string]: string[] } = {};
+      Object.keys(locations).sort().forEach(country => {
+        sortedLocations[country] = locations[country].sort();
+      });
+      
+      res.json(sortedLocations);
+    } catch (error: any) {
+      console.error('Error fetching locations:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch locations',
+        error: error.message
+      });
     }
   });
 
-  // Specifications
-  app.get('/api/specifications', (req, res) => {
+  // Specifications from database
+  app.get('/api/specifications', async (req, res) => {
     try {
-      const dataPath = path.join(process.cwd(), 'data', 'specifications.json');
-      if (!fs.existsSync(dataPath)) {
-        return res.status(404).json({ message: 'Specifications data not found' });
+      // Get all specification records from the database
+      const records = await db.select().from(specifications);
+      
+      if (records.length === 0) {
+        // Fall back to JSON file if no database records
+        const dataPath = path.join(process.cwd(), 'data', 'specifications.json');
+        if (!fs.existsSync(dataPath)) {
+          return res.status(404).json({ message: 'Specifications data not found' });
+        }
+        
+        const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as SpecificationData[];
+        return res.json(data);
       }
       
-      const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as SpecificationData[];
+      // Transform database records to SpecificationData format
+      const data: SpecificationData[] = records.map(record => ({
+        name: record.name as Specification,
+        description: record.description,
+        walls: record.walls,
+        partitions: {
+          type: record.partitionType,
+          acousticRating: record.partitionAcousticRating,
+          costFactor: parseFloat(record.partitionCostFactor)
+        },
+        flooring: record.flooring,
+        ceiling: record.ceiling,
+        furniture: {
+          desks: record.furnitureDesks,
+          chairs: record.furnitureChairs,
+          storage: record.furnitureStorage
+        },
+        technology: {
+          av: record.technologyAV,
+          security: record.technologySecurity
+        },
+        fittings: record.fittings,
+        recommendedFor: record.recommendedFor
+      }));
+      
       res.json(data);
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to fetch specifications' });
+    } catch (error: any) {
+      console.error('Error fetching specifications:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch specifications',
+        error: error.message
+      });
     }
   });
 
-  // Budget template structure
-  app.get('/api/budget-template', (req, res) => {
+  // Budget template structure from database
+  app.get('/api/budget-template', async (req, res) => {
     try {
-      const dataPath = path.join(process.cwd(), 'data', 'budget_template_structure.json');
-      if (!fs.existsSync(dataPath)) {
-        return res.status(404).json({ message: 'Budget template structure not found' });
+      // Get budget template from the database
+      const records = await db.select().from(budgetTemplates);
+      
+      if (records.length === 0) {
+        // Fall back to JSON file if no database records
+        const dataPath = path.join(process.cwd(), 'data', 'budget_template_structure.json');
+        if (!fs.existsSync(dataPath)) {
+          return res.status(404).json({ message: 'Budget template structure not found' });
+        }
+        
+        const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as BudgetCategory[];
+        return res.json(data);
       }
       
-      const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as BudgetCategory[];
+      // Use the first template
+      const template = records[0];
+      const data = template.structure as BudgetCategory[];
+      
       res.json(data);
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to fetch budget template structure' });
+    } catch (error: any) {
+      console.error('Error fetching budget template structure:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch budget template structure',
+        error: error.message
+      });
     }
   });
 

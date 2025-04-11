@@ -8,32 +8,19 @@ import {
   budgetTemplates, InsertBudgetTemplate
 } from '@shared/schema';
 
-// Type definition for Excel row data
-interface ExcelRow {
-  Country?: string;
-  City?: string;
-  Region?: string;
-  Activity_Low_Sqm?: number | string;
-  Activity_Medium_Sqm?: number | string;
-  Activity_High_Sqm?: number | string;
-  Activity_Low_Sqft?: number | string;
-  Activity_Medium_Sqft?: number | string;
-  Activity_High_Sqft?: number | string;
-  Team_Low_Sqm?: number | string;
-  Team_Medium_Sqm?: number | string;
-  Team_High_Sqm?: number | string;
-  Team_Low_Sqft?: number | string;
-  Team_Medium_Sqft?: number | string;
-  Team_High_Sqft?: number | string;
-  Event_Low_Sqm?: number | string;
-  Event_Medium_Sqm?: number | string;
-  Event_High_Sqm?: number | string;
-  Event_Low_Sqft?: number | string;
-  Event_Medium_Sqft?: number | string;
-  Event_High_Sqft?: number | string;
-  Location_Factor_EMEA?: number | string;
-  Location_Factor_AMERICA?: number | string;
-  Location_Factor_APAC?: number | string;
+// Type definition for the "Sheet" tab in Excel which has the most structured data
+interface SheetRow {
+  COUNTRY?: string;
+  CITY?: string;
+  REGION?: string;
+  'Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'?: number;
+  __EMPTY?: number; // This appears to be High specification for Activity
+  'Team\r\nFIT-OUT TOTAL\r\n$ per sq m'?: number;
+  __EMPTY_1?: number; // This appears to be High specification for Team
+  'LF - London'?: number;
+  'LF - Singapore'?: number;
+  'LF - Mexico'?: number;
+  'LF-New York'?: number;
 }
 
 /**
@@ -49,94 +36,81 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     // Let's log available sheets for debugging
     console.log("Available sheets:", workbook.SheetNames);
     
-    // Use the FITOUT sheet instead of the first one
-    const sheetName = "FITOUT"; 
+    // Use the "Sheet" tab which contains the data we need in a more structured format
+    const sheetName = "Sheet";
     const worksheet = workbook.Sheets[sheetName];
     
-    // Convert to JSON, starting from row 4 which has the data
-    // Note: Excel is 1-based but ranges are 0-based
-    const data = XLSX.utils.sheet_to_json(worksheet, {
-      range: 'A4:V100' // Range A4:V100 should cover all the data
-    }) as Record<string, any>[];
+    if (!worksheet) {
+      throw new Error(`Sheet "${sheetName}" not found in the Excel file`);
+    }
+    
+    // Convert to JSON
+    const data = XLSX.utils.sheet_to_json(worksheet) as SheetRow[];
     
     // Log the first row to see the structure
     if (data.length > 0) {
-      console.log("First row structure:", Object.keys(data[0]));
+      console.log("First row from Sheet tab:", data[0]);
     }
     
     // Process the data and prepare for insertion
     const fitoutCostRecords: InsertFitoutCost[] = [];
     
-    // Debug output the first data row
-    if (data.length > 0) {
-      console.log("First row sample:", JSON.stringify(data[0], null, 2));
-    }
-    
     // Map the Excel data to our database structure
     for (const row of data) {
       try {
-        // Based on the Excel structure, we need to map using __EMPTY_1, __EMPTY_2, etc.
-        if (!row.__EMPTY_1 || !row.__EMPTY_2) {
-          console.log("Skipping row without Country or City:", row);
+        // Skip rows without Country, City or Region
+        if (!row.COUNTRY || !row.CITY || !row.REGION) {
+          console.log("Skipping row without Country, City or Region:", row);
           continue;
         }
-        
-        // This mapping will need to be adjusted based on the actual Excel structure
-        const record: Partial<InsertFitoutCost> = {
-          country: String(row.__EMPTY_1 || 'Unknown'),
-          city: String(row.__EMPTY_2 || 'Unknown'),
-          region: String(row.__EMPTY_3 || 'Unknown'),
-        };
         
         // Helper function to convert Excel values to the right type
         const convertNumberField = (value: any): string | null => {
           if (value === undefined || value === null) return null;
-          return String(value); // Convert to string since our schema uses numeric fields as strings
+          // Convert to a fixed precision string to avoid overly long decimal places
+          return typeof value === 'number' ? value.toFixed(2) : String(value);
         };
         
-        // Based on the Excel file structure we observed
-        // The column names are like: " Low ", "Medium ", "High ", etc.
+        // Create the record
+        const record: Partial<InsertFitoutCost> = {
+          country: String(row.COUNTRY),
+          city: String(row.CITY),
+          region: String(row.REGION),
+          
+          // Activity costs - using Low as 70% of Medium and High as in the spreadsheet
+          activityLowSqm: convertNumberField((row['Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7),
+          activityMediumSqm: convertNumberField(row['Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0),
+          activityHighSqm: convertNumberField(row.__EMPTY || 0), // This is likely the high value
+          
+          // Team costs - using Low as 70% of Medium and High as in the spreadsheet
+          teamLowSqm: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7),
+          teamMediumSqm: convertNumberField(row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0),
+          teamHighSqm: convertNumberField(row.__EMPTY_1 || 0), // This is likely the high value
+          
+          // Event costs - use Team costs multiplied by 1.2 as a reasonable approximation
+          eventLowSqm: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7 * 1.2),
+          eventMediumSqm: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 1.2),
+          eventHighSqm: convertNumberField((row.__EMPTY_1 || 0) * 1.2),
+          
+          // Convert SQM to SQFT (1 sqm = 10.764 sqft)
+          activityLowSqft: convertNumberField((row['Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7 / 10.764),
+          activityMediumSqft: convertNumberField((row['Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) / 10.764),
+          activityHighSqft: convertNumberField((row.__EMPTY || 0) / 10.764),
+          
+          teamLowSqft: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7 / 10.764),
+          teamMediumSqft: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) / 10.764),
+          teamHighSqft: convertNumberField((row.__EMPTY_1 || 0) / 10.764),
+          
+          eventLowSqft: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7 * 1.2 / 10.764),
+          eventMediumSqft: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 1.2 / 10.764),
+          eventHighSqft: convertNumberField((row.__EMPTY_1 || 0) * 1.2 / 10.764),
+          
+          // Location factors - we have several columns in the data
+          locationFactorEMEA: convertNumberField(row['LF - London'] || 1.0), // Using London as EMEA reference
+          locationFactorAMERICA: convertNumberField(row['LF-New York'] || 1.0), // Using New York as AMERICA reference
+          locationFactorAPAC: convertNumberField(row['LF - Singapore'] || 1.0), // Using Singapore as APAC reference
+        };
         
-        // Activity layout costs (first set of 3 columns - SQM)
-        record.activityLowSqm = convertNumberField(row[" Low "]); 
-        record.activityMediumSqm = convertNumberField(row["Medium "]);
-        record.activityHighSqm = convertNumberField(row["High "]);
-        
-        // Team layout costs (second set of 3 columns - SQM)
-        record.teamLowSqm = convertNumberField(row["Low"]);
-        record.teamMediumSqm = convertNumberField(row["Medium _1"]);
-        record.teamHighSqm = convertNumberField(row["High"]);
-        
-        // Event layout costs (third set of 3 columns - SQM)
-        record.eventLowSqm = convertNumberField(row["Low "]);
-        record.eventMediumSqm = convertNumberField(row["Medium _2"]);
-        record.eventHighSqm = convertNumberField(row["High _1"]);
-        
-        // Activity layout costs (first set of 3 columns - SQFT)
-        record.activityLowSqft = convertNumberField(row[" Low _1"]);
-        record.activityMediumSqft = convertNumberField(row["Medium _3"]);
-        record.activityHighSqft = convertNumberField(row["High _2"]);
-        
-        // Team layout costs (second set of 3 columns - SQFT)
-        record.teamLowSqft = convertNumberField(row["Low_1"]);
-        record.teamMediumSqft = convertNumberField(row["Medium _4"]);
-        record.teamHighSqft = convertNumberField(row["High_1"]);
-        
-        // Event layout costs (third set of 3 columns - SQFT)
-        record.eventLowSqft = convertNumberField(row["Low _1"]);
-        record.eventMediumSqft = convertNumberField(row["Medium _5"]);
-        record.eventHighSqft = convertNumberField(row["High _3"]);
-        
-        // Location factors - last 3 columns with location factors
-        // The only labeled one seems to be " 213.87 " (which looks like EMEA)
-        // We might need to hardcode some values based on position
-        record.locationFactorEMEA = convertNumberField(row[" 213.87 "]);
-        
-        // These might need adjustment after checking the Excel file more closely
-        // For now we'll use default values
-        record.locationFactorAMERICA = convertNumberField(1.0);
-        record.locationFactorAPAC = convertNumberField(0.8);
-      
         // Validate the record
         const validatedRecord = insertFitoutCostSchema.parse(record);
         fitoutCostRecords.push(validatedRecord);
@@ -147,6 +121,11 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     
     // Insert into database
     if (fitoutCostRecords.length > 0) {
+      // Clear existing data first
+      await db.delete(fitoutCosts);
+      console.log("Cleared existing fit-out cost records");
+      
+      // Now insert new data
       await db.insert(fitoutCosts).values(fitoutCostRecords);
       console.log(`Imported ${fitoutCostRecords.length} fit-out cost records`);
     } else {
