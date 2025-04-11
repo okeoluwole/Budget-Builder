@@ -22,6 +22,40 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
   const [budgetTemplateStructure, setBudgetTemplateStructure] = useState<BudgetCategory[]>([]);
   const [budgetBreakdown, setBudgetBreakdown] = useState<any>(null);
   const [totalCost, setTotalCost] = useState<number | null>(null);
+  const [localCurrencyCode, setLocalCurrencyCode] = useState<string | null>(null);
+  const [localCurrencyRate, setLocalCurrencyRate] = useState<number | null>(null);
+  const [localCurrencyTotalCost, setLocalCurrencyTotalCost] = useState<number | null>(null);
+  const [localCurrencyCostsBreakdown, setLocalCurrencyCostsBreakdown] = useState<{[key: string]: number} | null>(null);
+
+  // Fetch currency rates for the project country
+  useEffect(() => {
+    const fetchCurrencyRate = async () => {
+      if (!state.project?.country) return;
+      
+      try {
+        // Get currency rates
+        const ratesRes = await apiRequest('GET', '/api/currency-rates', undefined);
+        const ratesData = await ratesRes.json();
+        
+        // Find currency for the project country
+        const countryCurrency = ratesData.find((rate: any) => 
+          rate.country.toLowerCase() === state.project?.country.toLowerCase()
+        );
+        
+        if (countryCurrency) {
+          console.log("Found currency for country:", countryCurrency);
+          setLocalCurrencyCode(countryCurrency.currencyCode);
+          setLocalCurrencyRate(parseFloat(countryCurrency.exchangeRate.toString()));
+        } else {
+          console.log("No currency found for country:", state.project?.country);
+        }
+      } catch (error) {
+        console.error("Error fetching currency rates:", error);
+      }
+    };
+    
+    fetchCurrencyRate();
+  }, [state.project?.country]);
 
   useEffect(() => {
     const fetchBudgetTemplate = async () => {
@@ -105,16 +139,33 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           updatedAt: new Date()
         };
         
-        const { totalCost: calculatedTotalCost, costsBreakdown } = await calculateBudget({
+        const { 
+          totalCost: calculatedTotalCost, 
+          costsBreakdown,
+          localCurrencyCode: calcLocalCurrencyCode,
+          localCurrencyRate: calcLocalCurrencyRate,
+          localCurrencyTotalCost: calcLocalCurrencyTotalCost,
+          localCurrencyCostsBreakdown: calcLocalCurrencyCostsBreakdown
+        } = await calculateBudget({
           project: projectForCalculation,
           budget: state.budget,
           budgetStructure: budgetTemplateStructure
         });
         
-        console.log("Budget calculation complete:", { totalCost: calculatedTotalCost });
+        console.log("Budget calculation complete:", { 
+          totalCost: calculatedTotalCost,
+          localCurrencyCode: calcLocalCurrencyCode,
+          localCurrencyRate: calcLocalCurrencyRate
+        });
         
         setTotalCost(calculatedTotalCost);
         setBudgetBreakdown(costsBreakdown);
+        
+        // Set local currency info if available from calculation
+        if (calcLocalCurrencyCode) setLocalCurrencyCode(calcLocalCurrencyCode);
+        if (calcLocalCurrencyRate) setLocalCurrencyRate(calcLocalCurrencyRate);
+        if (calcLocalCurrencyTotalCost) setLocalCurrencyTotalCost(calcLocalCurrencyTotalCost);
+        if (calcLocalCurrencyCostsBreakdown) setLocalCurrencyCostsBreakdown(calcLocalCurrencyCostsBreakdown);
         
         // Update context with results
         updateBudgetResults(calculatedTotalCost, costsBreakdown);
@@ -176,19 +227,37 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
             <div>
               <div className="bg-primary/10 p-4 rounded-lg mb-6 text-center">
                 <h3 className="text-lg font-medium text-gray-800 mb-2">Total Budget Estimate</h3>
-                <p className="text-3xl font-bold text-primary">
-                  {formatCurrency(totalCost, state.project?.currency || 'USD')}
-                </p>
+                <div className="text-3xl font-bold text-primary">
+                  <span>{formatCurrency(totalCost, state.project?.currency || 'USD')}</span>
+                  {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && localCurrencyTotalCost && (
+                    <span className="ml-2 text-lg text-primary/80">
+                      ({formatCurrency(localCurrencyTotalCost, localCurrencyCode)})
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500 mt-1">
                   {state.project?.totalArea?.toLocaleString()} {state.project?.areaUnit} @ 
-                  {formatCurrency(totalCost / (state.project?.totalArea || 1), state.project?.currency || 'USD')}/{state.project?.areaUnit}
+                  {formatCurrency(totalCost / (state.project?.totalArea || 1), state.project?.currency || 'USD')}
+                  {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && localCurrencyTotalCost && (
+                    <span> ({formatCurrency((localCurrencyTotalCost || 0) / (state.project?.totalArea || 1), localCurrencyCode)})</span>
+                  )}
+                  /{state.project?.areaUnit}
                 </p>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Exchange Rate: 1 USD = {localCurrencyRate.toFixed(4)} {localCurrencyCode}
+                  </p>
+                )}
               </div>
               
               <BudgetSummary 
                 budgetBreakdown={budgetBreakdown} 
                 totalCost={totalCost} 
                 currency={state.project?.currency || 'USD'} 
+                localCurrencyCode={localCurrencyCode || undefined}
+                localCurrencyRate={localCurrencyRate || undefined}
+                localCurrencyTotalCost={localCurrencyTotalCost || undefined}
+                localCurrencyCostsBreakdown={localCurrencyCostsBreakdown || undefined}
               />
               
               <div className="mt-8 border-t border-gray-200 pt-6">
@@ -213,7 +282,14 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                         </tr>
                         <tr>
                           <td className="py-1 text-gray-500">Currency:</td>
-                          <td className="py-1 font-medium">{state.project?.currency}</td>
+                          <td className="py-1 font-medium">
+                            {state.project?.currency}
+                            {localCurrencyCode && localCurrencyCode !== 'USD' && (
+                              <span className="ml-1 text-sm text-gray-500">
+                                / {localCurrencyCode}
+                              </span>
+                            )}
+                          </td>
                         </tr>
                         <tr>
                           <td className="py-1 text-gray-500">Inflation Rate:</td>
@@ -246,6 +322,11 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           <td className="py-1 text-gray-500">Rate per {state.project?.areaUnit}:</td>
                           <td className="py-1 font-medium">
                             {formatCurrency(totalCost / (state.project?.totalArea || 1), state.project?.currency || 'USD')}
+                            {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && localCurrencyTotalCost && (
+                              <span className="ml-1 text-sm text-gray-500">
+                                ({formatCurrency((localCurrencyTotalCost || 0) / (state.project?.totalArea || 1), localCurrencyCode)})
+                              </span>
+                            )}
                           </td>
                         </tr>
                       </tbody>
