@@ -49,32 +49,31 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         } else {
           console.log("No currency found for country:", state.project?.country);
           
-          // TEMPORARY: For testing - set a default local currency
-          // This ensures we can see the dual currency display in action
-          // In production, this should be removed and proper currency detection used
-          if (state.project?.country === 'United Kingdom') {
-            setLocalCurrencyCode('GBP');
-            setLocalCurrencyRate(1.27); // 2025 FX rate from the spreadsheet
-            console.log("Setting default GBP for UK");
-          } else if (state.project?.country === 'United States') {
-            // For US projects, set EUR as example secondary currency
-            setLocalCurrencyCode('EUR');
-            setLocalCurrencyRate(1.05); // 2025 FX rate from the spreadsheet
-            console.log("Setting EUR as example secondary currency for US projects");
+          // If no exact match for country name is found, try a partial match
+          // This allows for variations in country name formatting
+          const partialMatch = ratesData.find((rate: any) => 
+            state.project?.country.toLowerCase().includes(rate.country.toLowerCase()) ||
+            rate.country.toLowerCase().includes(state.project?.country.toLowerCase())
+          );
+          
+          if (partialMatch) {
+            console.log("Found partial currency match for country:", partialMatch);
+            setLocalCurrencyCode(partialMatch.currencyCode);
+            setLocalCurrencyRate(parseFloat(partialMatch.exchangeRate.toString()));
           } else {
-            // For any other country, set EUR as the default
-            setLocalCurrencyCode('EUR');
-            setLocalCurrencyRate(1.05); // 2025 FX rate from the spreadsheet
-            console.log("Setting default EUR currency");
+            console.log("No currency match found for country:", state.project?.country);
+            // Default to USD if no match found
+            setLocalCurrencyCode(null);
+            setLocalCurrencyRate(null);
           }
         }
       } catch (error) {
         console.error("Error fetching currency rates:", error);
         
-        // TEMPORARY: For testing - set a default local currency on error
-        setLocalCurrencyCode('EUR');
-        setLocalCurrencyRate(1.05); // 2025 FX rate from the spreadsheet
-        console.log("Setting default EUR currency due to API error");
+        // If there's an API error, don't set any default currency conversion
+        setLocalCurrencyCode(null);
+        setLocalCurrencyRate(null);
+        console.log("Could not fetch currency rates due to API error");
       }
     };
     
