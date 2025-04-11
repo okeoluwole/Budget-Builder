@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import fs from "fs";
 import path from "path";
-import { FitoutCostData, SpecificationData, BudgetCategory } from "@shared/schema";
+import { FitoutCostData, SpecificationData, BudgetCategory, Specification } from "@shared/schema";
 import { importFitoutCostsFromExcel } from "./utils/databaseImport";
 import { parseExcelFile } from "./utils/excelReader";
 import { db } from "./db";
