@@ -5,7 +5,7 @@ import BudgetSummary from './BudgetSummary';
 import { calculateBudget } from '@/utils/budgetCalculator';
 import { formatCurrency } from '@/utils/formatters';
 import { apiRequest } from '@/lib/queryClient';
-import { BudgetCategory } from '@shared/schema';
+import { BudgetCategory, Project } from '@shared/schema';
 
 interface BudgetResultsStepProps {
   onFinish: () => Promise<void>;
@@ -68,23 +68,56 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
 
   useEffect(() => {
     const performBudgetCalculation = async () => {
-      if (!state.project || !state.budget || loading) return;
+      // Check if we have necessary data and budget template is loaded
+      if (!state.project || !state.budget || loading || budgetTemplateStructure.length === 0) return;
+      
+      // Check if we already have results to avoid recalculating unnecessarily
+      if (totalCost !== null && budgetBreakdown !== null) return;
 
       try {
         setCalculatingBudget(true);
+        console.log("Starting budget calculation with project data:", {
+          country: state.project.country,
+          city: state.project.city,
+          layout: state.budget.layout,
+          specification: state.budget.specification
+        });
         
-        // Calculate the budget
-        const { totalCost, costsBreakdown } = await calculateBudget({
-          project: state.project,
+        // Make sure we have all required properties for project
+        if (!state.project || !state.budget) {
+          throw new Error("Missing project or budget data");
+        }
+        
+        // Calculate the budget - using savedProject if available, otherwise create a Project from InsertProject
+        const projectForCalculation = state.savedProject || {
+          id: 0, // Temporary ID for calculation
+          name: state.project.name,
+          reference: state.project.reference || null,
+          country: state.project.country,
+          city: state.project.city,
+          totalArea: state.project.totalArea,
+          areaUnit: state.project.areaUnit,
+          startDate: state.project.startDate || null,
+          currency: state.project.currency,
+          inflationRate: state.project.inflationRate || null,
+          status: state.project.status || 'draft',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        const { totalCost: calculatedTotalCost, costsBreakdown } = await calculateBudget({
+          project: projectForCalculation,
           budget: state.budget,
           budgetStructure: budgetTemplateStructure
         });
         
-        setTotalCost(totalCost);
+        console.log("Budget calculation complete:", { totalCost: calculatedTotalCost });
+        
+        setTotalCost(calculatedTotalCost);
         setBudgetBreakdown(costsBreakdown);
         
         // Update context with results
-        updateBudgetResults(totalCost, costsBreakdown);
+        updateBudgetResults(calculatedTotalCost, costsBreakdown);
       } catch (error) {
         console.error('Error calculating budget:', error);
         toast({
@@ -98,7 +131,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
     };
 
     performBudgetCalculation();
-  }, [state.project, state.budget, budgetTemplateStructure, loading, toast, updateBudgetResults]);
+  }, [state.project, state.budget, budgetTemplateStructure, loading, toast, updateBudgetResults, state.savedProject]);
 
   const handleExport = async () => {
     try {

@@ -34,6 +34,9 @@ const applyInflation = (value: number, inflationRate: number, years: number = 1)
 };
 
 // Calculate budget based on project and budget data
+// Cache for fitout costs data to avoid repeated API calls
+let cachedFitoutCostsData: FitoutCostData[] | null = null;
+
 export const calculateBudget = async ({
   project,
   budget,
@@ -44,9 +47,17 @@ export const calculateBudget = async ({
   }
 
   try {
-    // Fetch fitout cost data
-    const res = await apiRequest('GET', '/api/fitout-costs', undefined);
-    const fitoutCostsData: FitoutCostData[] = await res.json();
+    // Use cached data if available, otherwise fetch from API
+    let fitoutCostsData: FitoutCostData[];
+    if (cachedFitoutCostsData) {
+      console.log("Using cached fitout costs data");
+      fitoutCostsData = cachedFitoutCostsData;
+    } else {
+      console.log("Fetching fitout costs data from API");
+      const res = await apiRequest('GET', '/api/fitout-costs', undefined);
+      fitoutCostsData = await res.json();
+      cachedFitoutCostsData = fitoutCostsData; // Cache the results
+    }
 
     // Find location-specific cost data
     const locationData = fitoutCostsData.find(item => 
