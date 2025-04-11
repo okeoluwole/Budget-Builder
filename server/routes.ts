@@ -325,6 +325,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Initialize database with reference data
+  app.post('/api/admin/initialize-database', async (req, res) => {
+    try {
+      const { importFitoutCosts = false } = req.body;
+      
+      // Import the initialization function
+      const { initializeDatabase } = await import('./utils/databaseImport');
+      
+      // Initialize the database with reference data
+      await initializeDatabase();
+      
+      // Optionally import fitout costs from Excel if requested
+      if (importFitoutCosts) {
+        const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
+        if (fs.existsSync(filePath)) {
+          await importFitoutCostsFromExcel(filePath);
+        }
+      }
+      
+      // Return success response with counts from each table
+      const fitoutCostsCount = (await db.select().from(fitoutCosts)).length;
+      const specificationsCount = (await db.select().from(specifications)).length;
+      const layoutTemplatesCount = (await db.select().from(layoutTemplates)).length;
+      const budgetTemplatesCount = (await db.select().from(budgetTemplates)).length;
+      
+      res.status(200).json({
+        message: 'Database initialized successfully',
+        counts: {
+          fitoutCosts: Number(fitoutCostsCount),
+          specifications: Number(specificationsCount),
+          layoutTemplates: Number(layoutTemplatesCount),
+          budgetTemplates: Number(budgetTemplatesCount)
+        }
+      });
+    } catch (error: any) {
+      console.error('Error initializing database:', error);
+      res.status(500).json({
+        message: 'Failed to initialize database',
+        error: error.message
+      });
+    }
+  });
+
   // Import fit-out costs from Excel endpoint
   app.post('/api/admin/import-fitout-costs', async (req, res) => {
     try {
