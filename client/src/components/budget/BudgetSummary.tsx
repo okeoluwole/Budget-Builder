@@ -203,11 +203,6 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
                     {formatCurrency(item.value, currency)}
-                    {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                      <span className="text-gray-500 ml-1">
-                        ({formatCurrency(item.value * localCurrencyRate, localCurrencyCode)})
-                      </span>
-                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                     {item.percentage.toFixed(1)}%
@@ -221,11 +216,6 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
                   {formatCurrency(fitoutCost, currency)}
-                  {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                    <span className="text-gray-600 ml-1">
-                      ({formatCurrency(localCurrencyTotalCost || fitoutCost * (localCurrencyRate || 1), localCurrencyCode)})
-                    </span>
-                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
                   100%

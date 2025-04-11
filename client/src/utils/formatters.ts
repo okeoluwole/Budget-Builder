@@ -15,33 +15,33 @@ export const formatCurrency = (
   }
 
   try {
-    // Custom format to match the screenshot, with currency code at start
+    // Format exactly as in the screenshot (US$40,017,661)
     if (currencyCode === 'USD') {
       return `US$${value.toLocaleString(undefined, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
+        useGrouping: true,
         ...options
       })}`;
     } else if (currencyCode === 'EUR') {
       return `€${value.toLocaleString(undefined, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
+        useGrouping: true,
         ...options
       })}`;
     } else {
-      // Fall back to standard formatter for other currencies
-      const formatter = new Intl.NumberFormat(undefined, {
-        style: 'currency',
-        currency: currencyCode,
+      // For any other currency
+      return `${currencyCode}${value.toLocaleString(undefined, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
+        useGrouping: true,
         ...options
-      });
-      return formatter.format(value);
+      })}`;
     }
   } catch (error) {
     console.error('Error formatting currency:', error);
-    return `${currencyCode} ${value.toLocaleString()}`;
+    return `${currencyCode}${value.toLocaleString()}`;
   }
 };
 
