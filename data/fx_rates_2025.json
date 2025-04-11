@@ -1,0 +1,682 @@
+{
+  "ALBANIA": {
+    "currency": "LEK",
+    "code": "ALL",
+    "rate": 0.010755
+  },
+  "ALGERIA": {
+    "currency": "DINAR",
+    "code": "DZD",
+    "rate": 0.0075002
+  },
+  "ANGOLA": {
+    "currency": "KWANZA",
+    "code": "AOA",
+    "rate": 0.00108685
+  },
+  "ARGENTINA": {
+    "currency": "PESO",
+    "code": "ARS",
+    "rate": 0.00071429
+  },
+  "ARUBA": {
+    "currency": "FLORIN",
+    "code": "AWG",
+    "rate": 0.55865922
+  },
+  "AUSTRALIA": {
+    "currency": "DOLLAR",
+    "code": "AUD",
+    "rate": 0.65
+  },
+  "AZERBAIJAN": {
+    "currency": "AZERBAIJAN",
+    "code": "AZN",
+    "rate": 0.58820069
+  },
+  "BAHAMAS": {
+    "currency": "DOLLAR",
+    "code": "BSD",
+    "rate": 1
+  },
+  "BAHRAIN": {
+    "currency": "DINAR",
+    "code": "BHD",
+    "rate": 2.65280136
+  },
+  "BANGLADESH": {
+    "currency": "TAKA",
+    "code": "BDT",
+    "rate": 0.0083649
+  },
+  "BARBADOS": {
+    "currency": "DOLLAR",
+    "code": "BBD",
+    "rate": 0.5
+  },
+  "BELARUS": {
+    "currency": "RUBLE",
+    "code": "BYR",
+    "rate": 3.065e-05
+  },
+  "BELIZE": {
+    "currency": "DOLLAR",
+    "code": "BZD",
+    "rate": 0.5
+  },
+  "BERMUDA": {
+    "currency": "DOLLAR",
+    "code": "BMD",
+    "rate": 1
+  },
+  "BHUTAN": {
+    "currency": "NGULTRUM",
+    "code": "BTN",
+    "rate": 0.01185201
+  },
+  "BOLIVIA": {
+    "currency": "BOLIVIANO",
+    "code": "BOB",
+    "rate": 0.14498007
+  },
+  "BOTSWANA": {
+    "currency": "PULA",
+    "code": "BWP",
+    "rate": 0.0736
+  },
+  "BRAZIL": {
+    "currency": "REAL",
+    "code": "BRL",
+    "rate": 0.18518519
+  },
+  "BRUNEI DARUSSALAM": {
+    "currency": "DOLLAR",
+    "code": "BND",
+    "rate": 0.74460164
+  },
+  "BULGARIA": {
+    "currency": "LEV",
+    "code": "BGN",
+    "rate": 0.53896734
+  },
+  "BURUNDI": {
+    "currency": "FRANC",
+    "code": "BIF",
+    "rate": 0.00034228
+  },
+  "CAMBODIA": {
+    "currency": "NEW RIEL",
+    "code": "KHR",
+    "rate": 0.00024751
+  },
+  "CANADA": {
+    "currency": "CAD DOLLAR",
+    "code": "CAD",
+    "rate": 0.72
+  },
+  "CAPE VERDE": {
+    "currency": "ESCUDO",
+    "code": "CVE",
+    "rate": 0.00951904
+  },
+  "CAYMAN ISLANDS": {
+    "currency": "DOLLAR",
+    "code": "KYD",
+    "rate": 1.2195
+  },
+  "CENTRAL AFRICAN REPUBLIC": {
+    "currency": "FRANC",
+    "code": "XAF",
+    "rate": 0.00160739
+  },
+  "CHILE": {
+    "currency": "PESO",
+    "code": "CLP",
+    "rate": 0.00111111
+  },
+  "CHINA": {
+    "currency": "YUAN",
+    "code": "CNY",
+    "rate": 0.1380167
+  },
+  "COLOMBIA": {
+    "currency": "PESO",
+    "code": "COP",
+    "rate": 0.00024096
+  },
+  "COSTA RICA": {
+    "currency": "COLON",
+    "code": "CRC",
+    "rate": 0.00180349
+  },
+  "CROATIA": {
+    "currency": "KUNA",
+    "code": "HRK",
+    "rate": 0.13994039
+  },
+  "CYPRUS": {
+    "currency": "POUND",
+    "code": "CYP",
+    "rate": 1.80147721
+  },
+  "CZECH REPUBLIC": {
+    "currency": "KORUNA",
+    "code": "CZK",
+    "rate": 0.04169429
+  },
+  "DENMARK": {
+    "currency": "KRONE",
+    "code": "DKK",
+    "rate": 0.14134276
+  },
+  "DJIBOUTI": {
+    "currency": "FRANC",
+    "code": "DJF",
+    "rate": 0.00562901
+  },
+  "DOMINICA": {
+    "currency": "DOLLAR",
+    "code": "XCD",
+    "rate": 0.37037037
+  },
+  "DOMINICAN REPUBLIC": {
+    "currency": "PESO",
+    "code": "DOP",
+    "rate": 0.01618268
+  },
+  "EGYPT": {
+    "currency": "POUND",
+    "code": "EGP",
+    "rate": 0.02010414
+  },
+  "EL SALVADOR": {
+    "currency": "COLON",
+    "code": "SVC",
+    "rate": 0.11428571
+  },
+  "ETHIOPIA": {
+    "currency": "BIRR",
+    "code": "ETB",
+    "rate": 0.00812585
+  },
+  "EURO": {
+    "currency": "EURO",
+    "code": "EUR",
+    "rate": 1.05
+  },
+  "FIJI": {
+    "currency": "DOLLAR",
+    "code": "FJD",
+    "rate": 0.4372
+  },
+  "FRENCH POLYNESIA": {
+    "currency": "FRANC",
+    "code": "XPF",
+    "rate": 0.00886138
+  },
+  "GAMBIA": {
+    "currency": "DALASI",
+    "code": "GMD",
+    "rate": 0.01422149
+  },
+  "GHANA": {
+    "currency": "NEW GHANA",
+    "code": "GHS",
+    "rate": 0.06289308
+  },
+  "GUATEMALA": {
+    "currency": "QUETZAL",
+    "code": "GTQ",
+    "rate": 0.12959243
+  },
+  "GUINEA": {
+    "currency": "GNEA FRANC",
+    "code": "GNF",
+    "rate": 0.00011644
+  },
+  "GUYANA": {
+    "currency": "DOLLAR",
+    "code": "GYD",
+    "rate": 0.00478011
+  },
+  "HAITI": {
+    "currency": "GOURDE",
+    "code": "HTG",
+    "rate": 0.00763633
+  },
+  "HONDURAS": {
+    "currency": "LEMPIRA",
+    "code": "HNL",
+    "rate": 0.0396668
+  },
+  "HONG KONG": {
+    "currency": "DOLLAR",
+    "code": "HKD",
+    "rate": 0.12847691
+  },
+  "HUNGARY": {
+    "currency": "FORINT",
+    "code": "HUF",
+    "rate": 0.00257274
+  },
+  "ICELAND": {
+    "currency": "KRONA",
+    "code": "ISK",
+    "rate": 0.0072469
+  },
+  "INDIA": {
+    "currency": "RUPEE",
+    "code": "INR",
+    "rate": 0.01185201
+  },
+  "INDONESIA": {
+    "currency": "RUPIAH",
+    "code": "IDR",
+    "rate": 6.301e-05
+  },
+  "IRAN (ISLAMIC REPUBLIC OF)": {
+    "currency": "RIAL",
+    "code": "IRR",
+    "rate": 2.381e-05
+  },
+  "IRAQ": {
+    "currency": "DINAR",
+    "code": "IQD",
+    "rate": 0.00076336
+  },
+  "ISRAEL": {
+    "currency": "SHEQEL",
+    "code": "ILS",
+    "rate": 0.26724391
+  },
+  "JAMAICA": {
+    "currency": "DOLLAR",
+    "code": "JMD",
+    "rate": 0.006321
+  },
+  "JAPAN": {
+    "currency": "YEN",
+    "code": "JPY",
+    "rate": 0.00643335
+  },
+  "JORDAN": {
+    "currency": "DINAR",
+    "code": "JOD",
+    "rate": 1.41043724
+  },
+  "KAZAKHSTAN": {
+    "currency": "TENGE",
+    "code": "KZT",
+    "rate": 0.00201564
+  },
+  "KENYA": {
+    "currency": "SHILLING",
+    "code": "KES",
+    "rate": 0.00772439
+  },
+  "KOREA, REPUBLIC OF": {
+    "currency": "WON",
+    "code": "KRW",
+    "rate": 0.00071421
+  },
+  "KUWAIT": {
+    "currency": "DINAR",
+    "code": "KWD",
+    "rate": 3.25118668
+  },
+  "LAO PEOPLE'S DEMOCRATIC REP": {
+    "currency": "NEW KIP",
+    "code": "LAK",
+    "rate": 4.554e-05
+  },
+  "LATVIA": {
+    "currency": "LAT",
+    "code": "LVL",
+    "rate": 1.50024004
+  },
+  "LEBANON": {
+    "currency": "POUND",
+    "code": "LBP",
+    "rate": 1.117e-05
+  },
+  "LIBERIA": {
+    "currency": "DOLLAR",
+    "code": "LRD",
+    "rate": 0.0054394
+  },
+  "LIBYAN ARAB JAMAHIRIYA": {
+    "currency": "DINAR",
+    "code": "LYD",
+    "rate": 0.20507352
+  },
+  "MACAU": {
+    "currency": "PATACA",
+    "code": "MOP",
+    "rate": 0.12473494
+  },
+  "MADAGASCAR": {
+    "currency": "MALAGASCY",
+    "code": "MGA",
+    "rate": 0.00021551
+  },
+  "MALAWI": {
+    "currency": "KWACHA",
+    "code": "MWK",
+    "rate": 0.00057662
+  },
+  "MALAYSIA": {
+    "currency": "RINGGIT",
+    "code": "MYR",
+    "rate": 0.2236486
+  },
+  "MALDIVES": {
+    "currency": "RUFIYAA",
+    "code": "MVR",
+    "rate": 0.06565988
+  },
+  "MAURITANIA": {
+    "currency": "OUGUIYA",
+    "code": "MRO",
+    "rate": 0.00254302
+  },
+  "MAURITIUS": {
+    "currency": "RUPEE",
+    "code": "MUR",
+    "rate": 0.02157265
+  },
+  "MEXICO": {
+    "currency": "MEX PESO",
+    "code": "MXN",
+    "rate": 0.05
+  },
+  "MOROCCO": {
+    "currency": "DIRHAM",
+    "code": "MAD",
+    "rate": 0.10007606
+  },
+  "MOZAMBIQUE": {
+    "currency": "NEW MOZAMB",
+    "code": "MZN",
+    "rate": 0.01565396
+  },
+  "MYANMAR": {
+    "currency": "KYAT",
+    "code": "MMK",
+    "rate": 0.00047593
+  },
+  "NAMIBIA": {
+    "currency": "DOLLAR",
+    "code": "NAD",
+    "rate": 0.05519982
+  },
+  "NEPAL": {
+    "currency": "RUPEE",
+    "code": "NPR",
+    "rate": 0.00740375
+  },
+  "NETHERLANDS ANTILLES": {
+    "currency": "NA GUILDER",
+    "code": "ANG",
+    "rate": 0.55865922
+  },
+  "NEW ZEALAND": {
+    "currency": "DOLLAR",
+    "code": "NZD",
+    "rate": 0.5877
+  },
+  "NICARAGUA": {
+    "currency": "CORDOBA OR",
+    "code": "NIO",
+    "rate": 0.02717133
+  },
+  "NIGERIA": {
+    "currency": "NAIRA",
+    "code": "NGN",
+    "rate": 0.00059416
+  },
+  "NORWAY": {
+    "currency": "KRONE",
+    "code": "NOK",
+    "rate": 0.09042164
+  },
+  "OMAN": {
+    "currency": "RIAL",
+    "code": "OMR",
+    "rate": 2.59726767
+  },
+  "PAKISTAN": {
+    "currency": "RUPEE",
+    "code": "PKR",
+    "rate": 0.00359763
+  },
+  "PANAMA": {
+    "currency": "BALBOA",
+    "code": "PAB",
+    "rate": 1
+  },
+  "PAPUA NEW GUINEA": {
+    "currency": "KINA",
+    "code": "PGK",
+    "rate": 0.2522
+  },
+  "PARAGUAY": {
+    "currency": "GUARANI",
+    "code": "PYG",
+    "rate": 0.00012807
+  },
+  "PERU": {
+    "currency": "SOL",
+    "code": "PES",
+    "rate": 0.0052592
+  },
+  "PHILIPPINES": {
+    "currency": "PESO",
+    "code": "PHP",
+    "rate": 0.01697073
+  },
+  "POLAND": {
+    "currency": "ZLOTY",
+    "code": "PLN",
+    "rate": 0.24320249
+  },
+  "QATAR": {
+    "currency": "RIYAL",
+    "code": "QAR",
+    "rate": 0.27420549
+  },
+  "ROMANIA": {
+    "currency": "NEW ROMANI",
+    "code": "RON",
+    "rate": 0.21185992
+  },
+  "RUSSIAN FEDERATION": {
+    "currency": "RUBLE",
+    "code": "RUB",
+    "rate": 0.00994975
+  },
+  "RWANDA": {
+    "currency": "FRANC",
+    "code": "RWF",
+    "rate": 0.00072996
+  },
+  "SAMOA": {
+    "currency": "TALA",
+    "code": "WST",
+    "rate": 0.3644
+  },
+  "SAO TOME AND PRINCIPE": {
+    "currency": "DOBRA",
+    "code": "STD",
+    "rate": 4.33e-05
+  },
+  "SAUDI ARABIA": {
+    "currency": "RIYAL",
+    "code": "SAR",
+    "rate": 0.26636124
+  },
+  "SERBIA": {
+    "currency": "SERBIAN DI",
+    "code": "RSD",
+    "rate": 0.00901279
+  },
+  "SEYCHELLES": {
+    "currency": "RUPEE",
+    "code": "SCR",
+    "rate": 0.07271828
+  },
+  "SIERRA LEONE": {
+    "currency": "LEONE",
+    "code": "SLL",
+    "rate": 4.39e-05
+  },
+  "SINGAPORE": {
+    "currency": "DOLLAR",
+    "code": "SGD",
+    "rate": 0.74460164
+  },
+  "SOLOMON ISLANDS": {
+    "currency": "DOLLAR",
+    "code": "SBD",
+    "rate": 0.1219
+  },
+  "SOMALIA": {
+    "currency": "SHILLING",
+    "code": "SOS",
+    "rate": 0.00175131
+  },
+  "SOUTH AFRICA": {
+    "currency": "RAND",
+    "code": "ZAR",
+    "rate": 0.05519982
+  },
+  "SRI LANKA": {
+    "currency": "RUPEE",
+    "code": "LKR",
+    "rate": 0.00343974
+  },
+  "SUDAN": {
+    "currency": "NEW SUDANE",
+    "code": "SDG",
+    "rate": 0.00167224
+  },
+  "SURINAME": {
+    "currency": "SURINAME D",
+    "code": "SRD",
+    "rate": 0.02820795
+  },
+  "SWAZILAND": {
+    "currency": "PL",
+    "code": "SZL",
+    "rate": 0.05519982
+  },
+  "SWEDEN": {
+    "currency": "KRONA",
+    "code": "SEK",
+    "rate": 0.09068567
+  },
+  "SWITZERLAND": {
+    "currency": "FRANC",
+    "code": "CHF",
+    "rate": 1.13096584
+  },
+  "SYRIAN ARAB REPUBLIC": {
+    "currency": "POUND",
+    "code": "SYP",
+    "rate": 0.0019501
+  },
+  "TAIWAN, PROVINCE OF CHINA": {
+    "currency": "NEW DOLLAR",
+    "code": "TWD",
+    "rate": 0.03077397
+  },
+  "TANZANIA, UNITED REPUBLIC OF": {
+    "currency": "SHILLING",
+    "code": "TZS",
+    "rate": 0.00037745
+  },
+  "THAILAND": {
+    "currency": "BAHT",
+    "code": "THB",
+    "rate": 0.02882426
+  },
+  "TOGO": {
+    "currency": "FRANC",
+    "code": "XOF",
+    "rate": 0.00160739
+  },
+  "TONGA": {
+    "currency": "PAANGA",
+    "code": "TOP",
+    "rate": 0.4255
+  },
+  "TRINIDAD AND TOBAGO": {
+    "currency": "DOLLAR",
+    "code": "TTD",
+    "rate": 0.1477585
+  },
+  "TUNISIA": {
+    "currency": "DINAR",
+    "code": "TND",
+    "rate": 0.31717838
+  },
+  "TURKEY": {
+    "currency": "NEW TURKIS",
+    "code": "TRY",
+    "rate": 0.02901317
+  },
+  "UGANDA": {
+    "currency": "SHILLING",
+    "code": "UGX",
+    "rate": 0.00027101
+  },
+  "UKRAINE": {
+    "currency": "HRYVNIA",
+    "code": "UAH",
+    "rate": 0.02419462
+  },
+  "UNITED ARAB EMIRATES": {
+    "currency": "DIRHAM",
+    "code": "AED",
+    "rate": 0.27225701
+  },
+  "UNITED KINGDOM": {
+    "currency": "POUND",
+    "code": "GBP",
+    "rate": 1.27
+  },
+  "URUGUAY": {
+    "currency": "URUGUAYO",
+    "code": "UYU",
+    "rate": 0.02272727
+  },
+  "VANUATU": {
+    "currency": "VATU",
+    "code": "VUV",
+    "rate": 0.0082203
+  },
+  "VENEZUELA": {
+    "currency": "VES",
+    "code": "VES",
+    "rate": 0.01666667
+  },
+  "VIET NAM": {
+    "currency": "NEW DONG",
+    "code": "VND",
+    "rate": 3.935e-05
+  },
+  "YEMEN": {
+    "currency": "RIAL",
+    "code": "YER",
+    "rate": 0.00399778
+  },
+  "ZAMBIA": {
+    "currency": "ZAMBIA",
+    "code": "ZMW",
+    "rate": 0.0360036
+  },
+  "ZIMBABWE": {
+    "currency": "DOLLAR",
+    "code": "ZWL",
+    "rate": 2.763e-05
+  }
+}
