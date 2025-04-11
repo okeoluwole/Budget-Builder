@@ -29,8 +29,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         </div>
         
         <Link href="/">
-          <a 
-            className={`px-4 py-3 flex items-center text-sm font-medium ${
+          <div 
+            className={`px-4 py-3 flex items-center text-sm font-medium cursor-pointer ${
               isActive('/') 
                 ? 'text-primary bg-blue-50 border-l-4 border-primary' 
                 : 'text-gray-600 hover:bg-blue-50 hover:text-primary'
@@ -40,12 +40,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
             Dashboard
-          </a>
+          </div>
         </Link>
         
         <Link href="/projects">
-          <a 
-            className={`px-4 py-3 flex items-center text-sm font-medium ${
+          <div 
+            className={`px-4 py-3 flex items-center text-sm font-medium cursor-pointer ${
               isActive('/projects') 
                 ? 'text-primary bg-blue-50 border-l-4 border-primary' 
                 : 'text-gray-600 hover:bg-blue-50 hover:text-primary'
@@ -55,12 +55,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
             Projects
-          </a>
+          </div>
         </Link>
         
         <Link href="/reports">
-          <a 
-            className={`px-4 py-3 flex items-center text-sm font-medium ${
+          <div 
+            className={`px-4 py-3 flex items-center text-sm font-medium cursor-pointer ${
               isActive('/reports') 
                 ? 'text-primary bg-blue-50 border-l-4 border-primary' 
                 : 'text-gray-600 hover:bg-blue-50 hover:text-primary'
@@ -70,12 +70,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Reports
-          </a>
+          </div>
         </Link>
         
         <Link href="/settings">
-          <a 
-            className={`px-4 py-3 flex items-center text-sm font-medium ${
+          <div 
+            className={`px-4 py-3 flex items-center text-sm font-medium cursor-pointer ${
               isActive('/settings') 
                 ? 'text-primary bg-blue-50 border-l-4 border-primary' 
                 : 'text-gray-600 hover:bg-blue-50 hover:text-primary'
@@ -86,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Settings
-          </a>
+          </div>
         </Link>
       </div>
       
@@ -95,20 +95,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           Recent Projects
         </div>
         
-        <a href="#" className="px-4 py-2 flex items-center text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-primary">
+        <div className="px-4 py-2 flex items-center text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-primary cursor-pointer">
           <span className="w-2 h-2 rounded-full bg-[#00838f] mr-3"></span>
           London Office Relocation
-        </a>
+        </div>
         
-        <a href="#" className="px-4 py-2 flex items-center text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-primary">
+        <div className="px-4 py-2 flex items-center text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-primary cursor-pointer">
           <span className="w-2 h-2 rounded-full bg-[#f57c00] mr-3"></span>
           Sydney Branch Expansion
-        </a>
+        </div>
         
-        <a href="#" className="px-4 py-2 flex items-center text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-primary">
+        <div className="px-4 py-2 flex items-center text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-primary cursor-pointer">
           <span className="w-2 h-2 rounded-full bg-[#4caf50] mr-3"></span>
           New York Office Renovation
-        </a>
+        </div>
       </div>
     </aside>
   );
