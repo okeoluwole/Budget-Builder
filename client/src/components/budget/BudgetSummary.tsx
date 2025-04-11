@@ -6,10 +6,25 @@ interface BudgetSummaryProps {
   budgetBreakdown: any;
   totalCost: number;
   currency: string;
+  localCurrencyCode?: string;
+  localCurrencyRate?: number;
+  localCurrencyTotalCost?: number;
+  localCurrencyCostsBreakdown?: { [key: string]: number };
 }
 
-const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCost, currency }) => {
+const BudgetSummary: React.FC<BudgetSummaryProps> = ({ 
+  budgetBreakdown, 
+  totalCost, 
+  currency,
+  localCurrencyCode,
+  localCurrencyRate,
+  localCurrencyTotalCost,
+  localCurrencyCostsBreakdown
+}) => {
   const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
+  const [showLocalCurrency, setShowLocalCurrency] = useState(
+    localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && localCurrencyTotalCost
+  );
   
   if (!budgetBreakdown || !totalCost) {
     return null;
@@ -77,6 +92,21 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
           >
             Bar Chart
           </button>
+          
+          {/* Currency toggle button - only show if local currency is available */}
+          {localCurrencyCode && localCurrencyCode !== currency && localCurrencyRate && localCurrencyTotalCost && (
+            <button
+              type="button"
+              className={`px-3 py-1 text-xs font-medium rounded-md ml-2 ${
+                showLocalCurrency 
+                  ? 'bg-emerald-600 text-white' 
+                  : 'bg-blue-600 text-white'
+              }`}
+              onClick={() => setShowLocalCurrency(!showLocalCurrency)}
+            >
+              {showLocalCurrency ? localCurrencyCode : currency}
+            </button>
+          )}
         </div>
       </div>
       
@@ -100,7 +130,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: number) => formatCurrency(value, currency)} 
+                  formatter={(value: number) => {
+                    if (showLocalCurrency && localCurrencyCode && localCurrencyRate) {
+                      const localValue = value * localCurrencyRate;
+                      return formatCurrency(localValue, localCurrencyCode);
+                    }
+                    return formatCurrency(value, currency);
+                  }} 
                   separator=": "
                 />
                 <Legend />
@@ -115,14 +151,25 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis 
-                  tickFormatter={(value) => formatCurrency(value, currency, { notation: 'compact' })} 
+                  tickFormatter={(value) => {
+                    if (showLocalCurrency && localCurrencyCode && localCurrencyRate) {
+                      return formatCurrency(value * localCurrencyRate, localCurrencyCode, { notation: 'compact' });
+                    }
+                    return formatCurrency(value, currency, { notation: 'compact' });
+                  }} 
                 />
                 <Tooltip 
-                  formatter={(value: number) => formatCurrency(value, currency)} 
+                  formatter={(value: number) => {
+                    if (showLocalCurrency && localCurrencyCode && localCurrencyRate) {
+                      const localValue = value * localCurrencyRate;
+                      return formatCurrency(localValue, localCurrencyCode);
+                    }
+                    return formatCurrency(value, currency);
+                  }} 
                   separator=": "
                 />
                 <Legend />
-                <Bar dataKey="value" fill="#0d47a1" name="Cost" />
+                <Bar dataKey="value" fill="#0d47a1" name={showLocalCurrency && localCurrencyCode ? `Cost (${localCurrencyCode})` : `Cost (${currency})`} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -130,7 +177,15 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
       </div>
       
       <div className="mt-6">
-        <h4 className="font-medium text-gray-700 mb-2">Fitout Cost Details</h4>
+        <div className="flex justify-between mb-2">
+          <h4 className="font-medium text-gray-700">Fitout Cost Details</h4>
+          {localCurrencyCode && localCurrencyCode !== currency && localCurrencyRate && (
+            <div className="text-sm text-gray-600">
+              Currently showing values in: <span className="font-semibold">{showLocalCurrency ? localCurrencyCode : currency}</span>
+              {showLocalCurrency && <span className="ml-1 text-xs">({localCurrencyRate.toFixed(4)} per USD)</span>}
+            </div>
+          )}
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -154,7 +209,9 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
                     {item.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
-                    {formatCurrency(item.value, currency)}
+                    {showLocalCurrency && localCurrencyCode && localCurrencyRate 
+                      ? formatCurrency(item.value * localCurrencyRate, localCurrencyCode)
+                      : formatCurrency(item.value, currency)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                     {item.percentage.toFixed(1)}%
@@ -167,7 +224,9 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
                   FITOUT COSTS
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
-                  {formatCurrency(fitoutCost, currency)}
+                  {showLocalCurrency && localCurrencyCode && localCurrencyRate && localCurrencyTotalCost 
+                    ? formatCurrency(localCurrencyTotalCost, localCurrencyCode)
+                    : formatCurrency(fitoutCost, currency)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
                   100%
