@@ -1,5 +1,6 @@
 import XLSX from 'xlsx';
 import { join } from 'path';
+import { readFileSync } from 'fs';
 import { db } from '../db';
 import { 
   fitoutCosts, insertFitoutCostSchema, InsertFitoutCost,
@@ -150,7 +151,7 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
 export async function importSpecificationsToDb(filePath: string): Promise<void> {
   try {
     // Read and process the JSON data
-    const data = require(filePath);
+    const data = JSON.parse(readFileSync(filePath, 'utf-8'));
     
     // Map the JSON data to our database structure
     const specRecords: InsertSpecification[] = data.map((spec: any) => ({
@@ -191,7 +192,7 @@ export async function importSpecificationsToDb(filePath: string): Promise<void> 
 export async function importLayoutTemplatesToDb(filePath: string): Promise<void> {
   try {
     // Read and process the JSON data
-    const data = require(filePath);
+    const data = JSON.parse(readFileSync(filePath, 'utf-8'));
     
     // Map the JSON data to our database structure
     const layoutRecords: InsertLayoutTemplate[] = data.map((layout: any) => ({
@@ -221,7 +222,7 @@ export async function importLayoutTemplatesToDb(filePath: string): Promise<void>
 export async function importBudgetTemplateToDb(filePath: string): Promise<void> {
   try {
     // Read and process the JSON data
-    const data = require(filePath);
+    const data = JSON.parse(readFileSync(filePath, 'utf-8'));
     
     // Create a record for our database
     const templateRecord: InsertBudgetTemplate = {
