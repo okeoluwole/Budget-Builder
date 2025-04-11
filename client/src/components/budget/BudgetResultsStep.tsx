@@ -33,11 +33,43 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
       if (!state.project?.country) return;
       
       try {
-        // Get currency rates
+        // TEMPORARY FIX: Use direct currency rate lookup by code instead of by country
+        const countryToCurrency: Record<string, string> = {
+          'Germany': 'EUR',
+          'France': 'EUR', 
+          'Italy': 'EUR',
+          'Spain': 'EUR',
+          'Ireland': 'EUR',
+          'United Kingdom': 'GBP',
+          'United States': 'USD',
+          'Canada': 'CAD',
+          'Australia': 'AUD',
+          'Japan': 'JPY',
+          'China': 'CNY'
+        };
+        
+        const currencyCode = countryToCurrency[state.project.country] || 'EUR';
+        console.log(`Direct currency lookup for ${state.project.country}: ${currencyCode}`);
+        
+        if (currencyCode && currencyCode !== 'USD') {
+          // Get specific currency rate directly
+          const directRateRes = await apiRequest('GET', `/api/currency-rates/${currencyCode}`, undefined);
+          const directRateData = await directRateRes.json();
+          console.log("Direct currency rate response:", directRateData);
+          
+          if (directRateData && directRateData.rate) {
+            console.log(`Setting currency: ${currencyCode} with rate: ${directRateData.rate}`);
+            setLocalCurrencyCode(currencyCode);
+            setLocalCurrencyRate(parseFloat(directRateData.rate.toString()));
+            return;
+          }
+        }
+        
+        // Fallback to original implementation if direct lookup fails
         const ratesRes = await apiRequest('GET', '/api/currency-rates', undefined);
         const ratesData = await ratesRes.json();
         
-        console.log("Available currency rates:", ratesData.map(r => r.country));
+        console.log("Available currency rates:", ratesData.length);
         console.log("Project country:", state.project?.country);
         
         // Find currency for the project country - case insensitive
@@ -294,14 +326,34 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
             <div>
               <div className="bg-gray-100 p-6 rounded-lg mb-6 text-center">
                 <h3 className="text-lg font-medium text-gray-700 mb-2">Total Budget Estimate</h3>
+                
+                {/* Debug local currency information */}
+                <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-left">
+                  <div>Debug Info:</div>
+                  <div>Country: {state.project?.country}</div>
+                  <div>Currency Code: {localCurrencyCode || 'None'}</div>
+                  <div>Exchange Rate: {localCurrencyRate || 'N/A'}</div>
+                </div>
+                
                 <div className="text-4xl font-bold text-gray-900 mb-2">
                   {formatCurrency(totalCost, 'USD')}
                 </div>
+                
+                {/* Hardcoded EUR and GBP values for testing */}
+                <div className="text-2xl font-bold text-green-700 mb-2">
+                  EUR: {formatCurrency(totalCost * 1.05, 'EUR')}
+                </div>
+                <div className="text-2xl font-bold text-blue-700 mb-2">
+                  GBP: {formatCurrency(totalCost * 1.27, 'GBP')}
+                </div>
+                
+                {/* Dynamic values from state - should match one of the above */}
                 {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                  <div className="text-2xl font-bold text-gray-700 mb-2">
-                    {formatCurrency(totalCost * localCurrencyRate, localCurrencyCode)}
+                  <div className="text-2xl font-bold text-gray-700 mb-2 border-t pt-2 border-gray-300">
+                    Dynamic: {formatCurrency(totalCost * localCurrencyRate, localCurrencyCode)}
                   </div>
                 )}
+                
                 <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-6 text-sm text-gray-600 mt-2">
                   <div>
                     {state.project?.totalArea?.toLocaleString()} {state.project?.areaUnit} @ 
@@ -315,6 +367,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                     </div>
                   )}
                 </div>
+                
                 {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
                   <div className="text-xs text-gray-500 mt-2">
                     Exchange Rate: 1 USD = {localCurrencyRate.toFixed(4)} {localCurrencyCode} (2025 FX Rate)
