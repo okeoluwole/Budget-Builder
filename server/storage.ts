@@ -28,6 +28,16 @@ export interface IStorage {
   createBudget(budget: InsertBudget): Promise<Budget>;
   updateBudget(id: number, budget: Partial<InsertBudget>): Promise<Budget | undefined>;
   deleteBudget(id: number): Promise<boolean>;
+  
+  // Chat operations
+  createChatSession(session: InsertChatSession): Promise<ChatSession>;
+  getChatSession(id: number): Promise<ChatSession | undefined>;
+  getAllChatSessions(userId?: number): Promise<ChatSession[]>;
+  updateChatSession(id: number, title: string): Promise<ChatSession | undefined>;
+  deleteChatSession(id: number): Promise<boolean>;
+  
+  addChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatMessagesBySession(sessionId: number): Promise<ChatMessage[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -167,6 +177,85 @@ export class DatabaseStorage implements IStorage {
       .where(eq(budgets.id, id))
       .returning({ id: budgets.id });
     return result.length > 0;
+  }
+  
+  // Chat Session operations
+  async createChatSession(session: InsertChatSession): Promise<ChatSession> {
+    const now = new Date();
+    const sessionData = {
+      ...session,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    const [chatSession] = await db
+      .insert(chatSessions)
+      .values(sessionData)
+      .returning();
+    return chatSession;
+  }
+  
+  async getChatSession(id: number): Promise<ChatSession | undefined> {
+    const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, id));
+    return session || undefined;
+  }
+  
+  async getAllChatSessions(userId?: number): Promise<ChatSession[]> {
+    if (userId) {
+      return await db.select()
+        .from(chatSessions)
+        .where(eq(chatSessions.userId, userId))
+        .orderBy(chatSessions.updatedAt);
+    }
+    return await db.select().from(chatSessions).orderBy(chatSessions.updatedAt);
+  }
+  
+  async updateChatSession(id: number, title: string): Promise<ChatSession | undefined> {
+    const [session] = await db
+      .update(chatSessions)
+      .set({
+        title,
+        updatedAt: new Date()
+      })
+      .where(eq(chatSessions.id, id))
+      .returning();
+    return session || undefined;
+  }
+  
+  async deleteChatSession(id: number): Promise<boolean> {
+    // First delete all messages in the session
+    await db.delete(chatMessages).where(eq(chatMessages.sessionId, id));
+    
+    // Then delete the session itself
+    const result = await db
+      .delete(chatSessions)
+      .where(eq(chatSessions.id, id))
+      .returning({ id: chatSessions.id });
+    return result.length > 0;
+  }
+  
+  // Chat Message operations
+  async addChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [chatMessage] = await db
+      .insert(chatMessages)
+      .values(message)
+      .returning();
+      
+    // Update the session's updatedAt timestamp
+    await db
+      .update(chatSessions)
+      .set({ updatedAt: new Date() })
+      .where(eq(chatSessions.id, message.sessionId));
+      
+    return chatMessage;
+  }
+  
+  async getChatMessagesBySession(sessionId: number): Promise<ChatMessage[]> {
+    return await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.sessionId, sessionId))
+      .orderBy(chatMessages.timestamp);
   }
 }
 

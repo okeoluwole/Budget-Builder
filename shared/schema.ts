@@ -267,3 +267,35 @@ export const insertBudgetTemplateSchema = createInsertSchema(budgetTemplates).om
 
 export type InsertBudgetTemplate = z.infer<typeof insertBudgetTemplateSchema>;
 export type BudgetTemplate = typeof budgetTemplates.$inferSelect;
+
+// Chat-related schema
+export const chatSessions = pgTable("chat_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  title: text("title").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").references(() => chatSessions.id).notNull(),
+  role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  metadata: json("metadata"),
+});
+
+export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages);
+
+export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
+export type ChatSession = typeof chatSessions.$inferSelect;
+
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
