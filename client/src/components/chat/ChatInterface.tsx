@@ -193,7 +193,7 @@ const ChatInterface: React.FC = () => {
                     </div>
                   ) : sessions && sessions.length > 0 ? (
                     <div className="space-y-1">
-                      {sessions.map((session) => (
+                      {sessions.map((session: ChatSession) => (
                         <div 
                           key={session.id}
                           className={`flex justify-between items-center rounded p-2 text-xs cursor-pointer hover:bg-gray-100 ${
@@ -239,7 +239,7 @@ const ChatInterface: React.FC = () => {
                       </div>
                     ) : messages && messages.length > 0 ? (
                       <div className="space-y-4">
-                        {messages.map((message) => (
+                        {messages.map((message: ChatMessage) => (
                           <div 
                             key={message.id}
                             className={`flex flex-col ${
