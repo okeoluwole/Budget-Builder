@@ -54,6 +54,119 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
     }, 1500);
   };
   
+  // For currency selection dropdown
+  const [availableCurrencies, setAvailableCurrencies] = useState<{code: string, name: string, rate: number}[]>([]);
+  const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>('');
+  const [updatingBudgetCurrency, setUpdatingBudgetCurrency] = useState<boolean>(false);
+  
+  // Fetch available currency rates
+  const fetchCurrencyRates = async () => {
+    try {
+      const response = await fetch('/api/currency-rates');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch currency rates: ${response.statusText}`);
+      }
+      
+      const currencies = await response.json();
+      
+      if (Array.isArray(currencies) && currencies.length > 0) {
+        const formattedCurrencies = currencies.map(currency => ({
+          code: currency.currencyCode,
+          name: currency.currencyName,
+          rate: parseFloat(currency.exchangeRate.toString())
+        }));
+        
+        setAvailableCurrencies(formattedCurrencies);
+        
+        // Pre-select the current currency if it exists
+        if (budget?.localCurrencyCode) {
+          setSelectedCurrencyCode(budget.localCurrencyCode);
+        } else if (formattedCurrencies.length > 0) {
+          // Default to the first non-USD currency
+          const nonUsdCurrency = formattedCurrencies.find(c => c.code !== 'USD');
+          if (nonUsdCurrency) {
+            setSelectedCurrencyCode(nonUsdCurrency.code);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching currency rates:', error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch currency rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Update budget with selected local currency
+  const updateBudgetCurrency = async () => {
+    if (!budget || !selectedCurrencyCode) return;
+    
+    setUpdatingBudgetCurrency(true);
+    
+    try {
+      const selectedCurrency = availableCurrencies.find(c => c.code === selectedCurrencyCode);
+      
+      if (!selectedCurrency) {
+        throw new Error('Selected currency not found');
+      }
+      
+      // Calculate local currency values
+      const localCurrencyRate = selectedCurrency.rate;
+      const localCurrencyTotalCost = budget.totalCost * localCurrencyRate;
+      
+      // Calculate local currency costs breakdown
+      const localCurrencyCostsBreakdown = Object.fromEntries(
+        Object.entries(budget.costsBreakdown || {}).map(([key, value]) => 
+          [key, typeof value === 'number' ? value * localCurrencyRate : value]
+        )
+      );
+      
+      // Update budget with local currency information
+      const response = await fetch(`/api/budgets/${budget.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          localCurrencyCode: selectedCurrency.code,
+          localCurrencyRate,
+          localCurrencyTotalCost,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update budget: ${response.statusText}`);
+      }
+      
+      toast({
+        title: "Success",
+        description: `Budget updated with ${selectedCurrency.code} currency rates.`,
+      });
+      
+      // Refresh the budget to show updated currency data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating budget currency:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update budget currency: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingBudgetCurrency(false);
+    }
+  };
+  
+  // Fetch currency rates when budget is loaded
+  useEffect(() => {
+    if (budget && !budgetLoading) {
+      fetchCurrencyRates();
+    }
+  }, [budget, budgetLoading]);
+  
   const handleImportCurrencyRates = async () => {
     setImportingCurrency(true);
     
@@ -73,8 +186,8 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
         description: `Currency rates imported successfully. Imported ${result.count} currency rates.`,
       });
       
-      // Refresh the budget to get updated currency data
-      window.location.reload();
+      // Fetch the newly imported currency rates
+      await fetchCurrencyRates();
     } catch (error) {
       console.error('Error importing currency rates:', error);
       toast({
