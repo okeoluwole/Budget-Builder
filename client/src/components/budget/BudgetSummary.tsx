@@ -15,11 +15,18 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
     return null;
   }
 
-  // Process data for charts
+  // Process data for charts - only include fitout and space costs
   const chartData = Object.entries(budgetBreakdown)
-    .filter(([_, value]) => typeof value === 'number' && value > 0)
+    .filter(([key, value]) => {
+      // Only include FITOUT COSTS and space allocations
+      return (
+        (key === 'FITOUT COSTS' || key.startsWith('SPACE:')) && 
+        typeof value === 'number' && 
+        value > 0
+      );
+    })
     .map(([key, value]) => ({
-      name: key,
+      name: key === 'FITOUT COSTS' ? 'FITOUT COSTS' : key.replace('SPACE:', ''),
       value: value as number,
       percentage: ((value as number) / totalCost) * 100
     }))
@@ -31,7 +38,7 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium text-gray-800">Budget Breakdown</h3>
+        <h3 className="text-lg font-medium text-gray-800">Fitout Costs Breakdown</h3>
         <div className="flex space-x-2">
           <button
             type="button"
@@ -108,7 +115,7 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
       </div>
       
       <div className="mt-6">
-        <h4 className="font-medium text-gray-700 mb-2">Detailed Breakdown</h4>
+        <h4 className="font-medium text-gray-700 mb-2">Fitout Cost Details</h4>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

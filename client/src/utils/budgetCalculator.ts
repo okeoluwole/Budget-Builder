@@ -33,10 +33,10 @@ const applyInflation = (value: number, inflationRate: number, years: number = 1)
   return value * factor;
 };
 
-// Calculate budget based on project and budget data
 // Cache for fitout costs data to avoid repeated API calls
 let cachedFitoutCostsData: FitoutCostData[] | null = null;
 
+// Calculate budget based on project and budget data
 export const calculateBudget = async ({
   project,
   budget,
@@ -106,63 +106,23 @@ export const calculateBudget = async ({
       ? applyInflation(totalAreaCost, project.inflationRate)
       : totalAreaCost;
 
-    // Initialize costs breakdown based on budget structure
+    // Initialize costs breakdown for fitout only
     const costsBreakdown: { [key: string]: number } = {};
     
-    // Apply cost distribution based on budget structure
-    let remainingCost = inflatedTotalCost;
-    let allocatedCost = 0;
+    // Since we're only using fitout data, we'll use a single category
+    costsBreakdown['FITOUT COSTS'] = parseFloat(inflatedTotalCost.toFixed(2));
     
-    // Predefined distribution percentages (would come from a real database)
-    const distributionPercentages: { [key: string]: number } = {
-      'CONSTRUCTION COSTS': 0.55,
-      'MECHANICAL & ELECTRICAL': 0.25,
-      'FURNITURE & EQUIPMENT': 0.12,
-      'TECHNOLOGY': 0.05,
-      'PROFESSIONAL FEES': 0.02,
-      'CONTINGENCY & INFLATION': 0.01
-    };
-
-    // Distribute costs based on budget structure categories
-    budgetStructure.forEach(category => {
-      const categoryName = category.name;
-      let categoryPercentage = distributionPercentages[categoryName] || 0;
+    // We can add space allocation breakdown for reference
+    if (budget.spaceAllocation) {
+      const spaceAllocationCosts = calculateSpaceAllocationCosts(inflatedTotalCost, budget.spaceAllocation);
       
-      // Adjust percentage based on specification level
-      if (budget.specification === 'Silver') {
-        if (categoryName === 'FURNITURE & EQUIPMENT' || categoryName === 'TECHNOLOGY') {
-          categoryPercentage *= 1.2; // Higher quality furniture and tech for Silver
-        }
-      } else if (budget.specification === 'Gold') {
-        if (categoryName === 'FURNITURE & EQUIPMENT' || categoryName === 'TECHNOLOGY') {
-          categoryPercentage *= 1.5; // Premium furniture and tech for Gold
-        }
-      }
-      
-      // Calculate cost for this category
-      const categoryCost = inflatedTotalCost * categoryPercentage;
-      costsBreakdown[categoryName] = parseFloat(categoryCost.toFixed(2));
-      allocatedCost += categoryCost;
-
-      // Distribute to subcategories for more detailed breakdown
-      if (category.subcategories && category.subcategories.length > 0) {
-        const subCategoryCount = category.subcategories.length;
-        const subCategoryBaseCost = categoryCost / subCategoryCount;
-        
-        category.subcategories.forEach(subcategory => {
-          // Skip adding subcategories to keep the breakdown cleaner for the UI
-          // In a full implementation, you would add these for detailed reports
-        });
-      }
-    });
-
-    // Check if we've allocated all costs
-    if (allocatedCost < inflatedTotalCost) {
-      const remainder = inflatedTotalCost - allocatedCost;
-      costsBreakdown['OTHER COSTS'] = parseFloat(remainder.toFixed(2));
+      // Add space type costs for reference 
+      Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {
+        costsBreakdown[`SPACE: ${spaceName}`] = parseFloat(cost.toFixed(2));
+      });
     }
 
-    // Return the calculated totals and breakdown
+    // Return the calculated total and breakdown
     return {
       totalCost: parseFloat(inflatedTotalCost.toFixed(2)),
       costsBreakdown
