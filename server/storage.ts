@@ -1,8 +1,11 @@
 import { 
-  users, type User, type InsertUser,
+  users, projects, budgets,
+  type User, type InsertUser,
   type Project, type InsertProject,
   type Budget, type InsertBudget
 } from "@shared/schema";
+import { db } from './db';
+import { eq } from 'drizzle-orm';
 
 // Interface for storage operations
 export interface IStorage {
@@ -27,130 +30,144 @@ export interface IStorage {
   deleteBudget(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private projects: Map<number, Project>;
-  private budgets: Map<number, Budget>;
-  private userCurrentId: number;
-  private projectCurrentId: number;
-  private budgetCurrentId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.projects = new Map();
-    this.budgets = new Map();
-    this.userCurrentId = 1;
-    this.projectCurrentId = 1;
-    this.budgetCurrentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   // Project operations
   async getAllProjects(): Promise<Project[]> {
-    return Array.from(this.projects.values());
+    return await db.select().from(projects);
   }
 
   async getProject(id: number): Promise<Project | undefined> {
-    return this.projects.get(id);
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project || undefined;
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
-    const id = this.projectCurrentId++;
     const now = new Date();
-    const project: Project = { 
-      ...insertProject, 
-      id,
+    const projectData = {
+      ...insertProject,
+      status: insertProject.status || 'draft',
+      reference: insertProject.reference || null,
+      startDate: insertProject.startDate || null,
+      inflationRate: insertProject.inflationRate || null,
       createdAt: now,
       updatedAt: now
     };
-    this.projects.set(id, project);
+    const [project] = await db
+      .insert(projects)
+      .values(projectData)
+      .returning();
     return project;
   }
 
   async updateProject(id: number, projectUpdate: Partial<InsertProject>): Promise<Project | undefined> {
-    const project = this.projects.get(id);
-    if (!project) {
-      return undefined;
-    }
+    // Get existing project to merge with updates
+    const existingProject = await this.getProject(id);
+    if (!existingProject) return undefined;
     
-    const updatedProject: Project = {
-      ...project,
+    const updateData = {
       ...projectUpdate,
+      // Ensure required fields are always present
+      status: projectUpdate.status || existingProject.status,
+      reference: 'reference' in projectUpdate ? projectUpdate.reference : existingProject.reference,
+      startDate: 'startDate' in projectUpdate ? projectUpdate.startDate : existingProject.startDate,
+      inflationRate: 'inflationRate' in projectUpdate ? projectUpdate.inflationRate : existingProject.inflationRate,
       updatedAt: new Date()
     };
     
-    this.projects.set(id, updatedProject);
-    return updatedProject;
+    const [project] = await db
+      .update(projects)
+      .set(updateData)
+      .where(eq(projects.id, id))
+      .returning();
+    return project || undefined;
   }
 
   async deleteProject(id: number): Promise<boolean> {
-    return this.projects.delete(id);
+    const result = await db
+      .delete(projects)
+      .where(eq(projects.id, id))
+      .returning({ id: projects.id });
+    return result.length > 0;
   }
 
   // Budget operations
   async getAllBudgets(): Promise<Budget[]> {
-    return Array.from(this.budgets.values());
+    return await db.select().from(budgets);
   }
 
   async getBudget(id: number): Promise<Budget | undefined> {
-    return this.budgets.get(id);
+    const [budget] = await db.select().from(budgets).where(eq(budgets.id, id));
+    return budget || undefined;
   }
 
   async getBudgetsByProject(projectId: number): Promise<Budget[]> {
-    return Array.from(this.budgets.values()).filter(
-      (budget) => budget.projectId === projectId
-    );
+    return await db.select().from(budgets).where(eq(budgets.projectId, projectId));
   }
 
   async createBudget(insertBudget: InsertBudget): Promise<Budget> {
-    const id = this.budgetCurrentId++;
     const now = new Date();
-    const budget: Budget = {
+    const budgetData = {
       ...insertBudget,
-      id,
+      status: insertBudget.status || 'draft',
+      version: insertBudget.version || 1,
+      totalCost: insertBudget.totalCost || null,
       createdAt: now,
       updatedAt: now
     };
-    this.budgets.set(id, budget);
+    const [budget] = await db
+      .insert(budgets)
+      .values(budgetData)
+      .returning();
     return budget;
   }
 
   async updateBudget(id: number, budgetUpdate: Partial<InsertBudget>): Promise<Budget | undefined> {
-    const budget = this.budgets.get(id);
-    if (!budget) {
-      return undefined;
-    }
+    // Get existing budget to merge with updates
+    const existingBudget = await this.getBudget(id);
+    if (!existingBudget) return undefined;
     
-    const updatedBudget: Budget = {
-      ...budget,
+    const updateData = {
       ...budgetUpdate,
+      // Ensure required fields are always present
+      status: budgetUpdate.status || existingBudget.status,
+      version: budgetUpdate.version || existingBudget.version,
       updatedAt: new Date()
     };
     
-    this.budgets.set(id, updatedBudget);
-    return updatedBudget;
+    const [budget] = await db
+      .update(budgets)
+      .set(updateData)
+      .where(eq(budgets.id, id))
+      .returning();
+    return budget || undefined;
   }
 
   async deleteBudget(id: number): Promise<boolean> {
-    return this.budgets.delete(id);
+    const result = await db
+      .delete(budgets)
+      .where(eq(budgets.id, id))
+      .returning({ id: budgets.id });
+    return result.length > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
