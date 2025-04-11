@@ -1,0 +1,202 @@
+[
+  {
+    "name": "CONSTRUCTION COSTS",
+    "subcategories": [
+      {
+        "name": "Demolition & Strip Out",
+        "lineItems": [
+          { "name": "Demolition of existing partitions", "defaultFactor": 1.0 },
+          { "name": "Strip out of existing flooring", "defaultFactor": 1.0 },
+          { "name": "Strip out of existing ceilings", "defaultFactor": 1.0 },
+          { "name": "Removal of existing services", "defaultFactor": 1.0 }
+        ]
+      },
+      {
+        "name": "Partitioning & Glazing",
+        "lineItems": [
+          { "name": "Solid partitions", "defaultFactor": 1.0 },
+          { "name": "Single glazed partitions", "defaultFactor": 1.0 },
+          { "name": "Double glazed partitions", "defaultFactor": 1.4 },
+          { "name": "Doors", "defaultFactor": 1.0 }
+        ]
+      },
+      {
+        "name": "Ceilings & Bulkheads",
+        "lineItems": [
+          { "name": "Standard ceiling grid", "defaultFactor": 1.0 },
+          { "name": "Feature ceilings", "defaultFactor": 1.5 },
+          { "name": "Bulkheads", "defaultFactor": 1.2 }
+        ]
+      },
+      {
+        "name": "Flooring",
+        "lineItems": [
+          { "name": "Carpet tiles", "defaultFactor": 1.0 },
+          { "name": "Timber/LVT flooring", "defaultFactor": 1.4 },
+          { "name": "Ceramic/porcelain tiles", "defaultFactor": 1.8 },
+          { "name": "Raised access flooring", "defaultFactor": 1.5 }
+        ]
+      },
+      {
+        "name": "Wall Finishes",
+        "lineItems": [
+          { "name": "Standard paint", "defaultFactor": 1.0 },
+          { "name": "Feature paint", "defaultFactor": 1.2 },
+          { "name": "Wallcoverings", "defaultFactor": 1.5 },
+          { "name": "Branding elements", "defaultFactor": 1.4 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "MECHANICAL & ELECTRICAL",
+    "subcategories": [
+      {
+        "name": "Electrical Services",
+        "lineItems": [
+          { "name": "General power", "defaultFactor": 1.0 },
+          { "name": "Lighting", "defaultFactor": 1.0 },
+          { "name": "Emergency lighting", "defaultFactor": 1.0 },
+          { "name": "Feature lighting", "defaultFactor": 1.5 }
+        ]
+      },
+      {
+        "name": "HVAC",
+        "lineItems": [
+          { "name": "Modifications to existing", "defaultFactor": 1.0 },
+          { "name": "New system installation", "defaultFactor": 1.8 },
+          { "name": "Zoning controls", "defaultFactor": 1.3 }
+        ]
+      },
+      {
+        "name": "Plumbing",
+        "lineItems": [
+          { "name": "Pantry/kitchen facilities", "defaultFactor": 1.4 },
+          { "name": "Toilet facilities", "defaultFactor": 1.5 },
+          { "name": "Water points", "defaultFactor": 1.0 }
+        ]
+      },
+      {
+        "name": "Fire Protection",
+        "lineItems": [
+          { "name": "Modifications to sprinklers", "defaultFactor": 1.0 },
+          { "name": "Fire alarm", "defaultFactor": 1.0 },
+          { "name": "Fire signage", "defaultFactor": 1.0 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "FURNITURE & EQUIPMENT",
+    "subcategories": [
+      {
+        "name": "Workstations",
+        "lineItems": [
+          { "name": "Fixed height desks", "defaultFactor": 1.0 },
+          { "name": "Height adjustable desks", "defaultFactor": 1.5 },
+          { "name": "Bench desking", "defaultFactor": 1.2 }
+        ]
+      },
+      {
+        "name": "Seating",
+        "lineItems": [
+          { "name": "Task chairs", "defaultFactor": 1.0 },
+          { "name": "Meeting chairs", "defaultFactor": 1.0 },
+          { "name": "Soft seating", "defaultFactor": 1.4 }
+        ]
+      },
+      {
+        "name": "Storage",
+        "lineItems": [
+          { "name": "Pedestals", "defaultFactor": 1.0 },
+          { "name": "Tall storage", "defaultFactor": 1.2 },
+          { "name": "Lockers", "defaultFactor": 1.3 }
+        ]
+      },
+      {
+        "name": "Meeting Room Furniture",
+        "lineItems": [
+          { "name": "Meeting tables", "defaultFactor": 1.0 },
+          { "name": "Collaboration furniture", "defaultFactor": 1.4 },
+          { "name": "Training room furniture", "defaultFactor": 1.2 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "TECHNOLOGY",
+    "subcategories": [
+      {
+        "name": "AV Equipment",
+        "lineItems": [
+          { "name": "Screens/displays", "defaultFactor": 1.0 },
+          { "name": "Video conferencing", "defaultFactor": 1.5 },
+          { "name": "Sound systems", "defaultFactor": 1.4 },
+          { "name": "Digital signage", "defaultFactor": 1.3 }
+        ]
+      },
+      {
+        "name": "IT Infrastructure",
+        "lineItems": [
+          { "name": "Data cabling", "defaultFactor": 1.0 },
+          { "name": "Wireless access points", "defaultFactor": 1.0 },
+          { "name": "Network equipment", "defaultFactor": 1.2 }
+        ]
+      },
+      {
+        "name": "Security Systems",
+        "lineItems": [
+          { "name": "Access control", "defaultFactor": 1.0 },
+          { "name": "CCTV", "defaultFactor": 1.3 },
+          { "name": "Alarm systems", "defaultFactor": 1.0 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "PROFESSIONAL FEES",
+    "subcategories": [
+      {
+        "name": "Design Fees",
+        "lineItems": [
+          { "name": "Architectural design", "defaultFactor": 1.0 },
+          { "name": "Interior design", "defaultFactor": 1.0 },
+          { "name": "MEP design", "defaultFactor": 1.0 }
+        ]
+      },
+      {
+        "name": "Project Management",
+        "lineItems": [
+          { "name": "PM fees", "defaultFactor": 1.0 },
+          { "name": "Cost consultancy", "defaultFactor": 1.0 }
+        ]
+      },
+      {
+        "name": "Other Consultants",
+        "lineItems": [
+          { "name": "Structural engineer", "defaultFactor": 1.0 },
+          { "name": "Acoustic consultant", "defaultFactor": 1.0 },
+          { "name": "IT/AV consultant", "defaultFactor": 1.0 }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "CONTINGENCY & INFLATION",
+    "subcategories": [
+      {
+        "name": "Contingency",
+        "lineItems": [
+          { "name": "Design contingency", "defaultFactor": 1.0 },
+          { "name": "Construction contingency", "defaultFactor": 1.0 }
+        ]
+      },
+      {
+        "name": "Inflation",
+        "lineItems": [
+          { "name": "Inflation adjustment", "defaultFactor": 1.0 }
+        ]
+      }
+    ]
+  }
+]

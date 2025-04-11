@@ -1,0 +1,71 @@
+[
+  {
+    "name": "Bronze",
+    "description": "Standard specification with potential for future customization",
+    "walls": "Painted walls with minimal branding",
+    "partitions": {
+      "type": "Single glazed",
+      "acousticRating": "38dB Rw",
+      "costFactor": 1.0
+    },
+    "flooring": "Standard carpet tiles",
+    "ceiling": "Same as rest of office, minimal modifications",
+    "furniture": {
+      "desks": "Fixed desks",
+      "chairs": "Steelcase Series 1 or equivalent",
+      "storage": "Basic storage solutions"
+    },
+    "technology": {
+      "av": "Basic AV with audio conferencing",
+      "security": "Standard security features"
+    },
+    "fittings": "Basic fittings and finishes",
+    "recommendedFor": "Standard office spaces with budget constraints"
+  },
+  {
+    "name": "Silver",
+    "description": "Budget-conscious upgrade with more features and higher-grade materials",
+    "walls": "Feature walls with special finishes",
+    "partitions": {
+      "type": "Double glazed",
+      "acousticRating": "45dB Rw",
+      "costFactor": 1.4
+    },
+    "flooring": "Upgraded options, timber/LVT in specific areas",
+    "ceiling": "Feature ceiling elements",
+    "furniture": {
+      "desks": "Mix of static and height-adjustable desks",
+      "chairs": "Mid-tier with better fabrics",
+      "storage": "Enhanced storage solutions"
+    },
+    "technology": {
+      "av": "Enhanced AV throughout with video conferencing",
+      "security": "Enhanced security features"
+    },
+    "fittings": "Higher quality fittings and finishes",
+    "recommendedFor": "Enhanced office environments requiring more customization"
+  },
+  {
+    "name": "Gold",
+    "description": "Agile, personalized, high-tech with premium finishes",
+    "walls": "Feature wall concepts throughout, extensive branding",
+    "partitions": {
+      "type": "Double glazed with high performance",
+      "acousticRating": "50dB Rw",
+      "costFactor": 1.8
+    },
+    "flooring": "High-specification (ceramic, porcelain)",
+    "ceiling": "Comprehensive feature ceiling concepts",
+    "furniture": {
+      "desks": "Full sit-stand provision",
+      "chairs": "Premium ergonomic options",
+      "storage": "Premium storage solutions"
+    },
+    "technology": {
+      "av": "Premium AV throughout with integrated systems",
+      "security": "Advanced security features"
+    },
+    "fittings": "Premium fittings and finishes",
+    "recommendedFor": "Premium office environments requiring extensive customization"
+  }
+]

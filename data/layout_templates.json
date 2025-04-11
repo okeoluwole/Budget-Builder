@@ -1,0 +1,140 @@
+[
+  {
+    "name": "Activity",
+    "description": "Spaces designed around activities",
+    "benefits": [
+      "Varied work settings for different tasks",
+      "Focus areas, collaboration zones",
+      "Supports dynamic work patterns"
+    ],
+    "spaceTypes": [
+      {
+        "name": "Focus Area",
+        "description": "Quiet spaces for concentrated work",
+        "minPercentage": 20,
+        "maxPercentage": 40,
+        "defaultPercentage": 30
+      },
+      {
+        "name": "Collaboration Area",
+        "description": "Open spaces for team collaboration",
+        "minPercentage": 20,
+        "maxPercentage": 40,
+        "defaultPercentage": 30
+      },
+      {
+        "name": "Meeting Rooms",
+        "description": "Enclosed spaces for meetings",
+        "minPercentage": 15,
+        "maxPercentage": 30,
+        "defaultPercentage": 20
+      },
+      {
+        "name": "Social Area",
+        "description": "Spaces for social interaction",
+        "minPercentage": 10,
+        "maxPercentage": 20,
+        "defaultPercentage": 15
+      },
+      {
+        "name": "Support/Ancillary",
+        "description": "Storage, print areas, etc.",
+        "minPercentage": 5,
+        "maxPercentage": 10,
+        "defaultPercentage": 5
+      }
+    ]
+  },
+  {
+    "name": "Team",
+    "description": "Spaces organized by teams",
+    "benefits": [
+      "Dedicated team neighborhoods",
+      "Team meeting areas and project spaces",
+      "Supports team identity and cohesion"
+    ],
+    "spaceTypes": [
+      {
+        "name": "Team Workspace",
+        "description": "Dedicated spaces for teams",
+        "minPercentage": 40,
+        "maxPercentage": 60,
+        "defaultPercentage": 50
+      },
+      {
+        "name": "Team Meeting Area",
+        "description": "Meeting spaces within team neighborhoods",
+        "minPercentage": 15,
+        "maxPercentage": 25,
+        "defaultPercentage": 20
+      },
+      {
+        "name": "Shared Meeting Rooms",
+        "description": "Meeting rooms shared by multiple teams",
+        "minPercentage": 10,
+        "maxPercentage": 20,
+        "defaultPercentage": 15
+      },
+      {
+        "name": "Social Area",
+        "description": "Spaces for social interaction",
+        "minPercentage": 5,
+        "maxPercentage": 15,
+        "defaultPercentage": 10
+      },
+      {
+        "name": "Support/Ancillary",
+        "description": "Storage, print areas, etc.",
+        "minPercentage": 5,
+        "maxPercentage": 10,
+        "defaultPercentage": 5
+      }
+    ]
+  },
+  {
+    "name": "Event",
+    "description": "Flexible, reconfigurable spaces",
+    "benefits": [
+      "Highly adaptable spaces",
+      "Supports events, workshops, training",
+      "Movable furniture and partitions"
+    ],
+    "spaceTypes": [
+      {
+        "name": "Flexible Event Space",
+        "description": "Reconfigurable spaces for events",
+        "minPercentage": 30,
+        "maxPercentage": 50,
+        "defaultPercentage": 40
+      },
+      {
+        "name": "Presentation Area",
+        "description": "Spaces for presentations and workshops",
+        "minPercentage": 15,
+        "maxPercentage": 30,
+        "defaultPercentage": 20
+      },
+      {
+        "name": "Breakout Areas",
+        "description": "Informal spaces for small group discussions",
+        "minPercentage": 15,
+        "maxPercentage": 25,
+        "defaultPercentage": 20
+      },
+      {
+        "name": "Support Space",
+        "description": "AV equipment, storage, etc.",
+        "minPercentage": 10,
+        "maxPercentage": 20,
+        "defaultPercentage": 15
+      },
+      {
+        "name": "Ancillary Space",
+        "description": "Restrooms, circulation, etc.",
+        "minPercentage": 5,
+        "maxPercentage": 10,
+        "defaultPercentage": 5
+      }
+    ]
+  }
+]
