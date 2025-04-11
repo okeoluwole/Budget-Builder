@@ -15,6 +15,9 @@ import chatRoutes from './routes/chat';
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes with /api prefix
   
+  // Chat AI routes
+  app.use('/api/chat', chatRoutes);
+  
   // Projects
   app.get('/api/projects', async (req, res) => {
     try {

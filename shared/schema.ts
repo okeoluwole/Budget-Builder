@@ -299,3 +299,23 @@ export type ChatSession = typeof chatSessions.$inferSelect;
 
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+
+// Currency exchange rates
+export const currencyRates = pgTable("currency_rates", {
+  id: serial("id").primaryKey(),
+  country: text("country").notNull(),
+  currencyName: text("currency_name").notNull(),
+  currencyCode: text("currency_code").notNull().unique(),
+  exchangeRate: numeric("exchange_rate", { precision: 18, scale: 8 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCurrencyRateSchema = createInsertSchema(currencyRates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCurrencyRate = z.infer<typeof insertCurrencyRateSchema>;
+export type CurrencyRate = typeof currencyRates.$inferSelect;

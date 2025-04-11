@@ -1,8 +1,15 @@
 import { Request, Response, Router } from 'express';
 import { storage } from '../storage';
-import { insertChatSessionSchema, insertChatMessageSchema } from '@shared/schema';
+import { 
+  insertChatSessionSchema, 
+  insertChatMessageSchema, 
+  FitoutCost, 
+  SpecificationRecord 
+} from '@shared/schema';
 import openaiUtil, { ChatContext } from '../utils/openai';
 import { z } from 'zod';
+import { db } from '../db';
+import { fitoutCosts, specifications } from '@shared/schema';
 
 const router = Router();
 
@@ -45,7 +52,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
     // Add initial system message
     const systemMessage = {
       sessionId: session.id,
-      role: 'system',
+      role: 'system' as 'system',
       content: 'I am an AI assistant for the MMC Fit-out Budget Estimation application. How can I help you today?'
     };
     
@@ -133,7 +140,7 @@ router.post('/sessions/:id/messages', async (req: Request, res: Response) => {
     // Add user message to the database
     const userMessage = {
       sessionId,
-      role: 'user',
+      role: 'user' as 'user',
       content
     };
     
@@ -160,7 +167,7 @@ router.post('/sessions/:id/messages', async (req: Request, res: Response) => {
     // Save AI response to database
     const assistantMessage = {
       sessionId,
-      role: 'assistant',
+      role: 'assistant' as 'assistant',
       content: aiResponse
     };
     
