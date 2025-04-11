@@ -1,4 +1,4 @@
-import { Project, Budget, BudgetCategory, FitoutCostData, SpaceAllocation } from '@shared/schema';
+import { Project, Budget, BudgetCategory, FitoutCostData, SpaceAllocation, CurrencyRate } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 
 interface BudgetCalculationParams {
@@ -10,6 +10,10 @@ interface BudgetCalculationParams {
 interface CalculationResult {
   totalCost: number;
   costsBreakdown: { [key: string]: number };
+  localCurrencyCode?: string;
+  localCurrencyRate?: number;
+  localCurrencyTotalCost?: number;
+  localCurrencyCostsBreakdown?: { [key: string]: number };
 }
 
 // Get the specification cost factor based on specification level
@@ -35,6 +39,9 @@ const applyInflation = (value: number, inflationRate: number, years: number = 1)
 
 // Cache for fitout costs data to avoid repeated API calls
 let cachedFitoutCostsData: FitoutCostData[] | null = null;
+
+// Cache for currency rates data
+let cachedCurrencyRates: CurrencyRate[] | null = null;
 
 // Calculate budget based on project and budget data
 export const calculateBudget = async ({
@@ -122,10 +129,55 @@ export const calculateBudget = async ({
       });
     }
 
+    // Get currency conversion data if available
+    let localCurrencyCode = budget.localCurrencyCode || project.currency;
+    let localCurrencyRate: number | undefined;
+    let localCurrencyTotalCost: number | undefined;
+    let localCurrencyCostsBreakdown: { [key: string]: number } | undefined;
+    
+    if (localCurrencyCode && localCurrencyCode !== 'USD') {
+      try {
+        // Fetch currency rates if not already cached
+        if (!cachedCurrencyRates) {
+          console.log("Fetching currency rates from API");
+          const ratesRes = await apiRequest('GET', '/api/currency-rates', undefined);
+          const ratesData = await ratesRes.json();
+          cachedCurrencyRates = ratesData;
+        }
+        
+        // Find the exchange rate for the selected currency
+        const currencyData = cachedCurrencyRates?.find(rate => 
+          rate.currencyCode === localCurrencyCode
+        );
+        
+        if (currencyData) {
+          localCurrencyRate = parseFloat(currencyData.exchangeRate.toString());
+          
+          // Convert USD to local currency
+          if (localCurrencyRate > 0) {
+            localCurrencyTotalCost = parseFloat((inflatedTotalCost * localCurrencyRate).toFixed(2));
+            
+            // Convert cost breakdown to local currency
+            localCurrencyCostsBreakdown = {};
+            Object.entries(costsBreakdown).forEach(([key, value]) => {
+              localCurrencyCostsBreakdown![key] = parseFloat((value * localCurrencyRate!).toFixed(2));
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error getting currency conversion:', error);
+        // Continue without local currency if there's an error
+      }
+    }
+    
     // Return the calculated total and breakdown
     return {
       totalCost: parseFloat(inflatedTotalCost.toFixed(2)),
-      costsBreakdown
+      costsBreakdown,
+      localCurrencyCode,
+      localCurrencyRate,
+      localCurrencyTotalCost,
+      localCurrencyCostsBreakdown
     };
   } catch (error) {
     console.error('Error in budget calculation:', error);

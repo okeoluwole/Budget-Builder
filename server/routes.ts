@@ -364,6 +364,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all currency rates
+  app.get('/api/currency-rates', async (req, res) => {
+    try {
+      // Import the currency functions
+      const { getAllCurrencyRates } = await import('./utils/currencyImport');
+      
+      // Get all currency rates
+      const currencyRates = await getAllCurrencyRates();
+      
+      if (currencyRates.length === 0) {
+        return res.status(404).json({ message: 'No currency rates found in database' });
+      }
+      
+      res.json(currencyRates);
+    } catch (error: any) {
+      console.error('Error fetching currency rates:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch currency rates', 
+        error: error.message
+      });
+    }
+  });
+  
   // Import currency rates from Excel
   app.post('/api/admin/import-currency-rates', async (req, res) => {
     try {
