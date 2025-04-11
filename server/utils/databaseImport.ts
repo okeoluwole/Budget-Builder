@@ -13,27 +13,27 @@ interface ExcelRow {
   Country?: string;
   City?: string;
   Region?: string;
-  Activity_Low_Sqm?: number;
-  Activity_Medium_Sqm?: number;
-  Activity_High_Sqm?: number;
-  Activity_Low_Sqft?: number;
-  Activity_Medium_Sqft?: number;
-  Activity_High_Sqft?: number;
-  Team_Low_Sqm?: number;
-  Team_Medium_Sqm?: number;
-  Team_High_Sqm?: number;
-  Team_Low_Sqft?: number;
-  Team_Medium_Sqft?: number;
-  Team_High_Sqft?: number;
-  Event_Low_Sqm?: number;
-  Event_Medium_Sqm?: number;
-  Event_High_Sqm?: number;
-  Event_Low_Sqft?: number;
-  Event_Medium_Sqft?: number;
-  Event_High_Sqft?: number;
-  Location_Factor_EMEA?: number;
-  Location_Factor_AMERICA?: number;
-  Location_Factor_APAC?: number;
+  Activity_Low_Sqm?: number | string;
+  Activity_Medium_Sqm?: number | string;
+  Activity_High_Sqm?: number | string;
+  Activity_Low_Sqft?: number | string;
+  Activity_Medium_Sqft?: number | string;
+  Activity_High_Sqft?: number | string;
+  Team_Low_Sqm?: number | string;
+  Team_Medium_Sqm?: number | string;
+  Team_High_Sqm?: number | string;
+  Team_Low_Sqft?: number | string;
+  Team_Medium_Sqft?: number | string;
+  Team_High_Sqft?: number | string;
+  Event_Low_Sqm?: number | string;
+  Event_Medium_Sqm?: number | string;
+  Event_High_Sqm?: number | string;
+  Event_Low_Sqft?: number | string;
+  Event_Medium_Sqft?: number | string;
+  Event_High_Sqft?: number | string;
+  Location_Factor_EMEA?: number | string;
+  Location_Factor_AMERICA?: number | string;
+  Location_Factor_APAC?: number | string;
 }
 
 /**
@@ -98,9 +98,12 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
         record.locationFactorAMERICA = convertNumberField(row.Location_Factor_AMERICA);
         record.locationFactorAPAC = convertNumberField(row.Location_Factor_APAC);
       
-      // Validate the record
-      const validatedRecord = insertFitoutCostSchema.parse(record);
-      fitoutCostRecords.push(validatedRecord);
+        // Validate the record
+        const validatedRecord = insertFitoutCostSchema.parse(record);
+        fitoutCostRecords.push(validatedRecord);
+      } catch (error) {
+        console.error('Error processing row:', row, error);
+      }
     }
     
     // Insert into database

@@ -4,13 +4,7 @@ import { storage } from "./storage";
 import fs from "fs";
 import path from "path";
 import { FitoutCostData, SpecificationData, BudgetCategory } from "@shared/schema";
-import { 
-  importFitoutCostsFromExcel, 
-  importSpecificationsToDb, 
-  importLayoutTemplatesToDb, 
-  importBudgetTemplateToDb,
-  initializeDatabase
-} from "./utils/databaseImport";
+import { importFitoutCostsFromExcel } from "./utils/databaseImport";
 import { db } from "./db";
 import { 
   fitoutCosts, specifications, layoutTemplates, budgetTemplates 
@@ -175,6 +169,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(data);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch budget template structure' });
+    }
+  });
+
+  // Import fit-out costs from Excel endpoint
+  app.post('/api/admin/import-fitout-costs', async (req, res) => {
+    try {
+      const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'Fit-out costs Excel file not found' });
+      }
+      
+      await importFitoutCostsFromExcel(filePath);
+      
+      // Fetch the imported data from the database
+      const importedData = await db.select().from(fitoutCosts);
+      
+      res.status(200).json({ 
+        message: 'Fit-out costs imported successfully', 
+        count: importedData.length,
+        data: importedData
+      });
+    } catch (error) {
+      console.error('Error importing fit-out costs:', error);
+      res.status(500).json({ message: 'Failed to import fit-out costs' });
     }
   });
 
