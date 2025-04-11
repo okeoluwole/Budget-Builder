@@ -21,9 +21,20 @@ const Dashboard: React.FC = () => {
     staleTime: 30000 // 30 seconds
   });
 
-  // Process data when it's loaded
+  // Memoize projects and budgets IDs to prevent infinite re-renders
+  const projectIds = React.useMemo(() => 
+    projects.map(p => p.id).join(','), 
+    [projects]
+  );
+  
+  const budgetIds = React.useMemo(() => 
+    budgets.map(b => b.id).join(','), 
+    [budgets]
+  );
+  
+  // Process data when it's loaded 
   useEffect(() => {
-    if (!projectsLoading && !budgetsLoading && projects.length >= 0 && budgets.length >= 0) {
+    if (!projectsLoading && !budgetsLoading) {
       // Skip processing if both arrays are empty
       if (projects.length === 0 && budgets.length === 0) {
         return;
@@ -53,13 +64,15 @@ const Dashboard: React.FC = () => {
         if (budget && budget.projectId) {
           counts[budget.projectId] = (counts[budget.projectId] || 0) + 1;
           
-          // Track latest budget total for each project
+          // Track latest budget total for each project - simplified to avoid infinite loop
           if (budget.totalCost && 
               (!latestTotals[budget.projectId] || 
                new Date(budget.updatedAt || 0).getTime() > new Date(
+                 // Find the budget that has the current latest total
                  budgets.find((b: Budget) => 
-                   b && b.projectId === budget.projectId && 
-                   latestTotals[budget.projectId] === b.totalCost
+                   b.id !== budget.id && 
+                   b.projectId === budget.projectId && 
+                   b.totalCost === latestTotals[budget.projectId]
                  )?.updatedAt || 0
                ).getTime())
              ) {
@@ -73,7 +86,7 @@ const Dashboard: React.FC = () => {
       setProjectBudgetCounts(counts);
       setLatestBudgetTotals(latestTotals);
     }
-  }, [projects, budgets, projectsLoading, budgetsLoading]);
+  }, [projectsLoading, budgetsLoading, projectIds, budgetIds]);
 
   return (
     <div className="max-w-7xl mx-auto">

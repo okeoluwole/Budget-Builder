@@ -15,22 +15,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar - hidden on mobile unless toggled */}
-      <div className={`${sidebarOpen ? 'fixed inset-0 z-40 flex md:hidden' : 'hidden md:flex md:w-64'}`}>
-        <Sidebar onClose={() => setSidebarOpen(false)} />
-        
-        {/* Backdrop for mobile */}
-        {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-      </div>
+      {/* Mobile sidebar with overlay, hidden by default */}
+      {sidebarOpen && (
+        <div className="md:hidden">
+          <div className="fixed inset-0 z-40">
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)}></div>
+            <div className="fixed inset-y-0 left-0 z-50 w-64">
+              <Sidebar onClose={() => setSidebarOpen(false)} />
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Fixed sidebar for desktop */}
-      <div className="hidden md:flex md:w-64">
-        <Sidebar onClose={() => {}} />
+      <div className="hidden md:block md:flex-shrink-0">
+        <div className="h-full w-64">
+          <Sidebar onClose={() => {}} />
+        </div>
       </div>
       
       {/* Main content area */}

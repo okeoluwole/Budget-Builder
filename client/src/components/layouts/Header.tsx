@@ -9,19 +9,24 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   return (
     <header className="bg-white border-b border-gray-200">
       <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center md:hidden">
+        <div className="flex items-center">
+          {/* Mobile menu button - only shown on mobile */}
           <button 
             type="button" 
-            className="text-gray-500 hover:text-gray-600 focus:outline-none"
+            className="text-gray-500 hover:text-gray-600 focus:outline-none md:hidden"
             onClick={onMenuClick}
+            aria-label="Toggle menu"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
+          
+          {/* Display app title only on mobile, since sidebar has the title on desktop */}
+          <h1 className="text-lg font-semibold ml-3 text-gray-800 md:hidden">MMC Budget Tool</h1>
         </div>
         
-        <div className="flex items-center ml-auto">
+        <div className="flex items-center">
           <div className="relative mr-4">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
