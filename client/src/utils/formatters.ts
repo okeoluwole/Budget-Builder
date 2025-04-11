@@ -5,6 +5,69 @@
  * @param options Additional formatting options
  * @returns Formatted currency string
  */
+// FX rate for EUR to USD from the 2025 Budget Template's 2nd Pass Budget Rate column
+const EUR_RATE = 1.05;
+
+// Country to currency code mapping for common European countries
+const COUNTRY_TO_CURRENCY: Record<string, string> = {
+  'Ireland': 'EUR',
+  'France': 'EUR',
+  'Germany': 'EUR',
+  'Italy': 'EUR',
+  'Spain': 'EUR',
+  'Netherlands': 'EUR',
+  'Belgium': 'EUR',
+  'Portugal': 'EUR',
+  'Austria': 'EUR',
+  'Finland': 'EUR',
+  'Greece': 'EUR',
+  'United Kingdom': 'GBP',
+  // Add more as needed
+};
+
+// Currency code to symbol mapping
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  'USD': 'US$',
+  'EUR': '€',
+  'GBP': '£',
+  // Add more as needed
+};
+
+// Currency code to exchange rate mapping (2nd Pass Budget Rate from 2025 FX Rates)
+const CURRENCY_RATES: Record<string, number> = {
+  'USD': 1.0,
+  'EUR': 1.05, // EUR to USD rate
+  'GBP': 1.27, // GBP to USD rate
+  // Add more as needed
+};
+
+/**
+ * Get the currency code for a country
+ * @param country The country name
+ * @returns The currency code or USD as fallback
+ */
+export const getCurrencyCodeForCountry = (country: string): string => {
+  if (!country) return 'USD';
+  return COUNTRY_TO_CURRENCY[country] || 'USD';
+};
+
+/**
+ * Get the exchange rate for a currency code (USD to the specified currency)
+ * @param currencyCode The target currency code
+ * @returns The exchange rate or 1.0 as fallback
+ */
+export const getExchangeRate = (currencyCode: string): number => {
+  if (!currencyCode) return 1.0;
+  return CURRENCY_RATES[currencyCode] || 1.0;
+};
+
+/**
+ * Format a currency value
+ * @param value The value to format
+ * @param currencyCode The currency code (USD, EUR, GBP, etc.)
+ * @param options Additional formatting options
+ * @returns Formatted currency string
+ */
 export const formatCurrency = (
   value: number,
   currencyCode: string = 'USD',
@@ -15,30 +78,16 @@ export const formatCurrency = (
   }
 
   try {
-    // Format exactly as in the screenshot (US$40,017,661)
-    if (currencyCode === 'USD') {
-      return `US$${value.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-        useGrouping: true,
-        ...options
-      })}`;
-    } else if (currencyCode === 'EUR') {
-      return `€${value.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-        useGrouping: true,
-        ...options
-      })}`;
-    } else {
-      // For any other currency
-      return `${currencyCode}${value.toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-        useGrouping: true,
-        ...options
-      })}`;
-    }
+    // Get the currency symbol
+    const symbol = CURRENCY_SYMBOLS[currencyCode] || currencyCode;
+    
+    // Format with the appropriate currency symbol
+    return `${symbol}${value.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      useGrouping: true,
+      ...options
+    })}`;
   } catch (error) {
     console.error('Error formatting currency:', error);
     return `${currencyCode}${value.toLocaleString()}`;

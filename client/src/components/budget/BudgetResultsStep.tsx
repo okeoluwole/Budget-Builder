@@ -228,13 +228,31 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
               <div className="bg-gray-100 p-6 rounded-lg mb-6 text-center">
                 <h3 className="text-lg font-medium text-gray-700 mb-2">Total Budget Estimate</h3>
                 <div className="text-4xl font-bold text-gray-900 mb-2">
-                  {formatCurrency(totalCost, state.project?.currency || 'USD')}
+                  {formatCurrency(totalCost, 'USD')}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  {state.project?.totalArea?.toLocaleString()} {state.project?.areaUnit} @ 
-                  {formatCurrency(totalCost / (state.project?.totalArea || 1), state.project?.currency || 'USD')}
-                  /{state.project?.areaUnit}
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <div className="text-2xl font-bold text-gray-700 mb-2">
+                    {formatCurrency(totalCost * localCurrencyRate, localCurrencyCode)}
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-6 text-sm text-gray-600 mt-2">
+                  <div>
+                    {state.project?.totalArea?.toLocaleString()} {state.project?.areaUnit} @ 
+                    {formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}
+                    /{state.project?.areaUnit}
+                  </div>
+                  {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                    <div>
+                      {formatCurrency((totalCost * localCurrencyRate) / (state.project?.totalArea || 1), localCurrencyCode)}
+                      /{state.project?.areaUnit}
+                    </div>
+                  )}
                 </div>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <div className="text-xs text-gray-500 mt-2">
+                    Exchange Rate: 1 USD = {localCurrencyRate.toFixed(4)} {localCurrencyCode} (2025 FX Rate)
+                  </div>
+                )}
               </div>
               
               <BudgetSummary 
@@ -270,7 +288,12 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                         <tr>
                           <td className="py-1 text-gray-500">Currency:</td>
                           <td className="py-1 font-medium">
-                            {state.project?.currency}
+                            USD
+                            {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                              <span className="block text-sm text-gray-500">
+                                {localCurrencyCode} (Local)
+                              </span>
+                            )}
                           </td>
                         </tr>
                         <tr>
@@ -303,7 +326,12 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                         <tr>
                           <td className="py-1 text-gray-500">Rate per {state.project?.areaUnit}:</td>
                           <td className="py-1 font-medium">
-                            {formatCurrency(totalCost / (state.project?.totalArea || 1), state.project?.currency || 'USD')}
+                            {formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}
+                            {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                              <span className="block text-sm text-gray-500">
+                                {formatCurrency((totalCost * localCurrencyRate) / (state.project?.totalArea || 1), localCurrencyCode)}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       </tbody>

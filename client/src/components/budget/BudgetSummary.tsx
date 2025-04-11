@@ -189,6 +189,11 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount (USD)
                 </th>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount ({localCurrencyCode})
+                  </th>
+                )}
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Percentage
                 </th>
@@ -202,8 +207,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                     {item.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
-                    {formatCurrency(item.value, currency)}
+                    {formatCurrency(item.value, 'USD')}
                   </td>
+                  {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                      {formatCurrency(item.value * localCurrencyRate, localCurrencyCode)}
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                     {item.percentage.toFixed(1)}%
                   </td>
@@ -215,8 +225,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                   FITOUT COSTS
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
-                  {formatCurrency(fitoutCost, currency)}
+                  {formatCurrency(fitoutCost, 'USD')}
                 </td>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
+                    {formatCurrency(fitoutCost * localCurrencyRate, localCurrencyCode)}
+                  </td>
+                )}
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
                   100%
                 </td>
