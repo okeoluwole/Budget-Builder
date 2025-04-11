@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, real, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, real, boolean, timestamp, json, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -165,3 +165,105 @@ export type SpaceAllocation = {
     area: number;
   };
 };
+
+// Fit-out costs database schema
+export const fitoutCosts = pgTable("fitout_costs", {
+  id: serial("id").primaryKey(),
+  country: text("country").notNull(),
+  city: text("city").notNull(),
+  region: text("region").notNull(),
+  
+  // Activity layout costs
+  activityLowSqm: numeric("activity_low_sqm"),
+  activityMediumSqm: numeric("activity_medium_sqm"),
+  activityHighSqm: numeric("activity_high_sqm"),
+  activityLowSqft: numeric("activity_low_sqft"),
+  activityMediumSqft: numeric("activity_medium_sqft"),
+  activityHighSqft: numeric("activity_high_sqft"),
+  
+  // Team layout costs
+  teamLowSqm: numeric("team_low_sqm"),
+  teamMediumSqm: numeric("team_medium_sqm"),
+  teamHighSqm: numeric("team_high_sqm"),
+  teamLowSqft: numeric("team_low_sqft"),
+  teamMediumSqft: numeric("team_medium_sqft"),
+  teamHighSqft: numeric("team_high_sqft"),
+  
+  // Event layout costs
+  eventLowSqm: numeric("event_low_sqm"),
+  eventMediumSqm: numeric("event_medium_sqm"),
+  eventHighSqm: numeric("event_high_sqm"),
+  eventLowSqft: numeric("event_low_sqft"),
+  eventMediumSqft: numeric("event_medium_sqft"),
+  eventHighSqft: numeric("event_high_sqft"),
+  
+  // Location factors
+  locationFactorEMEA: numeric("location_factor_emea"),
+  locationFactorAMERICA: numeric("location_factor_america"),
+  locationFactorAPAC: numeric("location_factor_apac")
+});
+
+export const insertFitoutCostSchema = createInsertSchema(fitoutCosts).omit({
+  id: true
+});
+
+export type InsertFitoutCost = z.infer<typeof insertFitoutCostSchema>;
+export type FitoutCost = typeof fitoutCosts.$inferSelect;
+
+// Specification details table
+export const specifications = pgTable("specifications", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Bronze, Silver, Gold
+  description: text("description").notNull(),
+  walls: text("walls").notNull(),
+  partitionType: text("partition_type").notNull(),
+  partitionAcousticRating: text("partition_acoustic_rating").notNull(),
+  partitionCostFactor: numeric("partition_cost_factor").notNull(),
+  flooring: text("flooring").notNull(),
+  ceiling: text("ceiling").notNull(),
+  furnitureDesks: text("furniture_desks").notNull(),
+  furnitureChairs: text("furniture_chairs").notNull(),
+  furnitureStorage: text("furniture_storage").notNull(),
+  technologyAV: text("technology_av").notNull(),
+  technologySecurity: text("technology_security").notNull(),
+  fittings: text("fittings").notNull(),
+  recommendedFor: text("recommended_for").notNull()
+});
+
+export const insertSpecificationSchema = createInsertSchema(specifications).omit({
+  id: true
+});
+
+export type InsertSpecification = z.infer<typeof insertSpecificationSchema>;
+export type SpecificationRecord = typeof specifications.$inferSelect;
+
+// Layout templates table
+export const layoutTemplates = pgTable("layout_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Activity, Team, Event
+  description: text("description").notNull(),
+  benefits: text("benefits").notNull(), // JSON string with array of benefits
+  defaultAllocation: json("default_allocation").notNull() // JSON with default space allocation percentages
+});
+
+export const insertLayoutTemplateSchema = createInsertSchema(layoutTemplates).omit({
+  id: true
+});
+
+export type InsertLayoutTemplate = z.infer<typeof insertLayoutTemplateSchema>;
+export type LayoutTemplate = typeof layoutTemplates.$inferSelect;
+
+// Budget template structure
+export const budgetTemplates = pgTable("budget_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  structure: json("structure").notNull() // JSON with budget categories, subcategories, and line items
+});
+
+export const insertBudgetTemplateSchema = createInsertSchema(budgetTemplates).omit({
+  id: true
+});
+
+export type InsertBudgetTemplate = z.infer<typeof insertBudgetTemplateSchema>;
+export type BudgetTemplate = typeof budgetTemplates.$inferSelect;
