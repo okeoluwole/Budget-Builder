@@ -33,23 +33,56 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
       if (!state.project?.country) return;
       
       try {
-        // TEMPORARY FIX: Use direct currency rate lookup by code instead of by country
+        // Map countries to their ISO currency codes
         const countryToCurrency: Record<string, string> = {
+          'Austria': 'EUR',
+          'Belgium': 'EUR',
+          'Bulgaria': 'BGN',
+          'Croatia': 'EUR',
+          'Cyprus': 'EUR',
+          'Czech Republic': 'CZK',
+          'Denmark': 'DKK',
+          'Estonia': 'EUR',
+          'Finland': 'EUR',
+          'France': 'EUR',
           'Germany': 'EUR',
-          'France': 'EUR', 
-          'Italy': 'EUR',
-          'Spain': 'EUR',
+          'Greece': 'EUR',
+          'Hungary': 'HUF',
           'Ireland': 'EUR',
+          'Italy': 'EUR',
+          'Latvia': 'EUR',
+          'Lithuania': 'EUR',
+          'Luxembourg': 'EUR',
+          'Malta': 'EUR',
+          'Netherlands': 'EUR',
+          'Poland': 'PLN',
+          'Portugal': 'EUR',
+          'Romania': 'RON',
+          'Slovakia': 'EUR',
+          'Slovenia': 'EUR',
+          'Spain': 'EUR',
+          'Sweden': 'SEK',
           'United Kingdom': 'GBP',
+          'Switzerland': 'CHF',
+          'Norway': 'NOK',
           'United States': 'USD',
           'Canada': 'CAD',
           'Australia': 'AUD',
+          'New Zealand': 'NZD',
           'Japan': 'JPY',
-          'China': 'CNY'
+          'China': 'CNY',
+          'Singapore': 'SGD',
+          'Hong Kong': 'HKD',
+          'India': 'INR',
+          'Brazil': 'BRL',
+          'Mexico': 'MXN',
+          'South Africa': 'ZAR',
+          'Russia': 'RUB',
+          'Argentina': 'ARS'
         };
         
-        const currencyCode = countryToCurrency[state.project.country] || 'EUR';
-        console.log(`Direct currency lookup for ${state.project.country}: ${currencyCode}`);
+        const currencyCode = countryToCurrency[state.project.country] || 'USD';
+        console.log(`Currency lookup for ${state.project.country}: ${currencyCode}`);
         
         if (currencyCode && currencyCode !== 'USD') {
           // Get specific currency rate directly
@@ -339,13 +372,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                   {formatCurrency(totalCost, 'USD')}
                 </div>
                 
-                {/* Hardcoded EUR and GBP values for testing */}
-                <div className="text-2xl font-bold text-green-700 mb-2">
-                  EUR: {formatCurrency(totalCost * 1.05, 'EUR')}
-                </div>
-                <div className="text-2xl font-bold text-blue-700 mb-2">
-                  GBP: {formatCurrency(totalCost * 1.27, 'GBP')}
-                </div>
+                {/* This is just for debugging, will be removed */}
                 
                 {/* Dynamic values from state - should match one of the above */}
                 {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (

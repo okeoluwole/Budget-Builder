@@ -40,8 +40,8 @@ const applyInflation = (value: number, inflationRate: number, years: number = 1)
 // Cache for fitout costs data to avoid repeated API calls
 let cachedFitoutCostsData: FitoutCostData[] | null = null;
 
-// Cache for currency rates data
-let cachedCurrencyRates: CurrencyRate[] | null = null;
+// We don't need currency rates cache as we use direct endpoint
+// let cachedCurrencyRates: CurrencyRate[] | null = null;
 
 // Calculate budget based on project and budget data
 export const calculateBudget = async ({
@@ -138,75 +138,47 @@ export const calculateBudget = async ({
     console.log("Budget Calculator - Looking for currency:", localCurrencyCode);
     console.log("Project country:", project.country);
     
-    // Attempt direct currency code lookup for testing
-    if (localCurrencyCode === 'EUR') {
-      console.log("Direct EUR rate application");
-      localCurrencyRate = 1.05;
-      localCurrencyTotalCost = parseFloat((inflatedTotalCost * localCurrencyRate).toFixed(2));
-      
-      // Convert cost breakdown to local currency
-      localCurrencyCostsBreakdown = {};
-      Object.entries(costsBreakdown).forEach(([key, value]) => {
-        localCurrencyCostsBreakdown![key] = parseFloat((value * localCurrencyRate!).toFixed(2));
-      });
-      
-      console.log("Applied hardcoded EUR rate:", localCurrencyRate);
-      console.log("EUR total:", localCurrencyTotalCost);
-    }
-    else if (localCurrencyCode === 'GBP') {
-      console.log("Direct GBP rate application");
-      localCurrencyRate = 1.27;
-      localCurrencyTotalCost = parseFloat((inflatedTotalCost * localCurrencyRate).toFixed(2));
-      
-      // Convert cost breakdown to local currency
-      localCurrencyCostsBreakdown = {};
-      Object.entries(costsBreakdown).forEach(([key, value]) => {
-        localCurrencyCostsBreakdown![key] = parseFloat((value * localCurrencyRate!).toFixed(2));
-      });
-      
-      console.log("Applied hardcoded GBP rate:", localCurrencyRate);
-      console.log("GBP total:", localCurrencyTotalCost);
-    }
-    // Proceed with normal lookup if not EUR or GBP
-    else if (localCurrencyCode && localCurrencyCode !== 'USD') {
+    // Get direct currency exchange rates - 2025 Budget Template rates
+    // The correct approach: currency rates from Budget Template's "2025 FX Rates" sheet
+    // Note: The values in the 2025 FX rates show rates in the direction of "USD to Local Currency"
+    // For EUR = 0.95 (meaning 1 USD = 0.95 EUR)
+    // For GBP = 0.79 (meaning 1 USD = 0.79 GBP)
+    
+    // But: The client wanted the 2nd Pass Budget Rate (Column K) which is "1/FX Rate"
+    // This means we see EUR = 1.05 (which is 1/0.95)
+    // GBP = 1.27 (which is 1/0.79)
+    
+    if (localCurrencyCode) {
       try {
-        // Fetch currency rates if not already cached
-        if (!cachedCurrencyRates) {
-          console.log("Fetching currency rates from API");
-          const ratesRes = await apiRequest('GET', '/api/currency-rates', undefined);
-          const ratesData = await ratesRes.json();
-          cachedCurrencyRates = ratesData;
-          console.log("Cache updated with currency rates:", cachedCurrencyRates.length);
-        }
+        console.log(`Looking up rate for ${localCurrencyCode}`);
+        // Get rate directly from API by currency code
+        const rateRes = await apiRequest('GET', `/api/currency-rates/${localCurrencyCode}`, undefined);
+        const rateData = await rateRes.json();
         
-        // Find the exchange rate for the selected currency
-        const currencyData = cachedCurrencyRates?.find(rate => 
-          rate.currencyCode === localCurrencyCode
-        );
-        
-        console.log("Currency data found:", currencyData);
-        
-        if (currencyData) {
-          localCurrencyRate = parseFloat(currencyData.exchangeRate.toString());
-          console.log("Applied exchange rate:", localCurrencyRate);
+        if (rateData && rateData.rate) {
+          localCurrencyRate = parseFloat(rateData.rate.toString());
           
-          // Convert USD to local currency
-          if (localCurrencyRate > 0) {
-            localCurrencyTotalCost = parseFloat((inflatedTotalCost * localCurrencyRate).toFixed(2));
-            console.log("Local currency total:", localCurrencyTotalCost);
-            
-            // Convert cost breakdown to local currency
-            localCurrencyCostsBreakdown = {};
-            Object.entries(costsBreakdown).forEach(([key, value]) => {
-              localCurrencyCostsBreakdown![key] = parseFloat((value * localCurrencyRate!).toFixed(2));
-            });
-          }
+          console.log(`Currency rate for ${localCurrencyCode}: ${localCurrencyRate}`);
+          
+          // Convert USD to local currency using the exchange rate
+          // Note: Rate is formatted as USD to Local, so we multiply
+          localCurrencyTotalCost = parseFloat((inflatedTotalCost * localCurrencyRate).toFixed(2));
+          
+          // Convert cost breakdown to local currency
+          localCurrencyCostsBreakdown = {};
+          Object.entries(costsBreakdown).forEach(([key, value]) => {
+            localCurrencyCostsBreakdown![key] = parseFloat((value * localCurrencyRate!).toFixed(2));
+          });
+          
+          console.log(`Converted ${inflatedTotalCost} USD to ${localCurrencyTotalCost} ${localCurrencyCode}`);
+        } else {
+          console.log(`No rate found for ${localCurrencyCode}`);
         }
       } catch (error) {
-        console.error('Error getting currency conversion:', error);
-        // Continue without local currency if there's an error
+        console.error(`Error getting currency rate for ${localCurrencyCode}:`, error);
       }
     }
+    // Only use the direct endpoint - previous code removed
     
     // Log currency information before returning
     console.log("Budget calculation results:", {
