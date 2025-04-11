@@ -42,9 +42,15 @@ interface ExcelRow {
  */
 export async function importFitoutCostsFromExcel(filePath: string): Promise<void> {
   try {
+    console.log("Reading Excel file:", filePath);
     // Read the Excel file
     const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0]; // Assuming data is in the first sheet
+    
+    // Let's log available sheets for debugging
+    console.log("Available sheets:", workbook.SheetNames);
+    
+    // Use the FITOUT sheet instead of the first one
+    const sheetName = "FITOUT"; 
     const worksheet = workbook.Sheets[sheetName];
     
     // Convert to JSON
@@ -53,50 +59,77 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     // Process the data and prepare for insertion
     const fitoutCostRecords: InsertFitoutCost[] = [];
     
+    // Debug output the first data row
+    if (data.length > 0) {
+      console.log("First row sample:", JSON.stringify(data[0], null, 2));
+    }
+    
     // Map the Excel data to our database structure
     for (const row of data) {
       try {
+        // Skip rows without Country or Region
+        if (!row.Country || !row.City) {
+          console.log("Skipping row without Country or City:", row);
+          continue;
+        }
+        
         // This mapping will need to be adjusted based on the actual Excel structure
         const record: Partial<InsertFitoutCost> = {
-          country: typeof row.Country === 'string' ? row.Country : 'Unknown',
-          city: typeof row.City === 'string' ? row.City : 'Unknown',
-          region: typeof row.Region === 'string' ? row.Region : 'Unknown',
+          country: String(row.Country || 'Unknown'),
+          city: String(row.City || 'Unknown'),
+          region: String(row.Region || 'Unknown'),
         };
         
         // Helper function to convert Excel values to the right type
         const convertNumberField = (value: any): string | null => {
           if (value === undefined || value === null) return null;
-          return value.toString();
+          return String(value); // Convert to string since our schema uses numeric fields as strings
         };
         
-        // Activity layout costs
-        record.activityLowSqm = convertNumberField(row.Activity_Low_Sqm);
-        record.activityMediumSqm = convertNumberField(row.Activity_Medium_Sqm);
-        record.activityHighSqm = convertNumberField(row.Activity_High_Sqm);
-        record.activityLowSqft = convertNumberField(row.Activity_Low_Sqft);
-        record.activityMediumSqft = convertNumberField(row.Activity_Medium_Sqft);
-        record.activityHighSqft = convertNumberField(row.Activity_High_Sqft);
+        // Map column names from the actual Excel file
+        // Activity layout costs (column names may vary)
+        record.activityLowSqm = convertNumberField(row["Low Specification"] || row["Low"] || row.Activity_Low_Sqm);
+        record.activityMediumSqm = convertNumberField(row["Medium Specification"] || row["Medium"] || row.Activity_Medium_Sqm);
+        record.activityHighSqm = convertNumberField(row["High Specification"] || row["High"] || row.Activity_High_Sqm);
         
+        // Assume sqft values at 0.0929 conversion rate if not provided
+        if (record.activityLowSqm) {
+          const sqmValue = parseFloat(record.activityLowSqm);
+          record.activityLowSqft = convertNumberField(row.Activity_Low_Sqft || (sqmValue * 0.0929));
+        }
+        
+        if (record.activityMediumSqm) {
+          const sqmValue = parseFloat(record.activityMediumSqm);
+          record.activityMediumSqft = convertNumberField(row.Activity_Medium_Sqft || (sqmValue * 0.0929));
+        }
+        
+        if (record.activityHighSqm) {
+          const sqmValue = parseFloat(record.activityHighSqm);
+          record.activityHighSqft = convertNumberField(row.Activity_High_Sqft || (sqmValue * 0.0929));
+        }
+        
+        // For now, use the same values for Team and Event as for Activity if not specified
         // Team layout costs
-        record.teamLowSqm = convertNumberField(row.Team_Low_Sqm);
-        record.teamMediumSqm = convertNumberField(row.Team_Medium_Sqm);
-        record.teamHighSqm = convertNumberField(row.Team_High_Sqm);
-        record.teamLowSqft = convertNumberField(row.Team_Low_Sqft);
-        record.teamMediumSqft = convertNumberField(row.Team_Medium_Sqft);
-        record.teamHighSqft = convertNumberField(row.Team_High_Sqft);
+        record.teamLowSqm = convertNumberField(row.Team_Low_Sqm || record.activityLowSqm);
+        record.teamMediumSqm = convertNumberField(row.Team_Medium_Sqm || record.activityMediumSqm);
+        record.teamHighSqm = convertNumberField(row.Team_High_Sqm || record.activityHighSqm);
+        record.teamLowSqft = convertNumberField(row.Team_Low_Sqft || record.activityLowSqft);
+        record.teamMediumSqft = convertNumberField(row.Team_Medium_Sqft || record.activityMediumSqft);
+        record.teamHighSqft = convertNumberField(row.Team_High_Sqft || record.activityHighSqft);
         
         // Event layout costs
-        record.eventLowSqm = convertNumberField(row.Event_Low_Sqm);
-        record.eventMediumSqm = convertNumberField(row.Event_Medium_Sqm);
-        record.eventHighSqm = convertNumberField(row.Event_High_Sqm);
-        record.eventLowSqft = convertNumberField(row.Event_Low_Sqft);
-        record.eventMediumSqft = convertNumberField(row.Event_Medium_Sqft);
-        record.eventHighSqft = convertNumberField(row.Event_High_Sqft);
+        record.eventLowSqm = convertNumberField(row.Event_Low_Sqm || record.activityLowSqm);
+        record.eventMediumSqm = convertNumberField(row.Event_Medium_Sqm || record.activityMediumSqm);
+        record.eventHighSqm = convertNumberField(row.Event_High_Sqm || record.activityHighSqm);
+        record.eventLowSqft = convertNumberField(row.Event_Low_Sqft || record.activityLowSqft);
+        record.eventMediumSqft = convertNumberField(row.Event_Medium_Sqft || record.activityMediumSqft);
+        record.eventHighSqft = convertNumberField(row.Event_High_Sqft || record.activityHighSqft);
         
         // Location factors
-        record.locationFactorEMEA = convertNumberField(row.Location_Factor_EMEA);
-        record.locationFactorAMERICA = convertNumberField(row.Location_Factor_AMERICA);
-        record.locationFactorAPAC = convertNumberField(row.Location_Factor_APAC);
+        // Default values if not specified
+        record.locationFactorEMEA = convertNumberField(row.Location_Factor_EMEA || 1.0);
+        record.locationFactorAMERICA = convertNumberField(row.Location_Factor_AMERICA || 1.0);
+        record.locationFactorAPAC = convertNumberField(row.Location_Factor_APAC || 1.0);
       
         // Validate the record
         const validatedRecord = insertFitoutCostSchema.parse(record);
