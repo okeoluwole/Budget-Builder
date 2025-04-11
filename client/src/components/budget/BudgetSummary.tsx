@@ -131,11 +131,14 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                 </Pie>
                 <Tooltip 
                   formatter={(value: number) => {
-                    if (showLocalCurrency && localCurrencyCode && localCurrencyRate) {
+                    if (localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate) {
                       const localValue = value * localCurrencyRate;
-                      return formatCurrency(localValue, localCurrencyCode);
+                      return [
+                        `${formatCurrency(value, currency)} / ${formatCurrency(localValue, localCurrencyCode)}`,
+                        ''
+                      ];
                     }
-                    return formatCurrency(value, currency);
+                    return [formatCurrency(value, currency), ''];
                   }} 
                   separator=": "
                 />
@@ -152,24 +155,24 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                 <XAxis dataKey="name" />
                 <YAxis 
                   tickFormatter={(value) => {
-                    if (showLocalCurrency && localCurrencyCode && localCurrencyRate) {
-                      return formatCurrency(value * localCurrencyRate, localCurrencyCode, { notation: 'compact' });
-                    }
                     return formatCurrency(value, currency, { notation: 'compact' });
                   }} 
                 />
                 <Tooltip 
                   formatter={(value: number) => {
-                    if (showLocalCurrency && localCurrencyCode && localCurrencyRate) {
+                    if (localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate) {
                       const localValue = value * localCurrencyRate;
-                      return formatCurrency(localValue, localCurrencyCode);
+                      return [
+                        `${formatCurrency(value, currency)} / ${formatCurrency(localValue, localCurrencyCode)}`,
+                        ''
+                      ];
                     }
-                    return formatCurrency(value, currency);
+                    return [formatCurrency(value, currency), ''];
                   }} 
                   separator=": "
                 />
                 <Legend />
-                <Bar dataKey="value" fill="#0d47a1" name={showLocalCurrency && localCurrencyCode ? `Cost (${localCurrencyCode})` : `Cost (${currency})`} />
+                <Bar dataKey="value" fill="#0d47a1" name={`Cost (${currency} / ${localCurrencyCode || currency})`} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -181,8 +184,7 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
           <h4 className="font-medium text-gray-700">Fitout Cost Details</h4>
           {localCurrencyCode && localCurrencyCode !== currency && localCurrencyRate && (
             <div className="text-sm text-gray-600">
-              Currently showing values in: <span className="font-semibold">{showLocalCurrency ? localCurrencyCode : currency}</span>
-              {showLocalCurrency && <span className="ml-1 text-xs">({localCurrencyRate.toFixed(4)} per USD)</span>}
+              Exchange Rate: <span className="font-semibold">1 USD = {localCurrencyRate.toFixed(4)} {localCurrencyCode}</span>
             </div>
           )}
         </div>
@@ -194,8 +196,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                   Category
                 </th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
+                  Amount (USD)
                 </th>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount ({localCurrencyCode})
+                  </th>
+                )}
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Percentage
                 </th>
@@ -209,10 +216,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                     {item.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
-                    {showLocalCurrency && localCurrencyCode && localCurrencyRate 
-                      ? formatCurrency(item.value * localCurrencyRate, localCurrencyCode)
-                      : formatCurrency(item.value, currency)}
+                    {formatCurrency(item.value, currency)}
                   </td>
+                  {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                      {formatCurrency(item.value * localCurrencyRate, localCurrencyCode)}
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                     {item.percentage.toFixed(1)}%
                   </td>
@@ -224,10 +234,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                   FITOUT COSTS
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
-                  {showLocalCurrency && localCurrencyCode && localCurrencyRate && localCurrencyTotalCost 
-                    ? formatCurrency(localCurrencyTotalCost, localCurrencyCode)
-                    : formatCurrency(fitoutCost, currency)}
+                  {formatCurrency(fitoutCost, currency)}
                 </td>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
+                    {formatCurrency(localCurrencyTotalCost || fitoutCost * (localCurrencyRate || 1), localCurrencyCode)}
+                  </td>
+                )}
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
                   100%
                 </td>
