@@ -147,18 +147,6 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {/* Display the total fitout costs first */}
-              <tr className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  FITOUT COSTS
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
-                  {formatCurrency(fitoutCost, currency)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                  100.0%
-                </td>
-              </tr>
               {/* Display space allocation breakdown */}
               {chartData.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
@@ -173,10 +161,10 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({ budgetBreakdown, totalCos
                   </td>
                 </tr>
               ))}
-              {/* Total row (same as fitout costs) */}
+              {/* Total row as FITOUT COSTS */}
               <tr className="bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                  Total
+                  FITOUT COSTS
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
                   {formatCurrency(fitoutCost, currency)}
