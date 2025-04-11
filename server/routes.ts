@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { FitoutCostData, SpecificationData, BudgetCategory } from "@shared/schema";
 import { importFitoutCostsFromExcel } from "./utils/databaseImport";
+import { parseExcelFile } from "./utils/excelReader";
 import { db } from "./db";
 import { 
   fitoutCosts, specifications, layoutTemplates, budgetTemplates 
@@ -172,28 +173,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Import fit-out costs from Excel endpoint
-  app.post('/api/admin/import-fitout-costs', async (req, res) => {
+  // Analyze Excel file structure
+  app.get('/api/admin/analyze-excel', async (req, res) => {
     try {
       const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
       
       if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'Excel file not found' });
+      }
+      
+      const excelData = await parseExcelFile(filePath);
+      
+      res.status(200).json({ 
+        message: 'Excel file parsed successfully',
+        sheetNames: Object.keys(excelData),
+        // For each sheet, include the first row and row count
+        sheets: Object.entries(excelData).reduce<Record<string, any>>((acc, [sheetName, data]) => {
+          if (Array.isArray(data)) {
+            acc[sheetName] = {
+              rowCount: data.length,
+              firstRow: data.length > 0 ? data[0] : null
+            };
+          } else {
+            acc[sheetName] = { rowCount: 0, firstRow: null };
+          }
+          return acc;
+        }, {})
+      });
+    } catch (error: any) {
+      console.error('Error analyzing Excel file:', error);
+      res.status(500).json({ 
+        message: 'Failed to analyze Excel file', 
+        error: error.message
+      });
+    }
+  });
+
+  // Import fit-out costs from Excel endpoint
+  app.post('/api/admin/import-fitout-costs', async (req, res) => {
+    try {
+      console.log("Import endpoint called, current directory:", process.cwd());
+      
+      // List files in attached_assets directory to verify
+      const assetsDir = path.join(process.cwd(), 'attached_assets');
+      try {
+        const files = fs.readdirSync(assetsDir);
+        console.log("Files in attached_assets directory:", files);
+      } catch (err) {
+        console.error("Error reading attached_assets directory:", err);
+      }
+      
+      // Build file path
+      const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
+      console.log("Full Excel file path:", filePath);
+      
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        console.error(`File not found at ${filePath}`);
         return res.status(404).json({ message: 'Fit-out costs Excel file not found' });
       }
       
+      console.log("File exists, attempting to import...");
+      
+      // Import Excel data to database
       await importFitoutCostsFromExcel(filePath);
       
       // Fetch the imported data from the database
+      console.log("Import complete, checking database for imported records...");
       const importedData = await db.select().from(fitoutCosts);
+      console.log(`Found ${importedData.length} imported records`);
       
       res.status(200).json({ 
         message: 'Fit-out costs imported successfully', 
         count: importedData.length,
-        data: importedData
+        data: importedData.slice(0, 5) // Only return first 5 records to avoid huge response
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error importing fit-out costs:', error);
-      res.status(500).json({ message: 'Failed to import fit-out costs' });
+      res.status(500).json({ 
+        message: 'Failed to import fit-out costs', 
+        error: error.message, 
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+      });
     }
   });
 
