@@ -426,19 +426,70 @@ const BudgetDetails: React.FC<BudgetDetailsProps> = ({ params }) => {
               </button>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Current Currency</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                {budget.localCurrencyCode ? (
-                  <>
-                    Local currency is set to <span className="font-semibold">{budget.localCurrencyCode}</span>
-                    {budget.localCurrencyRate && (
-                      <> at rate of <span className="font-semibold">{budget.localCurrencyRate.toFixed(4)}</span> per USD</>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Local Currency Settings</h3>
+              {availableCurrencies.length > 0 ? (
+                <>
+                  <div className="mb-4">
+                    <label htmlFor="currency-select" className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Local Currency
+                    </label>
+                    <div className="flex space-x-2">
+                      <select
+                        id="currency-select"
+                        value={selectedCurrencyCode}
+                        onChange={(e) => setSelectedCurrencyCode(e.target.value)}
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
+                        disabled={updatingBudgetCurrency || importingCurrency}
+                      >
+                        <option value="">-- Select Currency --</option>
+                        {availableCurrencies
+                          .filter(currency => currency.code !== 'USD') // Filter out USD as it's already the default
+                          .map(currency => (
+                            <option key={currency.code} value={currency.code}>
+                              {currency.code} - {currency.name} ({currency.rate.toFixed(4)})
+                            </option>
+                          ))
+                        }
+                      </select>
+                      <button
+                        onClick={updateBudgetCurrency}
+                        disabled={!selectedCurrencyCode || updatingBudgetCurrency || importingCurrency}
+                        className={`px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                          !selectedCurrencyCode || updatingBudgetCurrency || importingCurrency ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {updatingBudgetCurrency ? (
+                          <>
+                            <svg className="inline-block animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Updating...
+                          </>
+                        ) : (
+                          'Apply'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {budget.localCurrencyCode && budget.localCurrencyCode !== 'USD' ? (
+                      <>
+                        Current local currency: <span className="font-semibold">{budget.localCurrencyCode}</span>
+                        {budget.localCurrencyRate && (
+                          <> at rate of <span className="font-semibold">{budget.localCurrencyRate.toFixed(4)}</span> per USD</>
+                        )}
+                      </>
+                    ) : (
+                      'No local currency is set. Select a currency and click Apply.'
                     )}
-                  </>
-                ) : (
-                  'No local currency is currently set. Import currency rates to enable dual currency support.'
-                )}
-              </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-gray-600 mb-4">
+                  No currency rates available. Import currency rates first to enable local currency support.
+                </div>
+              )}
             </div>
           </div>
         </div>
