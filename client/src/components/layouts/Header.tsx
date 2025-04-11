@@ -19,7 +19,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="ml-2 text-lg font-medium text-primary">MMC Budget Tool</span>
         </div>
         
         <div className="flex items-center ml-auto">

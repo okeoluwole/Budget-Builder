@@ -22,9 +22,25 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
     const fetchSpecifications = async () => {
       try {
         setLoading(true);
+        // Clear any existing specifications before loading new ones
+        setSpecifications([]);
+        
         const res = await apiRequest('GET', '/api/specifications', undefined);
         const data = await res.json();
-        setSpecifications(data);
+        
+        // Check if we got valid data and deduplicate by name
+        if (Array.isArray(data) && data.length > 0) {
+          // Use a Map to deduplicate by name
+          const uniqueSpecs = new Map();
+          data.forEach(spec => {
+            if (!uniqueSpecs.has(spec.name)) {
+              uniqueSpecs.set(spec.name, spec);
+            }
+          });
+          setSpecifications(Array.from(uniqueSpecs.values()));
+        } else {
+          throw new Error('No specification data received');
+        }
       } catch (error) {
         console.error('Failed to fetch specifications:', error);
         toast({
@@ -32,7 +48,7 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
           description: "Using default specifications instead. Some data may be missing.",
           variant: "destructive",
         });
-        // Fallback to default specs
+        // Fallback to default specs - use only if API fails completely
         setSpecifications([
           {
             name: 'Bronze',
