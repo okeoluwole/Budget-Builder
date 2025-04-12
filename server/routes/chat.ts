@@ -157,14 +157,14 @@ router.post('/sessions/:id/messages', async (req: Request, res: Response) => {
       specifications: await db.select().from(specifications)
     };
     
-    // Convert messages to OpenAI format
-    const openaiMessages = messageHistory.map(msg => ({
-      role: msg.role,
+    // Convert messages to the format expected by local implementation
+    const chatMessages = messageHistory.map(msg => ({
+      role: msg.role as "system" | "user" | "assistant",
       content: msg.content
     }));
     
     // Get response using local implementation
-    const aiResponse = await localChat.getChatCompletion(openaiMessages, context);
+    const aiResponse = await localChat.getChatCompletion(chatMessages, context);
     
     // Save AI response to database
     const assistantMessage = {
@@ -194,7 +194,7 @@ router.post('/analyze/excel', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'File content and filename are required' });
     }
     
-    const analysis = await openaiUtil.analyzeExcelFile(base64Content, filename);
+    const analysis = await localChat.analyzeExcelFile(base64Content, filename);
     res.json({ analysis });
   } catch (error: any) {
     console.error('Error analyzing Excel file:', error);
@@ -211,7 +211,7 @@ router.post('/analyze/pdf', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'File content and filename are required' });
     }
     
-    const summary = await openaiUtil.analyzePdfDocument(base64Content, filename);
+    const summary = await localChat.analyzePdfDocument(base64Content, filename);
     res.json({ summary });
   } catch (error: any) {
     console.error('Error analyzing PDF document:', error);
@@ -233,19 +233,14 @@ router.post('/recommendation', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Project not found' });
     }
     
-    // Get data needed for recommendation
-    const projects = await storage.getAllProjects();
-    const budgets = await storage.getAllBudgets();
+    // Get actual data from database
+    const fitoutCostsData = await db.select().from(fitoutCosts);
+    const specificationsData = await db.select().from(specifications);
     
-    // TODO: Get actual fit-out costs and specifications from database
-    // For now, use a placeholder
-    const fitoutCosts = [];
-    const specifications = [];
-    
-    const recommendation = await openaiUtil.generateCostRecommendation(
+    const recommendation = await localChat.generateCostRecommendation(
       project,
-      fitoutCosts,
-      specifications
+      fitoutCostsData,
+      specificationsData
     );
     
     res.json({ recommendation });
