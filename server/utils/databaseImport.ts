@@ -102,8 +102,8 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     const findMatchingRow = (data: any[], country: string, city: string) => {
       return (data as any[]).find(
         (row: any) => 
-          row['Unnamed: 0'] === country && 
-          row['Unnamed: 1'] === city
+          row['COUNTRY'] === country && 
+          row['CITY'] === city
       ) || {};
     };
     
@@ -117,18 +117,18 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     for (let i = 0; i < activitySqmData.length; i++) {
       const row = activitySqmData[i] as any;
       
-      if (row['Unnamed: 0'] === 'United Kingdom' && row['Unnamed: 1'] === 'London') {
-        londonMedium = Number(row['Medium '] || 0);
+      if (row['COUNTRY'] === 'United Kingdom' && row['CITY'] === 'London') {
+        londonMedium = Number(row['Unnamed: 4'] || 0);
         console.log(`Found London benchmark: ${londonMedium}`);
       }
       
-      if (row['Unnamed: 0'] === 'United States' && row['Unnamed: 1'] === 'New York') {
-        newyorkMedium = Number(row['Medium '] || 0);
+      if (row['COUNTRY'] === 'United States' && row['CITY'] === 'New York') {
+        newyorkMedium = Number(row['Unnamed: 4'] || 0);
         console.log(`Found New York benchmark: ${newyorkMedium}`);
       }
       
-      if (row['Unnamed: 0'] === 'Singapore' && row['Unnamed: 1'] === 'Singapore') {
-        singaporeMedium = Number(row['Medium '] || 0);
+      if (row['COUNTRY'] === 'Singapore' && row['CITY'] === 'Singapore') {
+        singaporeMedium = Number(row['Unnamed: 4'] || 0);
         console.log(`Found Singapore benchmark: ${singaporeMedium}`);
       }
     }
@@ -156,14 +156,14 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
         const activitySqmRow = activitySqmData[i] as any;
         
         // Skip rows without Country, City or Region
-        if (!activitySqmRow['Unnamed: 0'] || !activitySqmRow['Unnamed: 1'] || !activitySqmRow['Unnamed: 2']) {
+        if (!activitySqmRow['COUNTRY'] || !activitySqmRow['CITY'] || !activitySqmRow['REGION']) {
           console.log("Skipping row without Country, City or Region:", activitySqmRow);
           continue;
         }
         
-        const country = String(activitySqmRow['Unnamed: 0']);
-        const city = String(activitySqmRow['Unnamed: 1']);
-        const region = String(activitySqmRow['Unnamed: 2']);
+        const country = String(activitySqmRow['COUNTRY']);
+        const city = String(activitySqmRow['CITY']);
+        const region = String(activitySqmRow['REGION']);
         
         // Find matching rows in other sheets
         const activitySqftRow = findMatchingRow(activitySqftData as any[], country, city);
@@ -174,7 +174,7 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
         
         // Set location factors based on region & the benchmark cities
         // Calculate location factors based on the medium cost relative to benchmark cities
-        const cityMedium = Number(activitySqmRow['Medium '] || 0);
+        const cityMedium = Number(activitySqmRow['Unnamed: 4'] || 0);
         
         // Default location factors
         let locationFactorEMEA = 1.0;
@@ -225,35 +225,35 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
           region,
           
           // Activity costs from Table 1 SQM
-          activityLowSqm: convertNumberField(activitySqmRow['Low'] || 0),
-          activityMediumSqm: convertNumberField(activitySqmRow['Medium '] || 0),
-          activityHighSqm: convertNumberField(activitySqmRow['High '] || 0),
+          activityLowSqm: convertNumberField(activitySqmRow['Unnamed: 3'] || 0),
+          activityMediumSqm: convertNumberField(activitySqmRow['Unnamed: 4'] || 0),
+          activityHighSqm: convertNumberField(activitySqmRow['Unnamed: 5'] || 0),
           
           // Team costs from Table 2 SQM
-          teamLowSqm: convertNumberField(teamSqmRow['Low'] || 0),
-          teamMediumSqm: convertNumberField(teamSqmRow['Medium '] || 0),
-          teamHighSqm: convertNumberField(teamSqmRow['High '] || 0),
+          teamLowSqm: convertNumberField(teamSqmRow['Unnamed: 3'] || 0),
+          teamMediumSqm: convertNumberField(teamSqmRow['Unnamed: 4'] || 0),
+          teamHighSqm: convertNumberField(teamSqmRow['Unnamed: 5'] || 0),
           
           // Event costs from Table 3 SQM
-          eventLowSqm: convertNumberField(eventSqmRow['Low'] || 0),
-          eventMediumSqm: convertNumberField(eventSqmRow['Medium '] || 0),
-          eventHighSqm: convertNumberField(eventSqmRow['High '] || 0),
+          eventLowSqm: convertNumberField(eventSqmRow['Unnamed: 3'] || 0),
+          eventMediumSqm: convertNumberField(eventSqmRow['Unnamed: 4'] || 0),
+          eventHighSqm: convertNumberField(eventSqmRow['Unnamed: 5'] || 0),
           
           // SQFT values from corresponding SQFT tables
           // Activity
-          activityLowSqft: convertNumberField(activitySqftRow['Low'] || 0),
-          activityMediumSqft: convertNumberField(activitySqftRow['Medium '] || 0),
-          activityHighSqft: convertNumberField(activitySqftRow['High '] || 0),
+          activityLowSqft: convertNumberField(activitySqftRow['Unnamed: 3'] || 0),
+          activityMediumSqft: convertNumberField(activitySqftRow['Unnamed: 4'] || 0),
+          activityHighSqft: convertNumberField(activitySqftRow['Unnamed: 5'] || 0),
           
           // Team
-          teamLowSqft: convertNumberField(teamSqftRow['Low'] || 0),
-          teamMediumSqft: convertNumberField(teamSqftRow['Medium '] || 0),
-          teamHighSqft: convertNumberField(teamSqftRow['High '] || 0),
+          teamLowSqft: convertNumberField(teamSqftRow['Unnamed: 3'] || 0),
+          teamMediumSqft: convertNumberField(teamSqftRow['Unnamed: 4'] || 0),
+          teamHighSqft: convertNumberField(teamSqftRow['Unnamed: 5'] || 0),
           
           // Event
-          eventLowSqft: convertNumberField(eventSqftRow['Low'] || 0),
-          eventMediumSqft: convertNumberField(eventSqftRow['Medium '] || 0),
-          eventHighSqft: convertNumberField(eventSqftRow['High '] || 0),
+          eventLowSqft: convertNumberField(eventSqftRow['Unnamed: 3'] || 0),
+          eventMediumSqft: convertNumberField(eventSqftRow['Unnamed: 4'] || 0),
+          eventHighSqft: convertNumberField(eventSqftRow['Unnamed: 5'] || 0),
           
           // Location factors calculated based on benchmarks
           locationFactorEMEA: convertNumberField(locationFactorEMEA),
