@@ -134,16 +134,35 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         console.log(`Currency lookup for ${state.project.country}: ${currencyCode}`);
         
         if (currencyCode && currencyCode !== 'USD') {
-          // Get specific currency rate directly
-          const directRateRes = await apiRequest('GET', `/api/currency-rates/${currencyCode}`, undefined);
-          const directRateData = await directRateRes.json();
-          console.log("Direct currency rate response:", directRateData);
-          
-          if (directRateData && directRateData.rate) {
-            console.log(`Setting currency: ${currencyCode} with rate: ${directRateData.rate}`);
-            setLocalCurrencyCode(currencyCode);
-            setLocalCurrencyRate(parseFloat(directRateData.rate.toString()));
-            return;
+          try {
+            // Get specific currency rate directly
+            const directRateRes = await apiRequest('GET', `/api/currency-rates/${currencyCode}`, undefined);
+            const directRateData = await directRateRes.json();
+            console.log("Direct currency rate response:", directRateData, typeof directRateData.rate);
+            
+            // Check if we got a valid rate value
+            if (directRateData && directRateData.rate !== undefined && directRateData.rate !== null) {
+              const rate = parseFloat(directRateData.rate.toString());
+              
+              if (!isNaN(rate) && rate > 0) {
+                console.log(`Setting currency: ${currencyCode} with rate: ${rate}`);
+                setLocalCurrencyCode(currencyCode);
+                setLocalCurrencyRate(rate);
+                
+                // For debugging: calculate the conversion example
+                const exampleAmountUSD = 1000;
+                const convertedAmount = exampleAmountUSD * rate;
+                console.log(`Example conversion: $${exampleAmountUSD} USD = ${convertedAmount.toFixed(2)} ${currencyCode}`);
+                
+                return;
+              } else {
+                console.error(`Invalid rate value for ${currencyCode}: ${rate}`);
+              }
+            } else {
+              console.error(`No rate property found in response for ${currencyCode}:`, directRateData);
+            }
+          } catch (error) {
+            console.error(`Error fetching rate for ${currencyCode}:`, error);
           }
         }
         

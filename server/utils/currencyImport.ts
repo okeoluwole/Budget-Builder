@@ -207,6 +207,14 @@ async function importSampleCurrencyRates(): Promise<void> {
       { country: 'Mexico', currencyName: 'PESO', currencyCode: 'MXN', exchangeRate: '0.0594' },
       { country: 'Brazil', currencyName: 'REAL', currencyCode: 'BRL', exchangeRate: '0.186' },
       { country: 'South Africa', currencyName: 'RAND', currencyCode: 'ZAR', exchangeRate: '0.054' },
+      { country: 'Nigeria', currencyName: 'NAIRA', currencyCode: 'NGN', exchangeRate: '0.00059416' },
+      { country: 'Egypt', currencyName: 'POUND', currencyCode: 'EGP', exchangeRate: '0.0124' },
+      { country: 'Kenya', currencyName: 'SHILLING', currencyCode: 'KES', exchangeRate: '0.00772' },
+      { country: 'Morocco', currencyName: 'DIRHAM', currencyCode: 'MAD', exchangeRate: '0.099' },
+      { country: 'Ghana', currencyName: 'CEDI', currencyCode: 'GHS', exchangeRate: '0.067' },
+      { country: 'Saudi Arabia', currencyName: 'RIYAL', currencyCode: 'SAR', exchangeRate: '0.266' },
+      { country: 'United Arab Emirates', currencyName: 'DIRHAM', currencyCode: 'AED', exchangeRate: '0.272' },
+      { country: 'Qatar', currencyName: 'RIYAL', currencyCode: 'QAR', exchangeRate: '0.275' },
     ];
     
     let insertCount = 0;
@@ -236,14 +244,45 @@ async function importSampleCurrencyRates(): Promise<void> {
  */
 export async function getCurrencyExchangeRate(currencyCode: string): Promise<number | null> {
   try {
+    console.log(`Looking up exchange rate for currency code: ${currencyCode}`);
+    
     const [rate] = await db.select()
       .from(currencyRates)
       .where(eq(currencyRates.currencyCode, currencyCode));
     
     if (rate) {
-      return parseFloat(rate.exchangeRate.toString());
+      // Make sure we have a valid number by explicitly parsing, handling stringified numbers
+      const exchangeRate = parseFloat(rate.exchangeRate.toString());
+      console.log(`Found exchange rate for ${currencyCode}: ${exchangeRate} (raw value: ${rate.exchangeRate})`);
+      
+      if (isNaN(exchangeRate)) {
+        console.error(`Invalid exchange rate value for ${currencyCode}: ${rate.exchangeRate}`);
+        return null;
+      }
+      
+      return exchangeRate;
     }
     
+    // Add Nigeria specifically if it's missing
+    if (currencyCode === 'NGN') {
+      console.log('Using hardcoded exchange rate for NGN (Nigerian Naira)');
+      return 0.00059416; // 2025 FX rate for Nigerian Naira
+    }
+    
+    // If direct lookup fails, try case-insensitive search
+    const rates = await db.select().from(currencyRates);
+    
+    const caseInsensitiveMatch = rates.find(r => 
+      r.currencyCode.toUpperCase() === currencyCode.toUpperCase()
+    );
+    
+    if (caseInsensitiveMatch) {
+      const exchangeRate = parseFloat(caseInsensitiveMatch.exchangeRate.toString());
+      console.log(`Found case-insensitive match for ${currencyCode}: ${exchangeRate}`);
+      return exchangeRate;
+    }
+    
+    console.log(`No exchange rate found for currency code: ${currencyCode}`);
     return null;
   } catch (error) {
     console.error(`Error getting exchange rate for ${currencyCode}:`, error);
