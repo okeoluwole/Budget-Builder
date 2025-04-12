@@ -22,6 +22,10 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
   const [budgetTemplateStructure, setBudgetTemplateStructure] = useState<BudgetCategory[]>([]);
   const [budgetBreakdown, setBudgetBreakdown] = useState<any>(null);
   const [totalCost, setTotalCost] = useState<number | null>(null);
+  const [rawUnitCost, setRawUnitCost] = useState<number | null>(null);
+  const [adjustedUnitCost, setAdjustedUnitCost] = useState<number | null>(null);
+  const [areaUnit, setAreaUnit] = useState<string | null>(null);
+  const [datasetInfo, setDatasetInfo] = useState<any | null>(null);
   const [localCurrencyCode, setLocalCurrencyCode] = useState<string | null>(null);
   const [localCurrencyRate, setLocalCurrencyRate] = useState<number | null>(null);
   const [localCurrencyTotalCost, setLocalCurrencyTotalCost] = useState<number | null>(null);
@@ -342,6 +346,10 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         const { 
           totalCost: calculatedTotalCost, 
           costsBreakdown,
+          rawUnitCost: calcRawUnitCost,
+          adjustedUnitCost: calcAdjustedUnitCost,
+          areaUnit: calcAreaUnit,
+          datasetInfo: calcDatasetInfo,
           localCurrencyCode: calcLocalCurrencyCode,
           localCurrencyRate: calcLocalCurrencyRate,
           localCurrencyTotalCost: calcLocalCurrencyTotalCost,
@@ -354,12 +362,21 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         
         console.log("Budget calculation complete:", { 
           totalCost: calculatedTotalCost,
+          rawUnitCost: calcRawUnitCost,
+          adjustedUnitCost: calcAdjustedUnitCost,
+          datasetInfo: calcDatasetInfo,
           localCurrencyCode: calcLocalCurrencyCode,
           localCurrencyRate: calcLocalCurrencyRate
         });
         
         setTotalCost(calculatedTotalCost);
         setBudgetBreakdown(costsBreakdown);
+        
+        // Set unit cost information
+        if (calcRawUnitCost) setRawUnitCost(calcRawUnitCost);
+        if (calcAdjustedUnitCost) setAdjustedUnitCost(calcAdjustedUnitCost);
+        if (calcAreaUnit) setAreaUnit(calcAreaUnit);
+        if (calcDatasetInfo) setDatasetInfo(calcDatasetInfo);
         
         // Set local currency info if available from calculation
         if (calcLocalCurrencyCode) setLocalCurrencyCode(calcLocalCurrencyCode);
@@ -501,15 +518,39 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           </td>
                         </tr>
                         <tr>
-                          <td className="py-1 text-gray-500">Rate per {state.project?.areaUnit}:</td>
+                          <td className="py-1 text-gray-500">Base Unit Cost:</td>
                           <td className="py-1 font-medium">
-                            {formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}
+                            {rawUnitCost && formatCurrency(rawUnitCost, 'USD')}/{areaUnit}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 text-gray-500">Adjusted Unit Cost:</td>
+                          <td className="py-1 font-medium">
+                            {adjustedUnitCost && formatCurrency(adjustedUnitCost, 'USD')}/{areaUnit}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 text-gray-500">Final Rate:</td>
+                          <td className="py-1 font-medium">
+                            {formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}/{state.project?.areaUnit}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
                 </div>
+
+                {datasetInfo && (
+                  <div className="bg-white p-4 border rounded-lg mb-6">
+                    <h4 className="font-medium text-gray-700 mb-2">Dataset Information</h4>
+                    <div className="text-sm text-gray-600">
+                      <p className="mb-1"><span className="font-medium text-gray-700">Source:</span> {datasetInfo.name}</p>
+                      <p className="mb-1"><span className="font-medium text-gray-700">Sheet:</span> {datasetInfo.sheet}</p>
+                      <p className="mb-1"><span className="font-medium text-gray-700">Region:</span> {datasetInfo.region}</p>
+                      <p className="mb-1"><span className="font-medium text-gray-700">Benchmark:</span> {datasetInfo.benchmark}</p>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="mb-8">
                   <h4 className="font-medium text-gray-700 mb-2">Export Options</h4>

@@ -10,10 +10,19 @@ interface BudgetCalculationParams {
 interface CalculationResult {
   totalCost: number;
   costsBreakdown: { [key: string]: number };
+  rawUnitCost?: number;     // Raw unit cost from dataset
+  adjustedUnitCost?: number; // Unit cost after applying factors
+  areaUnit?: string;        // sqm or sqft
   localCurrencyCode?: string;
   localCurrencyRate?: number;
   localCurrencyTotalCost?: number;
   localCurrencyCostsBreakdown?: { [key: string]: number };
+  datasetInfo?: {
+    name: string;           // Dataset file name
+    sheet: string;          // Sheet name used
+    region: string;         // Region from dataset
+    benchmark: string;      // Benchmark used
+  };
 }
 
 // Get the specification cost factor based on specification level
@@ -107,6 +116,10 @@ export const calculateBudget = async ({
     
     // Calculate total area cost
     const totalAreaCost = adjustedBaseRate * project.totalArea;
+    
+    // Store the raw unit cost from dataset and adjusted unit cost for reference
+    const rawUnitCost = baseRate;
+    const adjustedUnitCost = adjustedBaseRate;
     
     // Apply inflation if specified
     const inflatedTotalCost = project.inflationRate 
@@ -290,10 +303,25 @@ export const calculateBudget = async ({
       localCurrencyTotalCost
     });
     
-    // Return the calculated total and breakdown
+    // Determine the sheet name used based on the layout and area unit
+    const sheetName = `Table ${budget.layout === 'Activity' ? '1' : budget.layout === 'Team' ? '2' : '3'}_${budget.layout} BYOB ${areaUnit === 'sqm' ? 'Sqm' : 'SqFt'}`;
+    
+    // Create dataset information for revalidation and transparency
+    const datasetInfo = {
+      name: 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx', // Hardcoded as this is the required dataset
+      sheet: sheetName,
+      region: locationData.region,
+      benchmark: `${project.country}/${project.city}`
+    };
+    
+    // Return the calculated total and breakdown with detailed unit costs and dataset info
     return {
       totalCost: parseFloat(inflatedTotalCost.toFixed(2)),
       costsBreakdown,
+      rawUnitCost: parseFloat(rawUnitCost.toFixed(2)),
+      adjustedUnitCost: parseFloat(adjustedUnitCost.toFixed(2)),
+      areaUnit: project.areaUnit,
+      datasetInfo,
       localCurrencyCode,
       localCurrencyRate,
       localCurrencyTotalCost,
