@@ -13,6 +13,7 @@ import {
 import chatRoutes from './routes/chat';
 import { importCurrencyRatesFromExcel, getAllCurrencyRates } from './utils/currencyImport';
 import * as openaiUtil from './utils/openai';
+import { validateDataset, getDatasetValidationWarnings } from './utils/datasetValidator';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes with /api prefix

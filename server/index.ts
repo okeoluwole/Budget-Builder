@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./utils/databaseImport";
+import { runDatasetValidation } from "./utils/datasetValidator";
 
 const app = express();
 app.use(express.json());
@@ -70,7 +71,11 @@ app.use((req, res, next) => {
     
     // Initialize the database with reference data
     initializeDatabase()
-      .then(() => log('Database initialized with reference data'))
+      .then(() => {
+        log('Database initialized with reference data');
+        // Run dataset validation to ensure the correct dataset is being used
+        return runDatasetValidation();
+      })
       .catch((error) => console.error('Failed to initialize database:', error));
   });
 })();
