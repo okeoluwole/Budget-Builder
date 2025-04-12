@@ -1,6 +1,6 @@
 import XLSX from 'xlsx';
 import { join } from 'path';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { db } from '../db';
 import { 
   fitoutCosts, insertFitoutCostSchema, InsertFitoutCost,
@@ -39,23 +39,31 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     console.log("Available sheets:", workbook.SheetNames);
     
     // Use the dedicated tables for each layout type
-    const activitySheetName = "Table 1_Activity BYOB Sqm";
-    const teamSheetName = "Table 2_Team BYOB Sqm";
-    const eventSheetName = "Table 3_Event BYOB Sqm";
-    const fitoutSheetName = "FITOUT"; // For location factors
+    const activitySqmSheetName = "Table 1_Activity BYOB Sqm";
+    const activitySqftSheetName = "Table 1_Activity BYOB SqFt";
+    const teamSqmSheetName = "Table 2_Team BYOB Sqm";
+    const teamSqftSheetName = "Table 2_Team BYOB SqFt";
+    const eventSqmSheetName = "Table 3_Event BYOB Sqm";
+    const eventSqftSheetName = "Table 3_Event BYOB SqFt";
     
     // Check if all required sheets exist
-    if (!workbook.Sheets[activitySheetName]) {
-      throw new Error(`Sheet "${activitySheetName}" not found in the Excel file`);
+    if (!workbook.Sheets[activitySqmSheetName]) {
+      throw new Error(`Sheet "${activitySqmSheetName}" not found in the Excel file`);
     }
-    if (!workbook.Sheets[teamSheetName]) {
-      throw new Error(`Sheet "${teamSheetName}" not found in the Excel file`);
+    if (!workbook.Sheets[teamSqmSheetName]) {
+      throw new Error(`Sheet "${teamSqmSheetName}" not found in the Excel file`);
     }
-    if (!workbook.Sheets[eventSheetName]) {
-      throw new Error(`Sheet "${eventSheetName}" not found in the Excel file`);
+    if (!workbook.Sheets[eventSqmSheetName]) {
+      throw new Error(`Sheet "${eventSqmSheetName}" not found in the Excel file`);
     }
-    if (!workbook.Sheets[fitoutSheetName]) {
-      throw new Error(`Sheet "${fitoutSheetName}" not found in the Excel file`);
+    if (!workbook.Sheets[activitySqftSheetName]) {
+      throw new Error(`Sheet "${activitySqftSheetName}" not found in the Excel file`);
+    }
+    if (!workbook.Sheets[teamSqftSheetName]) {
+      throw new Error(`Sheet "${teamSqftSheetName}" not found in the Excel file`);
+    }
+    if (!workbook.Sheets[eventSqftSheetName]) {
+      throw new Error(`Sheet "${eventSqftSheetName}" not found in the Excel file`);
     }
     
     // Define a helper function to read each sheet with proper headers
@@ -68,104 +76,17 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     };
     
     // Read data from each sheet
-    const activityData = readSheetData(activitySheetName);
-    const teamData = readSheetData(teamSheetName);
-    const eventData = readSheetData(eventSheetName);
+    const activitySqmData = readSheetData(activitySqmSheetName);
+    const activitySqftData = readSheetData(activitySqftSheetName);
+    const teamSqmData = readSheetData(teamSqmSheetName);
+    const teamSqftData = readSheetData(teamSqftSheetName);
+    const eventSqmData = readSheetData(eventSqmSheetName);
+    const eventSqftData = readSheetData(eventSqftSheetName);
     
-    // Log the first row of each sheet to see the structure
-    if (activityData.length > 0) {
-      console.log("First row from Activity sheet:", activityData[1]); // Index 1 because index 0 might still be header-related
+    // Log the first row from activity sheet to see the structure
+    if (activitySqmData.length > 0) {
+      console.log("First row from Activity SQM sheet:", activitySqmData[1]); // Index 1 because index 0 might still be header-related
     }
-    
-    // Read FITOUT sheet with multi-level headers for Location Factors
-    // We use a different read method for the FITOUT sheet because it has a multi-level header
-    const fitoutWorksheet = workbook.Sheets[fitoutSheetName];
-    const fitoutData = XLSX.utils.sheet_to_json(fitoutWorksheet, { header: 1 }) as any[][];
-    
-    // Extract location factors from FITOUT sheet
-    // The location factors are typically in the last columns of the FITOUT sheet
-    // We need to find these columns by name in the header rows
-    let locationFactorHeader: number | null = null;
-    let emeaCol: number | null = null;
-    let americaCol: number | null = null;
-    let apacCol: number | null = null;
-    
-    // Find the header row that contains "LOCATION FACTOR"
-    for (let i = 0; i < 10; i++) { // Check first 10 rows for headers
-      if (fitoutData[i] && fitoutData[i].some(cell => cell && typeof cell === 'string' && cell.includes('LOCATION FACTOR'))) {
-        locationFactorHeader = i;
-        break;
-      }
-    }
-    
-    // If we found the header row, find the column indexes
-    if (locationFactorHeader !== null) {
-      const headerRow = fitoutData[locationFactorHeader];
-      for (let i = 0; i < headerRow.length; i++) {
-        const cell = headerRow[i];
-        if (cell && typeof cell === 'string') {
-          if (cell.includes('LOCATION FACTOR')) {
-            // The next row should contain EMEA, AMERICA, APAC
-            if (fitoutData[locationFactorHeader + 1] && fitoutData[locationFactorHeader + 1][i] === 'EMEA') {
-              emeaCol = i;
-            } else if (fitoutData[locationFactorHeader + 1] && fitoutData[locationFactorHeader + 1][i] === 'AMERICA') {
-              americaCol = i;
-            } else if (fitoutData[locationFactorHeader + 1] && fitoutData[locationFactorHeader + 1][i] === 'APAC') {
-              apacCol = i;
-            }
-          }
-        }
-      }
-    }
-    
-    console.log(`Found location factor columns: EMEA=${emeaCol}, AMERICA=${americaCol}, APAC=${apacCol}`);
-    
-    // Create a map to easily lookup location factors by city/country
-    const locationFactors = new Map<string, { emea: number, america: number, apac: number }>();
-    
-    // Find the country and city columns in the FITOUT sheet
-    let countryCol: number | null = null;
-    let cityCol: number | null = null;
-    
-    // Locate country and city columns
-    for (let i = 0; i < 10; i++) { // Check first 10 rows
-      for (let j = 0; j < fitoutData[i]?.length || 0; j++) {
-        const cell = fitoutData[i]?.[j];
-        if (cell && typeof cell === 'string') {
-          if (cell.toUpperCase() === 'COUNTRY') {
-            countryCol = j;
-          } else if (cell.toUpperCase() === 'CITY') {
-            cityCol = j;
-          }
-        }
-      }
-      if (countryCol !== null && cityCol !== null) break;
-    }
-    
-    console.log(`Found country/city columns: Country=${countryCol}, City=${cityCol}`);
-    
-    // Data row start (after headers)
-    const dataStartRow = Math.max((locationFactorHeader || 0) + 2, 4); // Start after headers, at least row 4
-    
-    // Extract location factors if all columns were found
-    if (countryCol !== null && cityCol !== null && emeaCol !== null && americaCol !== null && apacCol !== null) {
-      for (let i = dataStartRow; i < fitoutData.length; i++) {
-        const row = fitoutData[i];
-        if (row && row[countryCol] && row[cityCol]) {
-          const country = String(row[countryCol]);
-          const city = String(row[cityCol]);
-          const key = `${country}|${city}`.toLowerCase();
-          
-          locationFactors.set(key, {
-            emea: Number(row[emeaCol]) || 1.0,
-            america: Number(row[americaCol]) || 1.0,
-            apac: Number(row[apacCol]) || 1.0
-          });
-        }
-      }
-    }
-    
-    console.log(`Extracted ${locationFactors.size} location factors from FITOUT sheet`);
     
     // Process the data and prepare for insertion
     const fitoutCostRecords: InsertFitoutCost[] = [];
@@ -177,38 +98,125 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
       return typeof value === 'number' ? value.toFixed(2) : String(value);
     };
     
+    // Define a helper function to find matching rows in other sheets by country/city
+    const findMatchingRow = (data: any[], country: string, city: string) => {
+      return (data as any[]).find(
+        (row: any) => 
+          row['Unnamed: 0'] === country && 
+          row['Unnamed: 1'] === city
+      ) || {};
+    };
+    
+    // Define our reference city costs
+    // These will be used to calculate location factors
+    let londonMedium: number | null = null;
+    let newyorkMedium: number | null = null;
+    let singaporeMedium: number | null = null;
+    
+    // First, find the benchmark cities in the data
+    for (let i = 0; i < activitySqmData.length; i++) {
+      const row = activitySqmData[i] as any;
+      
+      if (row['Unnamed: 0'] === 'United Kingdom' && row['Unnamed: 1'] === 'London') {
+        londonMedium = Number(row['Medium '] || 0);
+        console.log(`Found London benchmark: ${londonMedium}`);
+      }
+      
+      if (row['Unnamed: 0'] === 'United States' && row['Unnamed: 1'] === 'New York') {
+        newyorkMedium = Number(row['Medium '] || 0);
+        console.log(`Found New York benchmark: ${newyorkMedium}`);
+      }
+      
+      if (row['Unnamed: 0'] === 'Singapore' && row['Unnamed: 1'] === 'Singapore') {
+        singaporeMedium = Number(row['Medium '] || 0);
+        console.log(`Found Singapore benchmark: ${singaporeMedium}`);
+      }
+    }
+    
+    // Set defaults if any benchmark city wasn't found
+    if (!londonMedium) {
+      londonMedium = 2132.88; // Default from previous data
+      console.log(`Using default London benchmark: ${londonMedium}`);
+    }
+    
+    if (!newyorkMedium) {
+      newyorkMedium = 3662.39; // Default from previous data
+      console.log(`Using default New York benchmark: ${newyorkMedium}`);
+    }
+    
+    if (!singaporeMedium) {
+      singaporeMedium = 2200.45; // Default from previous data
+      console.log(`Using default Singapore benchmark: ${singaporeMedium}`);
+    }
+    
     // Map over the Activity data which will be our primary source
     // We'll match Team and Event data by country/city
-    for (let i = 1; i < activityData.length; i++) { // Start at index 1 to skip any header rows
+    for (let i = 0; i < activitySqmData.length; i++) {
       try {
-        const activityRow = activityData[i] as any;
+        const activitySqmRow = activitySqmData[i] as any;
         
         // Skip rows without Country, City or Region
-        if (!activityRow['Unnamed: 1'] || !activityRow['Unnamed: 2'] || !activityRow['Unnamed: 3']) {
-          console.log("Skipping row without Country, City or Region:", activityRow);
+        if (!activitySqmRow['Unnamed: 0'] || !activitySqmRow['Unnamed: 1'] || !activitySqmRow['Unnamed: 2']) {
+          console.log("Skipping row without Country, City or Region:", activitySqmRow);
           continue;
         }
         
-        const country = String(activityRow['Unnamed: 1']);
-        const city = String(activityRow['Unnamed: 2']);
-        const region = String(activityRow['Unnamed: 3']);
+        const country = String(activitySqmRow['Unnamed: 0']);
+        const city = String(activitySqmRow['Unnamed: 1']);
+        const region = String(activitySqmRow['Unnamed: 2']);
         
-        // Find matching rows in Team and Event data
-        const teamRow = (teamData as any[]).find(
-          (row: any) => 
-            row['Unnamed: 1'] === country && 
-            row['Unnamed: 2'] === city
-        ) || {};
+        // Find matching rows in other sheets
+        const activitySqftRow = findMatchingRow(activitySqftData as any[], country, city);
+        const teamSqmRow = findMatchingRow(teamSqmData as any[], country, city);
+        const teamSqftRow = findMatchingRow(teamSqftData as any[], country, city);
+        const eventSqmRow = findMatchingRow(eventSqmData as any[], country, city);
+        const eventSqftRow = findMatchingRow(eventSqftData as any[], country, city);
         
-        const eventRow = (eventData as any[]).find(
-          (row: any) => 
-            row['Unnamed: 1'] === country && 
-            row['Unnamed: 2'] === city
-        ) || {};
+        // Set location factors based on region & the benchmark cities
+        // Calculate location factors based on the medium cost relative to benchmark cities
+        const cityMedium = Number(activitySqmRow['Medium '] || 0);
         
-        // Look up location factors (default to 1.0 if not found)
-        const key = `${country}|${city}`.toLowerCase();
-        const lf = locationFactors.get(key) || { emea: 1.0, america: 1.0, apac: 1.0 };
+        // Default location factors
+        let locationFactorEMEA = 1.0;
+        let locationFactorAMERICA = 1.0;
+        let locationFactorAPAC = 1.0;
+        
+        // Only calculate if we have valid data for this city
+        if (cityMedium > 0) {
+          // Calculate relative factors based on the reference cities
+          // This allows us to derive location factors without having them explicitly in the data
+          if (region === 'EMEA') {
+            // For EMEA cities, London is the reference with factor 1.0
+            locationFactorEMEA = cityMedium / londonMedium;
+            locationFactorAMERICA = (cityMedium / newyorkMedium) * (londonMedium / newyorkMedium);
+            locationFactorAPAC = (cityMedium / singaporeMedium) * (londonMedium / singaporeMedium);
+          } else if (region === 'AMERICAS') {
+            // For AMERICAS cities, New York is the reference with factor 1.0
+            locationFactorEMEA = (cityMedium / londonMedium) * (newyorkMedium / londonMedium);
+            locationFactorAMERICA = cityMedium / newyorkMedium;
+            locationFactorAPAC = (cityMedium / singaporeMedium) * (newyorkMedium / singaporeMedium);
+          } else if (region === 'APAC') {
+            // For APAC cities, Singapore is the reference with factor 1.0
+            locationFactorEMEA = (cityMedium / londonMedium) * (singaporeMedium / londonMedium);
+            locationFactorAMERICA = (cityMedium / newyorkMedium) * (singaporeMedium / newyorkMedium);
+            locationFactorAPAC = cityMedium / singaporeMedium;
+          }
+        } else {
+          // If no valid cost data, use regional averages
+          if (region === 'EMEA') {
+            locationFactorEMEA = 1.0;
+            locationFactorAMERICA = 0.7;
+            locationFactorAPAC = 1.16;
+          } else if (region === 'AMERICAS') {
+            locationFactorEMEA = 1.44;
+            locationFactorAMERICA = 1.0;
+            locationFactorAPAC = 1.67;
+          } else if (region === 'APAC') {
+            locationFactorEMEA = 0.86;
+            locationFactorAMERICA = 0.6;
+            locationFactorAPAC = 1.0;
+          }
+        }
         
         // Create the record with validated data
         const record: Partial<InsertFitoutCost> = {
@@ -216,53 +224,54 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
           city,
           region,
           
-          // Activity costs from Table 1
-          activityLowSqm: convertNumberField(activityRow['Low'] || 0),
-          activityMediumSqm: convertNumberField(activityRow['Medium '] || 0),
-          activityHighSqm: convertNumberField(activityRow['High '] || 0),
+          // Activity costs from Table 1 SQM
+          activityLowSqm: convertNumberField(activitySqmRow['Low'] || 0),
+          activityMediumSqm: convertNumberField(activitySqmRow['Medium '] || 0),
+          activityHighSqm: convertNumberField(activitySqmRow['High '] || 0),
           
-          // Team costs from Table 2
-          teamLowSqm: convertNumberField(teamRow['Low'] || 0),
-          teamMediumSqm: convertNumberField(teamRow['Medium '] || 0),
-          teamHighSqm: convertNumberField(teamRow['High '] || 0),
+          // Team costs from Table 2 SQM
+          teamLowSqm: convertNumberField(teamSqmRow['Low'] || 0),
+          teamMediumSqm: convertNumberField(teamSqmRow['Medium '] || 0),
+          teamHighSqm: convertNumberField(teamSqmRow['High '] || 0),
           
-          // Event costs from Table 3
-          eventLowSqm: convertNumberField(eventRow['Low'] || 0),
-          eventMediumSqm: convertNumberField(eventRow['Medium '] || 0),
-          eventHighSqm: convertNumberField(eventRow['High '] || 0),
+          // Event costs from Table 3 SQM
+          eventLowSqm: convertNumberField(eventSqmRow['Low'] || 0),
+          eventMediumSqm: convertNumberField(eventSqmRow['Medium '] || 0),
+          eventHighSqm: convertNumberField(eventSqmRow['High '] || 0),
           
-          // SQFT values (already in SQFT in the spreadsheet)
+          // SQFT values from corresponding SQFT tables
           // Activity
-          activityLowSqft: convertNumberField((activityRow['Low.1'] || 0)),
-          activityMediumSqft: convertNumberField((activityRow['Medium .1'] || 0)),
-          activityHighSqft: convertNumberField((activityRow['High .1'] || 0)),
+          activityLowSqft: convertNumberField(activitySqftRow['Low'] || 0),
+          activityMediumSqft: convertNumberField(activitySqftRow['Medium '] || 0),
+          activityHighSqft: convertNumberField(activitySqftRow['High '] || 0),
           
           // Team
-          teamLowSqft: convertNumberField((teamRow['Low.1'] || 0)),
-          teamMediumSqft: convertNumberField((teamRow['Medium .1'] || 0)),
-          teamHighSqft: convertNumberField((teamRow['High .1'] || 0)),
+          teamLowSqft: convertNumberField(teamSqftRow['Low'] || 0),
+          teamMediumSqft: convertNumberField(teamSqftRow['Medium '] || 0),
+          teamHighSqft: convertNumberField(teamSqftRow['High '] || 0),
           
           // Event
-          eventLowSqft: convertNumberField((eventRow['Low.1'] || 0)),
-          eventMediumSqft: convertNumberField((eventRow['Medium .1'] || 0)),
-          eventHighSqft: convertNumberField((eventRow['High .1'] || 0)),
+          eventLowSqft: convertNumberField(eventSqftRow['Low'] || 0),
+          eventMediumSqft: convertNumberField(eventSqftRow['Medium '] || 0),
+          eventHighSqft: convertNumberField(eventSqftRow['High '] || 0),
           
-          // Location factors from the FITOUT sheet
-          locationFactorEMEA: convertNumberField(lf.emea),
-          locationFactorAMERICA: convertNumberField(lf.america),
-          locationFactorAPAC: convertNumberField(lf.apac)
+          // Location factors calculated based on benchmarks
+          locationFactorEMEA: convertNumberField(locationFactorEMEA),
+          locationFactorAMERICA: convertNumberField(locationFactorAMERICA),
+          locationFactorAPAC: convertNumberField(locationFactorAPAC)
         };
         
         // Log the first few records for debugging
-        if (i <= 3) {
-          console.log(`Location factors for ${country}/${city}: EMEA=${record.locationFactorEMEA}, AMERICA=${record.locationFactorAMERICA}, APAC=${record.locationFactorAPAC}`);
+        if (i < 3) {
+          console.log(`Record for ${country}/${city}: Region=${region}, Activity Medium=${record.activityMediumSqm}`);
+          console.log(`Location factors: EMEA=${record.locationFactorEMEA}, AMERICA=${record.locationFactorAMERICA}, APAC=${record.locationFactorAPAC}`);
         }
         
         // Validate the record
         const validatedRecord = insertFitoutCostSchema.parse(record);
         fitoutCostRecords.push(validatedRecord);
       } catch (error) {
-        console.error('Error processing row from Activity sheet:', activityData[i], error);
+        console.error('Error processing row from Activity sheet:', activitySqmData[i], error);
       }
     }
     
@@ -407,6 +416,18 @@ export async function initializeDatabase(): Promise<void> {
   // Import currency rates from our JSON file with 2025 FX rates
   await importCurrencyRatesFromJson();
   
-  // Fitout costs would be imported from Excel when available
+  // Import fitout costs from the clean redacted Excel file
+  try {
+    const excelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Redacted.xlsx');
+    if (existsSync(excelPath)) {
+      await importFitoutCostsFromExcel(excelPath);
+    } else {
+      console.log('Fitout costs Excel file not found at path:', excelPath);
+    }
+  } catch (error) {
+    console.error('Error importing fitout costs from Excel during initialization:', error);
+    // Continue with other initialization steps even if this fails
+  }
+  
   console.log('Database initialization complete');
 }
