@@ -108,16 +108,33 @@ export const calculateBudget = async ({
     // Calculate total area cost
     const totalAreaCost = adjustedBaseRate * project.totalArea;
     
+    // Get professional fees percentage
+    const professionalFeesPercentage = parseFloat(locationData.professionalFees || '0.15');
+    
+    // Calculate professional fees
+    const professionalFees = totalAreaCost * professionalFeesPercentage;
+    
+    // Calculate total cost with professional fees
+    const totalCostWithFees = totalAreaCost + professionalFees;
+    
     // Apply inflation if specified
     const inflatedTotalCost = project.inflationRate 
-      ? applyInflation(totalAreaCost, project.inflationRate)
-      : totalAreaCost;
+      ? applyInflation(totalCostWithFees, project.inflationRate)
+      : totalCostWithFees;
 
-    // Initialize costs breakdown for fitout only
+    // Initialize costs breakdown
     const costsBreakdown: { [key: string]: number } = {};
     
-    // Since we're only using fitout data, we'll use a single category
-    costsBreakdown['FITOUT COSTS'] = parseFloat(inflatedTotalCost.toFixed(2));
+    // Add base fitout costs (without professional fees)
+    const baseFitoutCosts = parseFloat(totalAreaCost.toFixed(2));
+    costsBreakdown['BASE FITOUT COSTS'] = baseFitoutCosts;
+    
+    // Add professional fees as a separate line item
+    const profFeesCost = parseFloat(professionalFees.toFixed(2));
+    costsBreakdown['PROFESSIONAL FEES'] = profFeesCost;
+    
+    // Add total costs
+    costsBreakdown['TOTAL COSTS'] = parseFloat(inflatedTotalCost.toFixed(2));
     
     // We can add space allocation breakdown for reference
     if (budget.spaceAllocation) {

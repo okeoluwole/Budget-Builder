@@ -121,6 +121,7 @@ export type FitoutCostData = {
     AMERICA: number;
     APAC: number;
   };
+  professionalFees: string; // Decimal percentage as a string, e.g., "0.15" for 15%
 };
 
 export type SpecificationData = {
