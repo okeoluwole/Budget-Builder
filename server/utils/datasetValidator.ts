@@ -21,6 +21,12 @@ export async function validateDataset(datasetPath: string = 'attached_assets/CBR
     issues: [],
     timestamp: new Date()
   };
+  
+  // Check that we are using the correct dataset file
+  const expectedFileName = 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx';
+  if (path.basename(datasetPath) !== expectedFileName) {
+    result.issues.push(`Incorrect dataset file. Expected "${expectedFileName}" but found "${path.basename(datasetPath)}"`);
+  }
 
   try {
     // Check 1: File existence
@@ -60,27 +66,37 @@ export async function validateDataset(datasetPath: string = 'attached_assets/CBR
             continue;
           }
           
-          // Check for expected columns
+          // Check for expected structure based on CBRE_Fit Out Guide Cost Data_Fitout Only.xlsx
           const firstRow = sheetData[0];
-          const requiredColumns = ['COUNTRY', 'CITY', 'REGION'];
           
-          for (const column of requiredColumns) {
-            if (!firstRow.hasOwnProperty(column)) {
-              result.issues.push(`Sheet "${sheetName}" is missing required column "${column}"`);
-            }
+          // Different required columns based on sheet type
+          let requiredColumn = '';
+          if (sheetName.includes('Activity')) {
+            requiredColumn = 'ACTIVITY SPACE';
+          } else if (sheetName.includes('Team')) {
+            requiredColumn = 'TEAM SPACE';
+          } else if (sheetName.includes('Event')) {
+            requiredColumn = 'EVENT SPACE';
           }
           
-          // Check for at least one valid data row (simple check)
-          let hasValidDataRow = false;
-          for (const row of sheetData) {
-            if (row.COUNTRY && row.CITY && row.REGION) {
-              hasValidDataRow = true;
-              break;
-            }
+          if (requiredColumn && !firstRow.hasOwnProperty(requiredColumn)) {
+            result.issues.push(`Sheet "${sheetName}" is missing required column "${requiredColumn}"`);
           }
           
-          if (!hasValidDataRow) {
-            result.issues.push(`Sheet "${sheetName}" has no valid data rows with required fields`);
+          // Check for expected format indicator - FIT OUT price in the header
+          let hasFitOutIndicator = false;
+          
+          // Examine object values for expected strings
+          Object.values(firstRow).forEach(value => {
+            if (typeof value === 'string' && 
+                (value.includes('FIT OUT $/M2') || 
+                 value.includes('FIT OUT $/SqFt'))) {
+              hasFitOutIndicator = true;
+            }
+          });
+          
+          if (!hasFitOutIndicator) {
+            result.issues.push(`Sheet "${sheetName}" is missing expected fit-out cost indicator in header`);
           }
         }
       }
@@ -88,20 +104,41 @@ export async function validateDataset(datasetPath: string = 'attached_assets/CBR
       // Additional checks for specific constants/values that identify this as the correct dataset
       // For example, check if specific benchmark values are present
       
+      // Additional verification by checking some expected sheet content patterns
       if (sheetNames.includes('Table 1_Activity BYOB Sqm')) {
         const activitySheet = excelData['Table 1_Activity BYOB Sqm'];
-        // Look for a specific known value in the correct dataset
-        let foundExpectedValue = false;
+        
+        // Check for common indicators that this is the correct file - expected regions or areas
+        let foundLondonIndicator = false;
+        let foundNewYorkIndicator = false;
         
         for (const row of activitySheet) {
-          if (row.COUNTRY === 'United Kingdom' && row.CITY === 'London') {
-            foundExpectedValue = true;
+          // Check all fields for common indicators
+          const allValues = Object.values(row).map(val => 
+            typeof val === 'string' ? val.toLowerCase() : String(val).toLowerCase()
+          ).join(' ');
+          
+          if (allValues.includes('london')) {
+            foundLondonIndicator = true;
+          }
+          
+          if (allValues.includes('new york')) {
+            foundNewYorkIndicator = true;
+          }
+          
+          // If both indicators found, break early
+          if (foundLondonIndicator && foundNewYorkIndicator) {
             break;
           }
         }
         
-        if (!foundExpectedValue) {
-          result.issues.push('Expected benchmark data for London, UK not found in Activity sheet');
+        // If specific benchmarks are not found, flag as potential wrong dataset
+        if (!foundLondonIndicator) {
+          result.issues.push('Expected benchmark data for London not found in Activity sheet');
+        }
+        
+        if (!foundNewYorkIndicator) {
+          result.issues.push('Expected benchmark data for New York not found in Activity sheet');
         }
       }
     } catch (error: any) {

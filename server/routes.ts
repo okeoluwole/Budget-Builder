@@ -630,6 +630,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dataset validation endpoint
+  app.get('/api/validate-dataset', async (req, res) => {
+    try {
+      const validation = await validateDataset();
+      
+      res.status(200).json({
+        isValid: validation.isValid,
+        datasetName: validation.datasetName,
+        timestamp: validation.timestamp,
+        issues: validation.issues,
+        message: validation.isValid 
+          ? 'Dataset validation successful' 
+          : 'Dataset validation failed - using incorrect dataset'
+      });
+    } catch (error: any) {
+      console.error('Error validating dataset:', error);
+      res.status(500).json({ 
+        message: 'Failed to validate dataset', 
+        error: error.message
+      });
+    }
+  });
+
+  // Get dataset validation warnings (shorter response for UI)
+  app.get('/api/dataset-warnings', async (req, res) => {
+    try {
+      const warnings = await getDatasetValidationWarnings();
+      
+      res.status(200).json({
+        hasWarnings: warnings.length > 0,
+        warnings
+      });
+    } catch (error: any) {
+      console.error('Error getting dataset warnings:', error);
+      res.status(500).json({ 
+        message: 'Failed to get dataset warnings', 
+        error: error.message
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

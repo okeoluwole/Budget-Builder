@@ -12,6 +12,7 @@ import Settings from "@/pages/settings";
 import AppLayout from "@/components/layouts/AppLayout";
 import { BudgetProvider } from "@/contexts/BudgetContext";
 import ChatInterface from "@/components/chat/ChatInterface";
+import DatasetValidator from "@/components/DatasetValidator";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BudgetProvider>
         <AppLayout>
+          <DatasetValidator />
           <Router />
         </AppLayout>
         <ChatInterface />
