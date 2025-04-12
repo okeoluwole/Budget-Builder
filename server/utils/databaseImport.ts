@@ -42,6 +42,7 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     const activitySheetName = "Table 1_Activity BYOB Sqm";
     const teamSheetName = "Table 2_Team BYOB Sqm";
     const eventSheetName = "Table 3_Event BYOB Sqm";
+    const fitoutSheetName = "FITOUT"; // For location factors
     
     // Check if all required sheets exist
     if (!workbook.Sheets[activitySheetName]) {
@@ -52,6 +53,9 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     }
     if (!workbook.Sheets[eventSheetName]) {
       throw new Error(`Sheet "${eventSheetName}" not found in the Excel file`);
+    }
+    if (!workbook.Sheets[fitoutSheetName]) {
+      throw new Error(`Sheet "${fitoutSheetName}" not found in the Excel file`);
     }
     
     // Define a helper function to read each sheet with proper headers
@@ -72,6 +76,96 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     if (activityData.length > 0) {
       console.log("First row from Activity sheet:", activityData[1]); // Index 1 because index 0 might still be header-related
     }
+    
+    // Read FITOUT sheet with multi-level headers for Location Factors
+    // We use a different read method for the FITOUT sheet because it has a multi-level header
+    const fitoutWorksheet = workbook.Sheets[fitoutSheetName];
+    const fitoutData = XLSX.utils.sheet_to_json(fitoutWorksheet, { header: 1 }) as any[][];
+    
+    // Extract location factors from FITOUT sheet
+    // The location factors are typically in the last columns of the FITOUT sheet
+    // We need to find these columns by name in the header rows
+    let locationFactorHeader: number | null = null;
+    let emeaCol: number | null = null;
+    let americaCol: number | null = null;
+    let apacCol: number | null = null;
+    
+    // Find the header row that contains "LOCATION FACTOR"
+    for (let i = 0; i < 10; i++) { // Check first 10 rows for headers
+      if (fitoutData[i] && fitoutData[i].some(cell => cell && typeof cell === 'string' && cell.includes('LOCATION FACTOR'))) {
+        locationFactorHeader = i;
+        break;
+      }
+    }
+    
+    // If we found the header row, find the column indexes
+    if (locationFactorHeader !== null) {
+      const headerRow = fitoutData[locationFactorHeader];
+      for (let i = 0; i < headerRow.length; i++) {
+        const cell = headerRow[i];
+        if (cell && typeof cell === 'string') {
+          if (cell.includes('LOCATION FACTOR')) {
+            // The next row should contain EMEA, AMERICA, APAC
+            if (fitoutData[locationFactorHeader + 1] && fitoutData[locationFactorHeader + 1][i] === 'EMEA') {
+              emeaCol = i;
+            } else if (fitoutData[locationFactorHeader + 1] && fitoutData[locationFactorHeader + 1][i] === 'AMERICA') {
+              americaCol = i;
+            } else if (fitoutData[locationFactorHeader + 1] && fitoutData[locationFactorHeader + 1][i] === 'APAC') {
+              apacCol = i;
+            }
+          }
+        }
+      }
+    }
+    
+    console.log(`Found location factor columns: EMEA=${emeaCol}, AMERICA=${americaCol}, APAC=${apacCol}`);
+    
+    // Create a map to easily lookup location factors by city/country
+    const locationFactors = new Map<string, { emea: number, america: number, apac: number }>();
+    
+    // Find the country and city columns in the FITOUT sheet
+    let countryCol: number | null = null;
+    let cityCol: number | null = null;
+    
+    // Locate country and city columns
+    for (let i = 0; i < 10; i++) { // Check first 10 rows
+      for (let j = 0; j < fitoutData[i]?.length || 0; j++) {
+        const cell = fitoutData[i]?.[j];
+        if (cell && typeof cell === 'string') {
+          if (cell.toUpperCase() === 'COUNTRY') {
+            countryCol = j;
+          } else if (cell.toUpperCase() === 'CITY') {
+            cityCol = j;
+          }
+        }
+      }
+      if (countryCol !== null && cityCol !== null) break;
+    }
+    
+    console.log(`Found country/city columns: Country=${countryCol}, City=${cityCol}`);
+    
+    // Data row start (after headers)
+    const dataStartRow = Math.max((locationFactorHeader || 0) + 2, 4); // Start after headers, at least row 4
+    
+    // Extract location factors if all columns were found
+    if (countryCol !== null && cityCol !== null && emeaCol !== null && americaCol !== null && apacCol !== null) {
+      for (let i = dataStartRow; i < fitoutData.length; i++) {
+        const row = fitoutData[i];
+        if (row && row[countryCol] && row[cityCol]) {
+          const country = String(row[countryCol]);
+          const city = String(row[cityCol]);
+          const key = `${country}|${city}`.toLowerCase();
+          
+          locationFactors.set(key, {
+            emea: Number(row[emeaCol]) || 1.0,
+            america: Number(row[americaCol]) || 1.0,
+            apac: Number(row[apacCol]) || 1.0
+          });
+        }
+      }
+    }
+    
+    console.log(`Extracted ${locationFactors.size} location factors from FITOUT sheet`);
     
     // Process the data and prepare for insertion
     const fitoutCostRecords: InsertFitoutCost[] = [];
@@ -112,6 +206,10 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
             row['Unnamed: 2'] === city
         ) || {};
         
+        // Look up location factors (default to 1.0 if not found)
+        const key = `${country}|${city}`.toLowerCase();
+        const lf = locationFactors.get(key) || { emea: 1.0, america: 1.0, apac: 1.0 };
+        
         // Create the record with validated data
         const record: Partial<InsertFitoutCost> = {
           country,
@@ -133,7 +231,7 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
           eventMediumSqm: convertNumberField(eventRow['Medium '] || 0),
           eventHighSqm: convertNumberField(eventRow['High '] || 0),
           
-          // Convert sqm to sqft (these are already in SQFT in the spreadsheet)
+          // SQFT values (already in SQFT in the spreadsheet)
           // Activity
           activityLowSqft: convertNumberField((activityRow['Low.1'] || 0)),
           activityMediumSqft: convertNumberField((activityRow['Medium .1'] || 0)),
@@ -149,15 +247,16 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
           eventMediumSqft: convertNumberField((eventRow['Medium .1'] || 0)),
           eventHighSqft: convertNumberField((eventRow['High .1'] || 0)),
           
-          // Location factors - For now using position 17, 18, 19 in the activityRow which typically contain LF values
-          // These positions may need adjustment based on actual data inspection
-          locationFactorEMEA: convertNumberField(activityRow['High .2'] || 1.0), // This should be around column 17
-          locationFactorAMERICA: convertNumberField(activityRow['Low.2'] || 1.0), // This should be around column 18
-          locationFactorAPAC: convertNumberField(activityRow['Medium .2'] || 1.0), // This should be around column 19
+          // Location factors from the FITOUT sheet
+          locationFactorEMEA: convertNumberField(lf.emea),
+          locationFactorAMERICA: convertNumberField(lf.america),
+          locationFactorAPAC: convertNumberField(lf.apac)
         };
         
-        // Log the location factors for debugging
-        console.log(`Location factors for ${country}/${city}: EMEA=${record.locationFactorEMEA}, AMERICA=${record.locationFactorAMERICA}, APAC=${record.locationFactorAPAC}`);
+        // Log the first few records for debugging
+        if (i <= 3) {
+          console.log(`Location factors for ${country}/${city}: EMEA=${record.locationFactorEMEA}, AMERICA=${record.locationFactorAMERICA}, APAC=${record.locationFactorAPAC}`);
+        }
         
         // Validate the record
         const validatedRecord = insertFitoutCostSchema.parse(record);
