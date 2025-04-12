@@ -432,32 +432,13 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                   {formatCurrency(totalCost, 'USD')}
                 </div>
                 
-                {/* Show only the local currency conversion for the selected country */}
-                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                  <div className="text-2xl font-bold text-gray-700 mb-2">
-                    {formatCurrency(totalCost * localCurrencyRate, localCurrencyCode)}
-                  </div>
-                )}
-                
                 <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-6 text-sm text-gray-600 mt-2">
                   <div>
                     {state.project?.totalArea?.toLocaleString()} {state.project?.areaUnit} @ 
                     {formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}
                     /{state.project?.areaUnit}
                   </div>
-                  {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                    <div>
-                      {formatCurrency((totalCost * localCurrencyRate) / (state.project?.totalArea || 1), localCurrencyCode)}
-                      /{state.project?.areaUnit}
-                    </div>
-                  )}
                 </div>
-                
-                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                  <div className="text-xs text-gray-500 mt-2">
-                    Exchange Rate: 1 USD = {localCurrencyRate.toFixed(4)} {localCurrencyCode} (2025 FX Rate)
-                  </div>
-                )}
               </div>
               
               <BudgetSummary 

@@ -117,6 +117,7 @@ export const calculateBudget = async ({
     const costsBreakdown: { [key: string]: number } = {};
     
     // Only use a single category - FITOUT COSTS
+    // Note: We're ignoring professional fees entirely now as per requirement
     costsBreakdown['FITOUT COSTS'] = parseFloat(inflatedTotalCost.toFixed(2));
     
     // We can add space allocation breakdown for reference
