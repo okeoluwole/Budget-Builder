@@ -38,86 +38,132 @@ export async function importFitoutCostsFromExcel(filePath: string): Promise<void
     // Let's log available sheets for debugging
     console.log("Available sheets:", workbook.SheetNames);
     
-    // Use the "Sheet" tab which contains the data we need in a more structured format
-    const sheetName = "Sheet";
-    const worksheet = workbook.Sheets[sheetName];
+    // Use the dedicated tables for each layout type
+    const activitySheetName = "Table 1_Activity BYOB Sqm";
+    const teamSheetName = "Table 2_Team BYOB Sqm";
+    const eventSheetName = "Table 3_Event BYOB Sqm";
     
-    if (!worksheet) {
-      throw new Error(`Sheet "${sheetName}" not found in the Excel file`);
+    // Check if all required sheets exist
+    if (!workbook.Sheets[activitySheetName]) {
+      throw new Error(`Sheet "${activitySheetName}" not found in the Excel file`);
+    }
+    if (!workbook.Sheets[teamSheetName]) {
+      throw new Error(`Sheet "${teamSheetName}" not found in the Excel file`);
+    }
+    if (!workbook.Sheets[eventSheetName]) {
+      throw new Error(`Sheet "${eventSheetName}" not found in the Excel file`);
     }
     
-    // Convert to JSON
-    const data = XLSX.utils.sheet_to_json(worksheet) as SheetRow[];
+    // Define a helper function to read each sheet with proper headers
+    const readSheetData = (sheetName: string) => {
+      // Read with header row at line 4 (index 3)
+      const opts = { header: 4 }; 
+      const worksheet = workbook.Sheets[sheetName];
+      // Convert to JSON
+      return XLSX.utils.sheet_to_json(worksheet, opts);
+    };
     
-    // Log the first row to see the structure
-    if (data.length > 0) {
-      console.log("First row from Sheet tab:", data[0]);
+    // Read data from each sheet
+    const activityData = readSheetData(activitySheetName);
+    const teamData = readSheetData(teamSheetName);
+    const eventData = readSheetData(eventSheetName);
+    
+    // Log the first row of each sheet to see the structure
+    if (activityData.length > 0) {
+      console.log("First row from Activity sheet:", activityData[1]); // Index 1 because index 0 might still be header-related
     }
     
     // Process the data and prepare for insertion
     const fitoutCostRecords: InsertFitoutCost[] = [];
     
-    // Map the Excel data to our database structure
-    for (const row of data) {
+    // Helper function to convert Excel values to the right type
+    const convertNumberField = (value: any): string | null => {
+      if (value === undefined || value === null) return null;
+      // Convert to a fixed precision string to avoid overly long decimal places
+      return typeof value === 'number' ? value.toFixed(2) : String(value);
+    };
+    
+    // Map over the Activity data which will be our primary source
+    // We'll match Team and Event data by country/city
+    for (let i = 1; i < activityData.length; i++) { // Start at index 1 to skip any header rows
       try {
+        const activityRow = activityData[i] as any;
+        
         // Skip rows without Country, City or Region
-        if (!row.COUNTRY || !row.CITY || !row.REGION) {
-          console.log("Skipping row without Country, City or Region:", row);
+        if (!activityRow['Unnamed: 1'] || !activityRow['Unnamed: 2'] || !activityRow['Unnamed: 3']) {
+          console.log("Skipping row without Country, City or Region:", activityRow);
           continue;
         }
         
-        // Helper function to convert Excel values to the right type
-        const convertNumberField = (value: any): string | null => {
-          if (value === undefined || value === null) return null;
-          // Convert to a fixed precision string to avoid overly long decimal places
-          return typeof value === 'number' ? value.toFixed(2) : String(value);
+        const country = String(activityRow['Unnamed: 1']);
+        const city = String(activityRow['Unnamed: 2']);
+        const region = String(activityRow['Unnamed: 3']);
+        
+        // Find matching rows in Team and Event data
+        const teamRow = (teamData as any[]).find(
+          (row: any) => 
+            row['Unnamed: 1'] === country && 
+            row['Unnamed: 2'] === city
+        ) || {};
+        
+        const eventRow = (eventData as any[]).find(
+          (row: any) => 
+            row['Unnamed: 1'] === country && 
+            row['Unnamed: 2'] === city
+        ) || {};
+        
+        // Create the record with validated data
+        const record: Partial<InsertFitoutCost> = {
+          country,
+          city,
+          region,
+          
+          // Activity costs from Table 1
+          activityLowSqm: convertNumberField(activityRow['Low'] || 0),
+          activityMediumSqm: convertNumberField(activityRow['Medium '] || 0),
+          activityHighSqm: convertNumberField(activityRow['High '] || 0),
+          
+          // Team costs from Table 2
+          teamLowSqm: convertNumberField(teamRow['Low'] || 0),
+          teamMediumSqm: convertNumberField(teamRow['Medium '] || 0),
+          teamHighSqm: convertNumberField(teamRow['High '] || 0),
+          
+          // Event costs from Table 3
+          eventLowSqm: convertNumberField(eventRow['Low'] || 0),
+          eventMediumSqm: convertNumberField(eventRow['Medium '] || 0),
+          eventHighSqm: convertNumberField(eventRow['High '] || 0),
+          
+          // Convert sqm to sqft (these are already in SQFT in the spreadsheet)
+          // Activity
+          activityLowSqft: convertNumberField((activityRow['Low.1'] || 0)),
+          activityMediumSqft: convertNumberField((activityRow['Medium .1'] || 0)),
+          activityHighSqft: convertNumberField((activityRow['High .1'] || 0)),
+          
+          // Team
+          teamLowSqft: convertNumberField((teamRow['Low.1'] || 0)),
+          teamMediumSqft: convertNumberField((teamRow['Medium .1'] || 0)),
+          teamHighSqft: convertNumberField((teamRow['High .1'] || 0)),
+          
+          // Event
+          eventLowSqft: convertNumberField((eventRow['Low.1'] || 0)),
+          eventMediumSqft: convertNumberField((eventRow['Medium .1'] || 0)),
+          eventHighSqft: convertNumberField((eventRow['High .1'] || 0)),
+          
+          // Location factors - For now using position 17, 18, 19 in the activityRow which typically contain LF values
+          // These positions may need adjustment based on actual data inspection
+          locationFactorEMEA: convertNumberField(activityRow['High .2'] || 1.0), // This should be around column 17
+          locationFactorAMERICA: convertNumberField(activityRow['Low.2'] || 1.0), // This should be around column 18
+          locationFactorAPAC: convertNumberField(activityRow['Medium .2'] || 1.0), // This should be around column 19
         };
         
-        // Create the record
-        const record: Partial<InsertFitoutCost> = {
-          country: String(row.COUNTRY),
-          city: String(row.CITY),
-          region: String(row.REGION),
-          
-          // Activity costs - using Low as 70% of Medium and High as in the spreadsheet
-          activityLowSqm: convertNumberField((row['Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7),
-          activityMediumSqm: convertNumberField(row['Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0),
-          activityHighSqm: convertNumberField(row.__EMPTY || 0), // This is likely the high value
-          
-          // Team costs - using Low as 70% of Medium and High as in the spreadsheet
-          teamLowSqm: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7),
-          teamMediumSqm: convertNumberField(row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0),
-          teamHighSqm: convertNumberField(row.__EMPTY_1 || 0), // This is likely the high value
-          
-          // Event costs - use Team costs multiplied by 1.2 as a reasonable approximation
-          eventLowSqm: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7 * 1.2),
-          eventMediumSqm: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 1.2),
-          eventHighSqm: convertNumberField((row.__EMPTY_1 || 0) * 1.2),
-          
-          // Convert SQM to SQFT (1 sqm = 10.764 sqft)
-          activityLowSqft: convertNumberField((row['Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7 / 10.764),
-          activityMediumSqft: convertNumberField((row['Activity\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) / 10.764),
-          activityHighSqft: convertNumberField((row.__EMPTY || 0) / 10.764),
-          
-          teamLowSqft: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7 / 10.764),
-          teamMediumSqft: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) / 10.764),
-          teamHighSqft: convertNumberField((row.__EMPTY_1 || 0) / 10.764),
-          
-          eventLowSqft: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 0.7 * 1.2 / 10.764),
-          eventMediumSqft: convertNumberField((row['Team\r\nFIT-OUT TOTAL\r\n$ per sq m'] || 0) * 1.2 / 10.764),
-          eventHighSqft: convertNumberField((row.__EMPTY_1 || 0) * 1.2 / 10.764),
-          
-          // Location factors - we have several columns in the data
-          locationFactorEMEA: convertNumberField(row['LF - London'] || 1.0), // Using London as EMEA reference
-          locationFactorAMERICA: convertNumberField(row['LF-New York'] || 1.0), // Using New York as AMERICA reference
-          locationFactorAPAC: convertNumberField(row['LF - Singapore'] || 1.0), // Using Singapore as APAC reference
-        };
+        // Log the location factors for debugging
+        console.log(`Location factors for ${country}/${city}: EMEA=${record.locationFactorEMEA}, AMERICA=${record.locationFactorAMERICA}, APAC=${record.locationFactorAPAC}`);
         
         // Validate the record
         const validatedRecord = insertFitoutCostSchema.parse(record);
         fitoutCostRecords.push(validatedRecord);
       } catch (error) {
-        console.error('Error processing row:', row, error);
+        console.error('Error processing row from Activity sheet:', activityData[i], error);
       }
     }
     
