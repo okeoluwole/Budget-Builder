@@ -6,10 +6,10 @@ import {
   FitoutCost, 
   SpecificationRecord 
 } from '@shared/schema';
-import openaiUtil, { ChatContext } from '../utils/openai';
 import { z } from 'zod';
 import { db } from '../db';
 import { fitoutCosts, specifications } from '@shared/schema';
+import * as localChat from '../utils/localChat';
 
 const router = Router();
 
@@ -150,9 +150,11 @@ router.post('/sessions/:id/messages', async (req: Request, res: Response) => {
     const messageHistory = await storage.getChatMessagesBySession(sessionId);
     
     // Get context for the AI
-    const context: ChatContext = {
+    const context: localChat.ChatContext = {
       projects: await storage.getAllProjects(),
-      budgets: await storage.getAllBudgets()
+      budgets: await storage.getAllBudgets(),
+      fitoutCosts: await db.select().from(fitoutCosts),
+      specifications: await db.select().from(specifications)
     };
     
     // Convert messages to OpenAI format
@@ -161,8 +163,8 @@ router.post('/sessions/:id/messages', async (req: Request, res: Response) => {
       content: msg.content
     }));
     
-    // Get AI response
-    const aiResponse = await openaiUtil.getChatCompletion(openaiMessages, context);
+    // Get response using local implementation
+    const aiResponse = await localChat.getChatCompletion(openaiMessages, context);
     
     // Save AI response to database
     const assistantMessage = {
