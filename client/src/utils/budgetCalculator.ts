@@ -130,13 +130,114 @@ export const calculateBudget = async ({
     }
 
     // Get currency conversion data if available
-    let localCurrencyCode = budget.localCurrencyCode || project.currency;
+    // Always set localCurrencyCode based on country to implement 
+    // auto-currency detection for all countries
+    
+    // Map countries to their ISO currency codes - maintain exact copy of mapping in BudgetResultsStep
+    const countryToCurrency: Record<string, string> = {
+      // Europe
+      'Austria': 'EUR',
+      'Belgium': 'EUR',
+      'Bulgaria': 'BGN',
+      'Croatia': 'EUR',
+      'Cyprus': 'EUR',
+      'Czech Republic': 'CZK',
+      'Denmark': 'DKK',
+      'Estonia': 'EUR',
+      'Finland': 'EUR',
+      'France': 'EUR',
+      'Germany': 'EUR',
+      'Greece': 'EUR',
+      'Hungary': 'HUF',
+      'Ireland': 'EUR',
+      'Italy': 'EUR',
+      'Latvia': 'EUR',
+      'Lithuania': 'EUR',
+      'Luxembourg': 'EUR',
+      'Malta': 'EUR',
+      'Netherlands': 'EUR',
+      'Poland': 'PLN',
+      'Portugal': 'EUR',
+      'Romania': 'RON',
+      'Slovakia': 'EUR',
+      'Slovenia': 'EUR',
+      'Spain': 'EUR',
+      'Sweden': 'SEK',
+      'United Kingdom': 'GBP',
+      'Switzerland': 'CHF',
+      'Norway': 'NOK',
+      
+      // North America
+      'United States': 'USD',
+      'Canada': 'CAD',
+      'Mexico': 'MXN',
+      
+      // Asia Pacific
+      'Australia': 'AUD',
+      'New Zealand': 'NZD',
+      'Japan': 'JPY',
+      'China': 'CNY',
+      'Singapore': 'SGD',
+      'Hong Kong': 'HKD',
+      'India': 'INR',
+      'Indonesia': 'IDR',
+      'Malaysia': 'MYR',
+      'Philippines': 'PHP',
+      'South Korea': 'KRW',
+      'Taiwan': 'TWD',
+      'Thailand': 'THB',
+      'Vietnam': 'VND',
+      
+      // South America
+      'Brazil': 'BRL',
+      'Argentina': 'ARS',
+      'Chile': 'CLP',
+      'Colombia': 'COP',
+      'Peru': 'PEN',
+      'Venezuela': 'VES',
+      
+      // Africa
+      'South Africa': 'ZAR',
+      'Nigeria': 'NGN',
+      'Egypt': 'EGP',
+      'Kenya': 'KES',
+      'Morocco': 'MAD',
+      'Ghana': 'GHS',
+      'Ethiopia': 'ETB',
+      'Tanzania': 'TZS',
+      'Uganda': 'UGX',
+      'Angola': 'AOA',
+      'Mozambique': 'MZN',
+      'Zimbabwe': 'ZWL',
+      'Botswana': 'BWP',
+      'Namibia': 'NAD',
+      'Mauritius': 'MUR',
+      
+      // Middle East
+      'Saudi Arabia': 'SAR',
+      'United Arab Emirates': 'AED',
+      'Qatar': 'QAR',
+      'Israel': 'ILS',
+      'Turkey': 'TRY',
+      'Jordan': 'JOD',
+      'Kuwait': 'KWD',
+      'Bahrain': 'BHD',
+      'Oman': 'OMR',
+      'Lebanon': 'LBP',
+      'Iraq': 'IQD',
+      
+      // Other
+      'Russia': 'RUB'
+    };
+    
+    // Auto-detect currency from country
+    let localCurrencyCode = countryToCurrency[project.country] || budget.localCurrencyCode || project.currency || 'USD';
     let localCurrencyRate: number | undefined;
     let localCurrencyTotalCost: number | undefined;
     let localCurrencyCostsBreakdown: { [key: string]: number } | undefined;
     
-    console.log("Budget Calculator - Looking for currency:", localCurrencyCode);
-    console.log("Project country:", project.country);
+    console.log("Budget Calculator - Country:", project.country);
+    console.log("Budget Calculator - Detected currency code:", localCurrencyCode);
     
     // Get direct currency exchange rates - 2025 Budget Template rates
     // The correct approach: currency rates from Budget Template's "2025 FX Rates" sheet
