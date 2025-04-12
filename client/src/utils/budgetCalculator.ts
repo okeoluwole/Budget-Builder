@@ -97,22 +97,17 @@ export const calculateBudget = async ({
       throw new Error(`No base rate found for ${budget.layout} layout with ${budget.specification} specification`);
     }
 
-    // Determine region for location factor
-    let region: keyof typeof locationData.locationFactors = 'EMEA';
-    if (locationData.region === 'AMERICA') {
-      region = 'AMERICA';
-    } else if (locationData.region === 'APAC') {
-      region = 'APAC';
-    }
-
-    // Apply location factor
-    const locationFactor = locationData.locationFactors[region] || 1.0;
+    // REMOVED: Previously we were applying a location factor here, but the CBRE data 
+    // already contains location-specific costs, so applying location factors is redundant
     
-    // Get specification factor
-    const specificationFactor = getSpecificationFactor(budget.specification);
+    // Get specification factor if we need to adjust for custom specifications
+    // NOTE: This might also be redundant if CBRE data already specifies Low/Medium/High costs
+    // that correspond to our Bronze/Silver/Gold specifications
+    const specificationFactor = 1.0; // Removed specification factor application
     
-    // Calculate adjusted base cost per unit area
-    const adjustedBaseRate = baseRate * locationFactor * specificationFactor;
+    // Use the base rate directly from the location-specific CBRE data
+    // without applying duplicate location factors
+    const adjustedBaseRate = baseRate;
     
     // Calculate total area cost
     const totalAreaCost = adjustedBaseRate * project.totalArea;
@@ -334,31 +329,63 @@ export const calculateBudget = async ({
 };
 
 // Function to estimate budget without detailed allocation
-export const estimateBudget = (
+export const estimateBudget = async (
   project: Partial<Project>,
   specification: string,
   layout: string
-): number => {
+): Promise<number> => {
   if (!project.totalArea || !project.country || !specification || !layout) {
     return 0;
   }
 
-  // Simplified estimation based on area and specification
-  const baseRate = layout === 'Activity' ? 1200 : layout === 'Team' ? 1100 : 1300;
-  const specFactor = specification === 'Bronze' ? 1.0 : specification === 'Silver' ? 1.4 : 1.8;
+  try {
+    // Try to use actual cost data if available
+    if (project.country && project.city) {
+      // Fetch costs data
+      const res = await apiRequest('GET', '/api/fitout-costs', undefined);
+      const fitoutCostsData = await res.json();
+      
+      // Find the location data
+      const locationData = fitoutCostsData.find((item: any) => 
+        item.country === project.country && item.city === project.city
+      );
+      
+      if (locationData) {
+        // Map specification to data format
+        const specLevel = specification === 'Bronze' ? 'Low' : 
+                        specification === 'Silver' ? 'Medium' : 'High';
+        
+        // Determine area unit
+        const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
+        const layoutType = layout as string;
+        
+        // Get the appropriate base rate
+        const baseRate = locationData.costs[areaUnit][layoutType][specLevel];
+        
+        if (baseRate) {
+          // Calculate cost - without applying location factors as they're redundant
+          const totalCost = baseRate * (project.totalArea || 0);
+          
+          // Apply inflation if specified
+          return project.inflationRate 
+            ? applyInflation(totalCost, project.inflationRate as number)
+            : totalCost;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in budget estimation, using fallback method:', error);
+  }
   
-  // Apply a generic location factor (simplified)
-  const locationFactor = project.country === 'United Kingdom' ? 1.2 :
-                        project.country === 'United States' ? 1.3 :
-                        project.country === 'Australia' ? 1.1 : 1.0;
-  
-  // Calculate estimated cost
-  const estimatedCost = project.totalArea * baseRate * specFactor * locationFactor;
+  // Fallback to simplified estimation if real data isn't available
+  // This provides a basic estimate without location or other adjustments
+  const fallbackBaseRate = layout === 'Activity' ? 1200 : layout === 'Team' ? 1100 : 1300;
+  const fallbackEstimatedCost = (project.totalArea || 0) * fallbackBaseRate;
   
   // Apply inflation if specified
   return project.inflationRate 
-    ? applyInflation(estimatedCost, project.inflationRate)
-    : estimatedCost;
+    ? applyInflation(fallbackEstimatedCost, project.inflationRate as number)
+    : fallbackEstimatedCost;
 };
 
 // Calculate space allocation costs
