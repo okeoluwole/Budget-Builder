@@ -464,10 +464,6 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                 budgetBreakdown={budgetBreakdown} 
                 totalCost={totalCost} 
                 currency={state.project?.currency || 'USD'} 
-                localCurrencyCode={localCurrencyCode || undefined}
-                localCurrencyRate={localCurrencyRate || undefined}
-                localCurrencyTotalCost={localCurrencyTotalCost || undefined}
-                localCurrencyCostsBreakdown={localCurrencyCostsBreakdown || undefined}
               />
               
               <div className="mt-8 border-t border-gray-200 pt-6">
@@ -494,11 +490,6 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           <td className="py-1 text-gray-500">Currency:</td>
                           <td className="py-1 font-medium">
                             USD
-                            {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                              <span className="block text-sm text-gray-500">
-                                {localCurrencyCode} (Local)
-                              </span>
-                            )}
                           </td>
                         </tr>
                         <tr>
@@ -532,11 +523,6 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           <td className="py-1 text-gray-500">Rate per {state.project?.areaUnit}:</td>
                           <td className="py-1 font-medium">
                             {formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}
-                            {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
-                              <span className="block text-sm text-gray-500">
-                                {formatCurrency((totalCost * localCurrencyRate) / (state.project?.totalArea || 1), localCurrencyCode)}
-                              </span>
-                            )}
                           </td>
                         </tr>
                       </tbody>
