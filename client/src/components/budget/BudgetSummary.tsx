@@ -29,9 +29,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
     return null;
   }
 
-  // Only include space costs for chart data
-  // First, get the fitout cost
-  const fitoutCost = budgetBreakdown['FITOUT COSTS'] || totalCost;
+  // Extract the relevant costs from budget breakdown
+  // Get the base fitout cost (without professional fees)
+  const baseFitoutCost = budgetBreakdown['BASE FITOUT COSTS'] || 0;
+  // Get professional fees
+  const professionalFees = budgetBreakdown['PROFESSIONAL FEES'] || 0;
+  // Get total cost (should include both base costs and professional fees)
+  const fitoutCost = budgetBreakdown['TOTAL COSTS'] || totalCost;
   
   // Create chart data only for space allocations (not including total fitout)
   let chartData = Object.entries(budgetBreakdown)
@@ -170,9 +174,10 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
         </div>
       </div>
       
+      {/* Cost Breakdown with Professional Fees */}
       <div className="mt-6">
         <div className="flex justify-between mb-2">
-          <h4 className="font-medium text-gray-700">Fitout Cost Details</h4>
+          <h4 className="font-medium text-gray-700">Cost Breakdown</h4>
           {localCurrencyCode && localCurrencyCode !== currency && localCurrencyRate && (
             <div className="text-sm text-gray-600">
               Exchange Rate: <span className="font-semibold">1 USD = {localCurrencyRate.toFixed(4)} {localCurrencyCode}</span>
@@ -185,6 +190,90 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Category
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount (USD)
+                </th>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount ({localCurrencyCode})
+                  </th>
+                )}
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Percentage
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {/* Base Fitout Costs */}
+              <tr className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  Base Fitout Costs
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                  {formatCurrency(baseFitoutCost, 'USD')}
+                </td>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                    {formatCurrency(baseFitoutCost * localCurrencyRate, localCurrencyCode)}
+                  </td>
+                )}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                  {((baseFitoutCost / fitoutCost) * 100).toFixed(1)}%
+                </td>
+              </tr>
+              
+              {/* Professional Fees */}
+              <tr className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  Professional Fees
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                  {formatCurrency(professionalFees, 'USD')}
+                </td>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                    {formatCurrency(professionalFees * localCurrencyRate, localCurrencyCode)}
+                  </td>
+                )}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                  {((professionalFees / fitoutCost) * 100).toFixed(1)}%
+                </td>
+              </tr>
+              
+              {/* Total row */}
+              <tr className="bg-gray-100 font-bold">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                  TOTAL COSTS
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
+                  {formatCurrency(fitoutCost, 'USD')}
+                </td>
+                {localCurrencyCode && localCurrencyCode !== 'USD' && localCurrencyRate && (
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
+                    {formatCurrency(fitoutCost * localCurrencyRate, localCurrencyCode)}
+                  </td>
+                )}
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
+                  100%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* Space Allocation Breakdown */}
+      <div className="mt-6">
+        <div className="flex justify-between mb-2">
+          <h4 className="font-medium text-gray-700">Space Allocation Details</h4>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Space Type
                 </th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount (USD)
@@ -219,10 +308,10 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                   </td>
                 </tr>
               ))}
-              {/* Total row as FITOUT COSTS */}
+              {/* Total row for space allocation */}
               <tr className="bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                  FITOUT COSTS
+                  TOTAL SPACE ALLOCATION
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
                   {formatCurrency(fitoutCost, 'USD')}

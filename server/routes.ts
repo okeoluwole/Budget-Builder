@@ -246,7 +246,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           EMEA: parseFloat(record.locationFactorEMEA || '1.0'),
           AMERICA: parseFloat(record.locationFactorAMERICA || '1.0'),
           APAC: parseFloat(record.locationFactorAPAC || '1.0')
-        }
+        },
+        professionalFees: record.professionalFees?.toString() || '0.15'
       }));
       
       res.json(data);
