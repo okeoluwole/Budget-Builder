@@ -76,17 +76,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get context for AI response
       const context = {
         projects: await storage.getAllProjects(),
-        budgets: await storage.getAllBudgets()
+        budgets: await storage.getAllBudgets(),
+        fitoutCosts: await db.select().from(fitoutCosts)
       };
       
-      // Convert messages to OpenAI format
-      const openaiMessages = messageHistory.map(msg => ({
-        role: msg.role,
+      // Import the local chat module
+      const localChat = await import('./utils/localChat');
+      
+      // Convert messages to the expected format
+      const chatMessages = messageHistory.map(msg => ({
+        role: msg.role as "system" | "user" | "assistant",
         content: msg.content
       }));
       
-      // Get AI response using OpenAI
-      const aiResponse = await openaiUtil.getChatCompletion(openaiMessages, context);
+      // Get AI response using local implementation
+      const aiResponse = await localChat.getChatCompletion(chatMessages, context);
       
       // Store AI response
       const assistantMessage = await storage.addChatMessage({
