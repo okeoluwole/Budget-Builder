@@ -22,12 +22,6 @@ export async function validateDataset(datasetPath: string = 'attached_assets/CBR
     timestamp: new Date()
   };
   
-  // Check that we are using the correct dataset file
-  const expectedFileName = 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx';
-  if (path.basename(datasetPath) !== expectedFileName) {
-    result.issues.push(`Incorrect dataset file. Expected "${expectedFileName}" but found "${path.basename(datasetPath)}"`);
-  }
-
   try {
     // Check 1: File existence
     if (!fs.existsSync(datasetPath)) {

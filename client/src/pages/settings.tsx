@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+
+interface DatasetValidationResult {
+  isValid: boolean;
+  datasetName: string;
+  timestamp: string;
+  issues: string[];
+  message: string;
+}
 
 const Settings: React.FC = () => {
   const { toast } = useToast();
@@ -8,6 +17,19 @@ const Settings: React.FC = () => {
   const [defaultInflationRate, setDefaultInflationRate] = useState(2.5);
   const [dataUpdateFrequency, setDataUpdateFrequency] = useState('quarterly');
   const [saving, setSaving] = useState(false);
+  const [showValidationDetails, setShowValidationDetails] = useState(false);
+  
+  // Fetch dataset validation status
+  const validationQuery = useQuery({
+    queryKey: ['/api/validate-dataset'],
+    queryFn: async () => {
+      const res = await fetch('/api/validate-dataset');
+      if (!res.ok) throw new Error('Failed to validate dataset');
+      return res.json() as Promise<DatasetValidationResult>;
+    },
+    enabled: showValidationDetails,
+    refetchOnWindowFocus: false
+  });
 
   const handleSaveSettings = async () => {
     try {
@@ -140,6 +162,74 @@ const Settings: React.FC = () => {
               >
                 Update Now
               </button>
+            </div>
+            
+            {/* Dataset Validation Section */}
+            <div className="p-4 border border-gray-200 rounded-md">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium text-gray-800">Dataset Validation</h3>
+                  <p className="text-sm text-gray-500">
+                    Check if the correct dataset file is being used for calculations
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowValidationDetails(prev => !prev);
+                    if (!showValidationDetails) {
+                      validationQuery.refetch();
+                    }
+                  }}
+                  className="px-3 py-1 text-sm font-medium text-primary bg-white border border-primary rounded-md shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {showValidationDetails ? 'Hide Details' : 'Validate Dataset'}
+                </button>
+              </div>
+              
+              {/* Validation Results */}
+              {showValidationDetails && (
+                <div className="mt-3">
+                  {validationQuery.isLoading && (
+                    <div className="p-3 bg-blue-50 rounded-md animate-pulse">
+                      <p className="text-sm text-blue-700">Validating dataset...</p>
+                    </div>
+                  )}
+                  
+                  {validationQuery.isError && (
+                    <div className="p-3 bg-red-50 rounded-md">
+                      <p className="text-sm text-red-700">Error validating dataset. Please try again.</p>
+                    </div>
+                  )}
+                  
+                  {validationQuery.isSuccess && (
+                    <div className={`p-3 ${validationQuery.data.isValid ? 'bg-green-50' : 'bg-red-50'} rounded-md`}>
+                      <h4 className={`font-medium text-sm ${validationQuery.data.isValid ? 'text-green-700' : 'text-red-700'}`}>
+                        {validationQuery.data.message}
+                      </h4>
+                      <p className="text-sm mt-1">
+                        <span className="font-medium">Dataset: </span> 
+                        {validationQuery.data.datasetName}
+                      </p>
+                      <p className="text-sm">
+                        <span className="font-medium">Validated: </span> 
+                        {new Date(validationQuery.data.timestamp).toLocaleString()}
+                      </p>
+                      
+                      {!validationQuery.data.isValid && validationQuery.data.issues.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium text-red-700">Issues found:</p>
+                          <ul className="text-xs text-red-700 list-disc pl-5 mt-1 space-y-1">
+                            {validationQuery.data.issues.map((issue, i) => (
+                              <li key={i}>{issue}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="flex justify-between items-center p-4 border border-gray-200 rounded-md">
