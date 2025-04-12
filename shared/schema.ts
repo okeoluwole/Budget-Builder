@@ -203,7 +203,10 @@ export const fitoutCosts = pgTable("fitout_costs", {
   // Location factors
   locationFactorEMEA: numeric("location_factor_emea"),
   locationFactorAMERICA: numeric("location_factor_america"),
-  locationFactorAPAC: numeric("location_factor_apac")
+  locationFactorAPAC: numeric("location_factor_apac"),
+  
+  // Professional fees percentage (expressed as decimal, e.g., 0.15 for 15%)
+  professionalFees: numeric("professional_fees")
 });
 
 export const insertFitoutCostSchema = createInsertSchema(fitoutCosts).omit({
