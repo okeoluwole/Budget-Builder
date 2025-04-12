@@ -103,6 +103,15 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           'Kenya': 'KES',
           'Morocco': 'MAD',
           'Ghana': 'GHS',
+          'Ethiopia': 'ETB',
+          'Tanzania': 'TZS',
+          'Uganda': 'UGX',
+          'Angola': 'AOA',
+          'Mozambique': 'MZN',
+          'Zimbabwe': 'ZWL',
+          'Botswana': 'BWP',
+          'Namibia': 'NAD',
+          'Mauritius': 'MUR',
           
           // Middle East
           'Saudi Arabia': 'SAR',
@@ -110,6 +119,12 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           'Qatar': 'QAR',
           'Israel': 'ILS',
           'Turkey': 'TRY',
+          'Jordan': 'JOD',
+          'Kuwait': 'KWD',
+          'Bahrain': 'BHD',
+          'Oman': 'OMR',
+          'Lebanon': 'LBP',
+          'Iraq': 'IQD',
           
           // Other
           'Russia': 'RUB'
