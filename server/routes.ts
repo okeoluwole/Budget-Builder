@@ -70,11 +70,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: role as 'user' | 'assistant' | 'system',
       });
       
+      // Get message history
+      const messageHistory = await storage.getChatMessagesBySession(sessionId);
+      
       // Get context for AI response
-      const context = {};
+      const context = {
+        projects: await storage.getAllProjects(),
+        budgets: await storage.getAllBudgets()
+      };
+      
+      // Convert messages to OpenAI format
+      const openaiMessages = messageHistory.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
       
       // Get AI response using OpenAI
-      const aiResponse = await openaiUtil.getChatCompletion(content, context as any);
+      const aiResponse = await openaiUtil.getChatCompletion(openaiMessages, context);
       
       // Store AI response
       const assistantMessage = await storage.addChatMessage({
@@ -84,7 +96,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Return both messages
-      res.status(201).json([userMessage, assistantMessage]);
+      res.status(201).json({
+        userMessage: userMessage,
+        assistantMessage: assistantMessage
+      });
     } catch (error) {
       console.error('Error sending chat message:', error);
       res.status(500).json({ message: 'Failed to process chat message' });
