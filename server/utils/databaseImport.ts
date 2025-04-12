@@ -431,7 +431,7 @@ export async function initializeDatabase(): Promise<void> {
   
   // Import fitout costs from the clean redacted Excel file
   try {
-    const excelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Redacted.xlsx');
+    const excelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx');
     if (existsSync(excelPath)) {
       await importFitoutCostsFromExcel(excelPath);
     } else {

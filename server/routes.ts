@@ -419,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analyze Excel file structure
   app.get('/api/admin/analyze-excel', async (req, res) => {
     try {
-      const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
+      const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx');
       
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: 'Excel file not found' });
@@ -550,7 +550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Optionally import fitout costs from Excel if requested
       if (importFitoutCosts) {
-        const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
+        const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx');
         if (fs.existsSync(filePath)) {
           await importFitoutCostsFromExcel(filePath);
         }
@@ -595,7 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Build file path
-      const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
+      const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx');
       console.log("Full Excel file path:", filePath);
       
       // Check if file exists
