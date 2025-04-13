@@ -183,10 +183,17 @@ export const calculateBudget = async ({
         // Calculate individual rates for logging
         console.log("Fitout Rate:", fitoutRate, "Furniture Rate:", furnitureRate);
         
-        // Since we display fitout or furniture rates when viewing individual scopes,
-        // we should be consistent and use just one of them for the combined rate too
-        // Instead of a weighted average, use the fitout rate for consistency
-        rawUnitCost = fitoutRate;
+        // For combined scope we should display a weighted average of both rates
+        // Calculate the proportion of each cost to the total
+        const fitoutProportion = fitoutCost / (fitoutCost + furnitureCost);
+        const furnitureProportion = furnitureCost / (fitoutCost + furnitureCost);
+        
+        // Calculate weighted average rate
+        const weightedRate = (fitoutRate * fitoutProportion) + (furnitureRate * furnitureProportion);
+        console.log("Weighted Rate Calculation:", 
+          `(${fitoutRate} × ${fitoutProportion.toFixed(3)}) + (${furnitureRate} × ${furnitureProportion.toFixed(3)}) = ${weightedRate}`);
+        
+        rawUnitCost = weightedRate;
       } 
       else if (fitoutCost > 0) {
         // If only fitout costs exist, use that rate
