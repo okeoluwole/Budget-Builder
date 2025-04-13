@@ -170,12 +170,42 @@ export const calculateBudget = async ({
                 fitoutCost + furnitureCost; // For 'Both'
     
     // Store the raw unit cost and adjusted unit cost for reference
-    // We'll use fitout costs for this if available, otherwise furniture costs
-    const rawUnitCost = (scope === 'Fitout' || scope === 'Both') ? 
-      (fitoutCost / project.totalArea) : 
-      (furnitureCost / project.totalArea);
-      
-    const adjustedUnitCost = rawUnitCost; // No adjustment needed as we use the rates directly
+    // For 'Both' scope, we need to ensure the rate calculation is consistent with individual components
+    let rawUnitCost = 0;
+    
+    if (scope === 'Both') {
+      // For combined scope, use weighted average of individual rates
+      if (fitoutCost > 0 && furnitureCost > 0) {
+        // If both costs exist, use the weighted average of both rates
+        const fitoutRate = fitoutCost / project.totalArea;
+        const furnitureRate = furnitureCost / project.totalArea;
+        
+        // Calculate individual rates for logging
+        console.log("Fitout Rate:", fitoutRate, "Furniture Rate:", furnitureRate);
+        
+        // Since we display fitout or furniture rates when viewing individual scopes,
+        // we should be consistent and use just one of them for the combined rate too
+        // Instead of a weighted average, use the fitout rate for consistency
+        rawUnitCost = fitoutRate;
+      } 
+      else if (fitoutCost > 0) {
+        // If only fitout costs exist, use that rate
+        rawUnitCost = fitoutCost / project.totalArea;
+      } 
+      else if (furnitureCost > 0) {
+        // If only furniture costs exist, use that rate
+        rawUnitCost = furnitureCost / project.totalArea;
+      }
+    } else {
+      // For individual scopes, use the appropriate rate
+      rawUnitCost = scope === 'Fitout' ? 
+        (fitoutCost / project.totalArea) : 
+        (furnitureCost / project.totalArea);
+    }
+    
+    // In all cases, adjusted unit cost is the same as raw unit cost
+    // There's no additional adjustment being applied
+    const adjustedUnitCost = rawUnitCost;
     
     // Initialize costs breakdown
     const costsBreakdown: { [key: string]: number } = {};

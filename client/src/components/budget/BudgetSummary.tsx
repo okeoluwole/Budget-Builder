@@ -210,7 +210,10 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
             
             <dt className="text-sm font-medium text-gray-500">Final Rate:</dt>
             <dd className="text-sm text-gray-900">
-              {formatCurrency(totalCost / (budgetBreakdown.totalArea || 1), currency)}/{budgetBreakdown.areaUnit || 'sqft'}
+              {scope === 'Both' && budgetBreakdown.adjustedUnitCost ?
+                formatCurrency(budgetBreakdown.adjustedUnitCost, currency) : 
+                formatCurrency(totalCost / (budgetBreakdown.totalArea || 1), currency)
+              }/{budgetBreakdown.areaUnit || 'sqft'}
             </dd>
           </dl>
         </div>
