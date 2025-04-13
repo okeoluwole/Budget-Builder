@@ -14,8 +14,8 @@ import { eq, sql, count } from 'drizzle-orm';
  */
 function findMatchingRow(data: any[], country: string, city: string): any {
   return data.find((row: any) => 
-    row['COUNTRY'] === country && 
-    row['CITY'] === city
+    row['__EMPTY'] === country && 
+    row['__EMPTY_1'] === city
   ) || {};
 }
 
