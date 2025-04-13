@@ -73,10 +73,16 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
     specificationDisplay = `Fitout: ${fitoutSpecification}, Furniture: ${furnitureSpecification}`;
   }
   
-  // Create chart data only for space allocations (not including total fitout)
+  // Determine which cost value to use as the basis for space allocation
+  const baseCostForAllocation = 
+    scope === 'Fitout' ? calculatedFitoutCost :
+    scope === 'Furniture' ? calculatedFurnitureCost :
+    calculatedFitoutCost; // For 'Both', we'll use fitout as the primary allocation basis
+  
+  // Create chart data for space allocations
   let chartData = Object.entries(budgetBreakdown)
     .filter(([key, value]) => {
-      // Only include space allocations (not the fitout total)
+      // Only include space allocations (not the total costs)
       return (
         key.startsWith('SPACE:') && 
         typeof value === 'number' && 
@@ -86,19 +92,42 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
     .map(([key, value]) => ({
       name: key.replace('SPACE:', ''),
       value: value as number,
-      percentage: ((value as number) / calculatedFitoutCost) * 100
+      percentage: ((value as number) / (baseCostForAllocation || 1)) * 100
     }))
     .sort((a, b) => b.value - a.value);
     
   // If no space allocation data is found, create a default allocation
-  if (chartData.length === 0 && calculatedFitoutCost > 0) {
-    chartData = [
-      { name: 'Team Workspace', value: calculatedFitoutCost * 0.5, percentage: 50 },
-      { name: 'Team Meeting Area', value: calculatedFitoutCost * 0.2, percentage: 20 },
-      { name: 'Shared Meeting Rooms', value: calculatedFitoutCost * 0.15, percentage: 15 },
-      { name: 'Social Area', value: calculatedFitoutCost * 0.1, percentage: 10 },
-      { name: 'Support/Ancillary', value: calculatedFitoutCost * 0.05, percentage: 5 }
+  if (chartData.length === 0) {
+    const defaultPercentages = [
+      { name: 'Team Workspace', percentage: 50 },
+      { name: 'Team Meeting Area', percentage: 20 },
+      { name: 'Shared Meeting Rooms', percentage: 15 },
+      { name: 'Social Area', percentage: 10 },
+      { name: 'Support/Ancillary', percentage: 5 }
     ];
+    
+    if (scope === 'Fitout' && calculatedFitoutCost > 0) {
+      chartData = defaultPercentages.map(item => ({
+        ...item,
+        value: calculatedFitoutCost * (item.percentage / 100)
+      }));
+    } 
+    else if (scope === 'Furniture' && calculatedFurnitureCost > 0) {
+      chartData = defaultPercentages.map(item => ({
+        ...item,
+        value: calculatedFurnitureCost * (item.percentage / 100)
+      }));
+    }
+    else if (scope === 'Both') {
+      // For 'Both' scope, we'll use fitout cost as the basis if available
+      const baseCost = calculatedFitoutCost > 0 ? calculatedFitoutCost : calculatedFurnitureCost;
+      if (baseCost > 0) {
+        chartData = defaultPercentages.map(item => ({
+          ...item,
+          value: baseCost * (item.percentage / 100)
+        }));
+      }
+    }
   }
   
   // Colors for the chart
@@ -251,8 +280,10 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
         </div>
       </div>
 
-      {/* Only show space allocation if we have fitout costs */}
-      {(scope === 'Fitout' || scope === 'Both') && calculatedFitoutCost > 0 && (
+      {/* Show space allocation if we have any costs to display */}
+      {((scope === 'Fitout' && calculatedFitoutCost > 0) || 
+         (scope === 'Furniture' && calculatedFurnitureCost > 0) || 
+         (scope === 'Both' && (calculatedFitoutCost > 0 || calculatedFurnitureCost > 0))) && (
         <>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-800">Space Allocation Breakdown</h3>
@@ -331,7 +362,7 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
             </div>
           </div>
           
-          {/* Space Allocation Breakdown */}
+          {/* Comprehensive Space Allocation Breakdown */}
           <div className="mt-6">
             <div className="flex justify-between mb-2">
               <h4 className="font-medium text-gray-700">Space Allocation Details</h4>
@@ -341,10 +372,13 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Space Type
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount (USD)
+                      Amount ({currency})
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Percentage
@@ -352,32 +386,124 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {/* Display space allocation breakdown */}
-                  {chartData.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {item.name}
+                  {/* Fitout Allocation Section */}
+                  {(scope === 'Fitout' || scope === 'Both') && calculatedFitoutCost > 0 && (
+                    <>
+                      {/* Section Header for Fitout */}
+                      <tr className="bg-gray-100">
+                        <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-700">
+                          FITOUT ALLOCATION
+                        </td>
+                      </tr>
+                      
+                      {/* Fitout Space Allocation Rows */}
+                      {chartData.map((item, index) => (
+                        <tr key={`fitout-${index}`} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
+                            Fitout
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {item.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                            {formatCurrency(item.value, currency)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                            {item.percentage.toFixed(1)}%
+                          </td>
+                        </tr>
+                      ))}
+                      
+                      {/* Fitout Subtotal */}
+                      <tr className="bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-500">
+                          Subtotal
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                          TOTAL FITOUT COST
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
+                          {formatCurrency(calculatedFitoutCost, currency)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
+                          {scope === 'Both' ? ((calculatedFitoutCost / totalCost) * 100).toFixed(1) + '%' : '100%'}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+                  
+                  {/* Furniture Allocation Section */}
+                  {(scope === 'Furniture' || scope === 'Both') && calculatedFurnitureCost > 0 && (
+                    <>
+                      {/* Section Header for Furniture */}
+                      <tr className="bg-gray-100">
+                        <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-700">
+                          FURNITURE ALLOCATION
+                        </td>
+                      </tr>
+                      
+                      {/* Furniture Space Allocation Rows */}
+                      {(() => {
+                        // Create furniture-specific chart data if we're in furniture-only scope
+                        // Otherwise, reuse the same distribution as fitout
+                        const furnitureChartData = scope === 'Furniture' 
+                          ? chartData // Already using furniture as the basis in furniture-only scope
+                          : chartData.map(item => ({
+                              name: item.name,
+                              percentage: item.percentage,
+                              value: (item.percentage / 100) * calculatedFurnitureCost
+                            }));
+                            
+                        return furnitureChartData.map((item, index) => (
+                          <tr key={`furniture-${index}`} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
+                              Furniture
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {item.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                              {formatCurrency(item.value, currency)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                              {item.percentage.toFixed(1)}%
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                      
+                      {/* Furniture Subtotal */}
+                      <tr className="bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-500">
+                          Subtotal
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                          TOTAL FURNITURE COST
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
+                          {formatCurrency(calculatedFurnitureCost, currency)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
+                          {scope === 'Both' ? ((calculatedFurnitureCost / totalCost) * 100).toFixed(1) + '%' : '100%'}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+                  
+                  {/* Grand Total - Only show for scope="Both" */}
+                  {scope === 'Both' && (
+                    <tr className="bg-primary bg-opacity-10 border-t-2 border-primary">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" colSpan={2}>
+                        TOTAL PROJECT COST
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
-                        {formatCurrency(item.value, currency)}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
+                        {formatCurrency(totalCost, currency)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                        {item.percentage.toFixed(1)}%
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
+                        100%
                       </td>
                     </tr>
-                  ))}
-                  {/* Total row for space allocation */}
-                  <tr className="bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                      TOTAL FITOUT COST
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono">
-                      {formatCurrency(calculatedFitoutCost, currency)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-right">
-                      100%
-                    </td>
-                  </tr>
+                  )}
                 </tbody>
               </table>
             </div>
