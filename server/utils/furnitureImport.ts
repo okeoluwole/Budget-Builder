@@ -84,20 +84,21 @@ export async function importFurnitureCostsFromExcel(filePath: string): Promise<v
       console.log(`Row ${i} from furniture data:`, activitySqmJson[i]);
     }
     
-    // Find benchmark cities to calculate location factors
+    // Find benchmark cities to calculate location factors based on new column structure
     const newyorkRow = activitySqmJson.find((row: any) => 
-      row['COUNTRY'] === 'United States' && row['CITY'] === 'New York'
+      row['__EMPTY'] === 'United States' && row['__EMPTY_1'] === 'New York'
     );
     const singaporeRow = activitySqmJson.find((row: any) => 
-      row['COUNTRY'] === 'Singapore' && row['CITY'] === 'Singapore'
+      row['__EMPTY'] === 'Singapore' && row['__EMPTY_1'] === 'Singapore'
     );
     const londonRow = activitySqmJson.find((row: any) => 
-      row['COUNTRY'] === 'United Kingdom' && row['CITY'] === 'London'
+      row['__EMPTY'] === 'United Kingdom' && row['__EMPTY_1'] === 'London'
     );
     
-    const newyorkMedium = newyorkRow?.['MEDIUM'] || 0;
-    const singaporeMedium = singaporeRow?.['MEDIUM'] || 0;
-    const londonMedium = londonRow?.['MEDIUM'] || 0;
+    // Get medium values from the appropriate column (based on examination of the data)
+    const newyorkMedium = newyorkRow?.['__EMPTY_3'] || 0;
+    const singaporeMedium = singaporeRow?.['__EMPTY_3'] || 0;
+    const londonMedium = londonRow?.['__EMPTY_3'] || 0;
     
     if (newyorkMedium > 0) {
       console.log('Found New York benchmark:', newyorkMedium);
@@ -115,14 +116,15 @@ export async function importFurnitureCostsFromExcel(filePath: string): Promise<v
     
     // Process each row in the Activity SQM sheet as it has all the required city data
     for (const activitySqmRow of activitySqmJson) {
-      // Skip headers or empty rows
-      if (!activitySqmRow['COUNTRY'] || !activitySqmRow['CITY']) {
+      // Skip headers or empty rows (first 3 rows based on observed structure)
+      if (!activitySqmRow['__EMPTY'] || !activitySqmRow['__EMPTY_1']) {
         continue;
       }
       
-      const country = String(activitySqmRow['COUNTRY']);
-      const city = String(activitySqmRow['CITY']);
-      const region = String(activitySqmRow['REGION']);
+      // Map the columns correctly based on observed structure
+      const country = String(activitySqmRow['__EMPTY']);
+      const city = String(activitySqmRow['__EMPTY_1']);
+      const region = String(activitySqmRow['__EMPTY_2']);
       
       // Find matching rows in other sheets
       const activitySqftRow = findMatchingRow(activitySqftJson, country, city);
@@ -133,7 +135,7 @@ export async function importFurnitureCostsFromExcel(filePath: string): Promise<v
       
       // Set location factors based on region & the benchmark cities
       // Calculate location factors based on the medium cost relative to benchmark cities
-      const cityMedium = Number(activitySqmRow['MEDIUM'] || 0);
+      const cityMedium = Number(activitySqmRow['__EMPTY_3'] || 0);
       
       // Default location factors
       let locationFactorEMEA = 1.0;
@@ -191,28 +193,28 @@ export async function importFurnitureCostsFromExcel(filePath: string): Promise<v
           region,
           
           // Activity costs from Activity SQM/SQFT sheets
-          activityLowSqm: convertNumberField(activitySqmRow['LOW']),
-          activityMediumSqm: convertNumberField(activitySqmRow['MEDIUM']),
-          activityHighSqm: convertNumberField(activitySqmRow['HIGH']),
-          activityLowSqft: convertNumberField(activitySqftRow['LOW']),
-          activityMediumSqft: convertNumberField(activitySqftRow['MEDIUM']),
-          activityHighSqft: convertNumberField(activitySqftRow['HIGH']),
+          activityLowSqm: convertNumberField(activitySqmRow['ACTIVITY SPACE']),
+          activityMediumSqm: convertNumberField(activitySqmRow['__EMPTY_3']),
+          activityHighSqm: convertNumberField(activitySqmRow['__EMPTY_4']),
+          activityLowSqft: convertNumberField(activitySqftRow['ACTIVITY SPACE']),
+          activityMediumSqft: convertNumberField(activitySqftRow['__EMPTY_3']),
+          activityHighSqft: convertNumberField(activitySqftRow['__EMPTY_4']),
           
           // Team costs from Team SQM/SQFT sheets
-          teamLowSqm: convertNumberField(teamSqmRow['LOW']),
-          teamMediumSqm: convertNumberField(teamSqmRow['MEDIUM']),
-          teamHighSqm: convertNumberField(teamSqmRow['HIGH']),
-          teamLowSqft: convertNumberField(teamSqftRow['LOW']),
-          teamMediumSqft: convertNumberField(teamSqftRow['MEDIUM']),
-          teamHighSqft: convertNumberField(teamSqftRow['HIGH']),
+          teamLowSqm: convertNumberField(teamSqmRow?.['TEAM SPACE'] || 0),
+          teamMediumSqm: convertNumberField(teamSqmRow?.['__EMPTY_3'] || 0),
+          teamHighSqm: convertNumberField(teamSqmRow?.['__EMPTY_4'] || 0),
+          teamLowSqft: convertNumberField(teamSqftRow?.['TEAM SPACE'] || 0),
+          teamMediumSqft: convertNumberField(teamSqftRow?.['__EMPTY_3'] || 0),
+          teamHighSqft: convertNumberField(teamSqftRow?.['__EMPTY_4'] || 0),
           
           // Event costs from Event SQM/SQFT sheets
-          eventLowSqm: convertNumberField(eventSqmRow['LOW']),
-          eventMediumSqm: convertNumberField(eventSqmRow['MEDIUM']),
-          eventHighSqm: convertNumberField(eventSqmRow['HIGH']),
-          eventLowSqft: convertNumberField(eventSqftRow['LOW']),
-          eventMediumSqft: convertNumberField(eventSqftRow['MEDIUM']),
-          eventHighSqft: convertNumberField(eventSqftRow['HIGH']),
+          eventLowSqm: convertNumberField(eventSqmRow?.['EVENT SPACE'] || 0),
+          eventMediumSqm: convertNumberField(eventSqmRow?.['__EMPTY_3'] || 0),
+          eventHighSqm: convertNumberField(eventSqmRow?.['__EMPTY_4'] || 0),
+          eventLowSqft: convertNumberField(eventSqftRow?.['EVENT SPACE'] || 0),
+          eventMediumSqft: convertNumberField(eventSqftRow?.['__EMPTY_3'] || 0),
+          eventHighSqft: convertNumberField(eventSqftRow?.['__EMPTY_4'] || 0),
           
           // Location factors
           locationFactorEMEA: locationFactorEMEA,
@@ -280,16 +282,21 @@ export async function validateFurnitureDataset(filePath: string = 'attached_asse
       return false;
     }
     
-    // Check if the first few rows have expected columns
-    const firstDataRow = activitySqmJson.find((row: any) => row['COUNTRY'] && row['CITY'] && row['REGION']);
+    // Check if the first few rows have expected columns - based on the new structure
+    const firstDataRow = activitySqmJson.find((row: any) => 
+      row['__EMPTY'] && row['__EMPTY_1'] && row['__EMPTY_2'] && 
+      row['ACTIVITY SPACE'] && row['__EMPTY_3'] && row['__EMPTY_4']
+    );
     if (!firstDataRow) {
-      console.error('Could not find a valid data row with COUNTRY, CITY, and REGION');
+      console.error('Could not find a valid data row with the expected column structure');
       return false;
     }
     
-    // Check for cost columns
-    if (!('LOW' in firstDataRow) || !('MEDIUM' in firstDataRow) || !('HIGH' in firstDataRow)) {
-      console.error('Missing cost columns (LOW, MEDIUM, HIGH)');
+    // Ensure we have the expected columns in the correct position
+    if (!('ACTIVITY SPACE' in firstDataRow) || 
+        !('__EMPTY_3' in firstDataRow) || 
+        !('__EMPTY_4' in firstDataRow)) {
+      console.error('Missing expected cost columns');
       return false;
     }
     
