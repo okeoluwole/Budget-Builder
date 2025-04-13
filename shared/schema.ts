@@ -46,10 +46,13 @@ export const budgets = pgTable("budgets", {
   projectId: integer("project_id").notNull(),
   version: integer("version").notNull().default(1),
   name: text("name").notNull(),
+  scope: text("scope").default("Fitout").notNull(), // Fitout, Furniture, Both
   specification: text("specification").notNull(), // Bronze, Silver, Gold
   layout: text("layout").notNull(), // Activity, Team, Event
   spaceAllocation: json("space_allocation").notNull(),
   totalCost: real("total_cost"),
+  fitoutCost: real("fitout_cost"),
+  furnitureCost: real("furniture_cost"),
   localCurrencyCode: text("local_currency_code").default("USD"),
   localCurrencyRate: real("local_currency_rate"),
   localCurrencyTotalCost: real("local_currency_total_cost"),

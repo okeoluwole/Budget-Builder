@@ -16,10 +16,11 @@ interface BudgetState {
 // Define the action types
 type BudgetAction =
   | { type: 'UPDATE_PROJECT'; payload: Partial<InsertProject> }
+  | { type: 'UPDATE_SCOPE'; payload: string }
   | { type: 'UPDATE_SPECIFICATION'; payload: string }
   | { type: 'UPDATE_LAYOUT'; payload: string }
   | { type: 'UPDATE_SPACE_ALLOCATION'; payload: SpaceAllocation }
-  | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; costsBreakdown: any } }
+  | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; fitoutCost?: number; furnitureCost?: number; costsBreakdown: any } }
   | { type: 'SET_SAVED_PROJECT'; payload: Project }
   | { type: 'SET_SAVED_BUDGET'; payload: Budget }
   | { type: 'CLEAR_STATE' }
