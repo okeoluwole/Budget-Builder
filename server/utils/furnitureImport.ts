@@ -3,13 +3,17 @@ import { furnitureCosts } from '@shared/schema';
 import { parseExcelFile, sheetToJson } from './excelReader';
 import * as fs from 'fs';
 import path from 'path';
-import { eq, sql, count as sqlCount } from 'drizzle-orm';
+import { eq, sql, count } from 'drizzle-orm';
 
 /**
  * Find a matching row in another sheet based on country and city
+ * @param data Array of row objects from an Excel sheet
+ * @param country Country name to match
+ * @param city City name to match
+ * @returns Matching row or empty object if not found
  */
-function findMatchingRow(data: any[], country: string, city: string) {
-  return data.find((row) => 
+function findMatchingRow(data: any[], country: string, city: string): any {
+  return data.find((row: any) => 
     row['COUNTRY'] === country && 
     row['CITY'] === city
   ) || {};
@@ -17,6 +21,8 @@ function findMatchingRow(data: any[], country: string, city: string) {
 
 /**
  * Convert various number formats to a numeric value
+ * @param value Value to convert to a number
+ * @returns Number or null if conversion fails
  */
 function convertNumberField(value: any): number | null {
   if (value === undefined || value === null || value === '') {
@@ -48,7 +54,7 @@ export async function importFurnitureCostsFromExcel(filePath: string): Promise<v
     console.log(`Reading Excel file: ${filePath}`);
     
     // Read the Excel file
-    const xlsx = await excelReader.parseExcelFile(filePath);
+    const xlsx = await parseExcelFile(filePath);
     
     // Get all sheet names
     console.log('Available sheets:', xlsx.SheetNames);
@@ -62,24 +68,24 @@ export async function importFurnitureCostsFromExcel(filePath: string): Promise<v
     const eventSqftData = xlsx.Sheets['Table 3_Event BYOB SqFt'];
     
     // Convert sheet data to JSON
-    const activitySqmJson = excelReader.sheetToJson(activitySqmData);
-    const activitySqftJson = excelReader.sheetToJson(activitySqftData);
-    const teamSqmJson = excelReader.sheetToJson(teamSqmData);
-    const teamSqftJson = excelReader.sheetToJson(teamSqftData);
-    const eventSqmJson = excelReader.sheetToJson(eventSqmData);
-    const eventSqftJson = excelReader.sheetToJson(eventSqftData);
+    const activitySqmJson = sheetToJson(activitySqmData);
+    const activitySqftJson = sheetToJson(activitySqftData);
+    const teamSqmJson = sheetToJson(teamSqmData);
+    const teamSqftJson = sheetToJson(teamSqftData);
+    const eventSqmJson = sheetToJson(eventSqmData);
+    const eventSqftJson = sheetToJson(eventSqftData);
     
     // Log the first row to understand the structure
     console.log('First row from Activity SQM furniture sheet:', activitySqmJson[0]);
     
     // Find benchmark cities to calculate location factors
-    const newyorkRow = activitySqmJson.find(row => 
+    const newyorkRow = activitySqmJson.find((row: any) => 
       row['COUNTRY'] === 'United States' && row['CITY'] === 'New York'
     );
-    const singaporeRow = activitySqmJson.find(row => 
+    const singaporeRow = activitySqmJson.find((row: any) => 
       row['COUNTRY'] === 'Singapore' && row['CITY'] === 'Singapore'
     );
-    const londonRow = activitySqmJson.find(row => 
+    const londonRow = activitySqmJson.find((row: any) => 
       row['COUNTRY'] === 'United Kingdom' && row['CITY'] === 'London'
     );
     
@@ -171,46 +177,54 @@ export async function importFurnitureCostsFromExcel(filePath: string): Promise<v
         console.log(`Location factors: EMEA=${locationFactorEMEA.toFixed(2)}, AMERICA=${locationFactorAMERICA.toFixed(2)}, APAC=${locationFactorAPAC.toFixed(2)}`);
       }
       
-      // Create and insert the record
-      await db.insert(furnitureCosts).values({
-        country,
-        city,
-        region,
-        
-        // Activity costs from Activity SQM/SQFT sheets
-        activityLowSqm: convertNumberField(activitySqmRow['LOW']),
-        activityMediumSqm: convertNumberField(activitySqmRow['MEDIUM']),
-        activityHighSqm: convertNumberField(activitySqmRow['HIGH']),
-        activityLowSqft: convertNumberField(activitySqftRow['LOW']),
-        activityMediumSqft: convertNumberField(activitySqftRow['MEDIUM']),
-        activityHighSqft: convertNumberField(activitySqftRow['HIGH']),
-        
-        // Team costs from Team SQM/SQFT sheets
-        teamLowSqm: convertNumberField(teamSqmRow['LOW']),
-        teamMediumSqm: convertNumberField(teamSqmRow['MEDIUM']),
-        teamHighSqm: convertNumberField(teamSqmRow['HIGH']),
-        teamLowSqft: convertNumberField(teamSqftRow['LOW']),
-        teamMediumSqft: convertNumberField(teamSqftRow['MEDIUM']),
-        teamHighSqft: convertNumberField(teamSqftRow['HIGH']),
-        
-        // Event costs from Event SQM/SQFT sheets
-        eventLowSqm: convertNumberField(eventSqmRow['LOW']),
-        eventMediumSqm: convertNumberField(eventSqmRow['MEDIUM']),
-        eventHighSqm: convertNumberField(eventSqmRow['HIGH']),
-        eventLowSqft: convertNumberField(eventSqftRow['LOW']),
-        eventMediumSqft: convertNumberField(eventSqftRow['MEDIUM']),
-        eventHighSqft: convertNumberField(eventSqftRow['HIGH']),
-        
-        // Location factors
-        locationFactorEMEA: locationFactorEMEA,
-        locationFactorAMERICA: locationFactorAMERICA,
-        locationFactorAPAC: locationFactorAPAC
-      });
+      try {
+        // Create and insert the record
+        await db.insert(furnitureCosts).values({
+          country,
+          city,
+          region,
+          
+          // Activity costs from Activity SQM/SQFT sheets
+          activityLowSqm: convertNumberField(activitySqmRow['LOW']),
+          activityMediumSqm: convertNumberField(activitySqmRow['MEDIUM']),
+          activityHighSqm: convertNumberField(activitySqmRow['HIGH']),
+          activityLowSqft: convertNumberField(activitySqftRow['LOW']),
+          activityMediumSqft: convertNumberField(activitySqftRow['MEDIUM']),
+          activityHighSqft: convertNumberField(activitySqftRow['HIGH']),
+          
+          // Team costs from Team SQM/SQFT sheets
+          teamLowSqm: convertNumberField(teamSqmRow['LOW']),
+          teamMediumSqm: convertNumberField(teamSqmRow['MEDIUM']),
+          teamHighSqm: convertNumberField(teamSqmRow['HIGH']),
+          teamLowSqft: convertNumberField(teamSqftRow['LOW']),
+          teamMediumSqft: convertNumberField(teamSqftRow['MEDIUM']),
+          teamHighSqft: convertNumberField(teamSqftRow['HIGH']),
+          
+          // Event costs from Event SQM/SQFT sheets
+          eventLowSqm: convertNumberField(eventSqmRow['LOW']),
+          eventMediumSqm: convertNumberField(eventSqmRow['MEDIUM']),
+          eventHighSqm: convertNumberField(eventSqmRow['HIGH']),
+          eventLowSqft: convertNumberField(eventSqftRow['LOW']),
+          eventMediumSqft: convertNumberField(eventSqftRow['MEDIUM']),
+          eventHighSqft: convertNumberField(eventSqftRow['HIGH']),
+          
+          // Location factors
+          locationFactorEMEA: locationFactorEMEA,
+          locationFactorAMERICA: locationFactorAMERICA,
+          locationFactorAPAC: locationFactorAPAC
+        });
+      } catch (error) {
+        console.error(`Error inserting furniture cost for ${country}/${city}:`, error);
+        // Continue with other records even if one fails
+      }
     }
     
     // Count the number of records inserted
-    const count = await db.select({ count: () => db.fn.count() }).from(furnitureCosts);
-    console.log(`Imported ${count[0].count} furniture cost records`);
+    const result = await db.select({ 
+      value: count() 
+    }).from(furnitureCosts);
+    
+    console.log(`Imported ${result[0]?.value || 0} furniture cost records`);
     
   } catch (error) {
     console.error('Error importing furniture costs:', error);
@@ -231,7 +245,7 @@ export async function validateFurnitureDataset(filePath: string = 'attached_asse
     }
     
     // Parse the Excel file
-    const xlsx = await excelReader.parseExcelFile(filePath);
+    const xlsx = await parseExcelFile(filePath);
     
     // Check required sheets
     const requiredSheets = [
@@ -252,7 +266,7 @@ export async function validateFurnitureDataset(filePath: string = 'attached_asse
     
     // Check a sample of data from the first sheet
     const activitySqmData = xlsx.Sheets['Table 1_Activity BYOB Sqm'];
-    const activitySqmJson = excelReader.sheetToJson(activitySqmData);
+    const activitySqmJson = sheetToJson(activitySqmData);
     
     // Ensure we have some data rows
     if (!activitySqmJson || activitySqmJson.length < 5) {
@@ -261,7 +275,7 @@ export async function validateFurnitureDataset(filePath: string = 'attached_asse
     }
     
     // Check if the first few rows have expected columns
-    const firstDataRow = activitySqmJson.find(row => row['COUNTRY'] && row['CITY'] && row['REGION']);
+    const firstDataRow = activitySqmJson.find((row: any) => row['COUNTRY'] && row['CITY'] && row['REGION']);
     if (!firstDataRow) {
       console.error('Could not find a valid data row with COUNTRY, CITY, and REGION');
       return false;
@@ -273,6 +287,7 @@ export async function validateFurnitureDataset(filePath: string = 'attached_asse
       return false;
     }
     
+    console.log('✅ Furniture dataset validation successful');
     return true;
   } catch (error) {
     console.error('Error validating furniture dataset:', error);

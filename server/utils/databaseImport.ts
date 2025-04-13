@@ -6,7 +6,8 @@ import {
   fitoutCosts, insertFitoutCostSchema, InsertFitoutCost,
   specifications, InsertSpecification,
   layoutTemplates, InsertLayoutTemplate,
-  budgetTemplates, InsertBudgetTemplate
+  budgetTemplates, InsertBudgetTemplate,
+  furnitureCosts
 } from '@shared/schema';
 import { importCurrencyRatesFromJson } from './currencyImport';
 
@@ -431,14 +432,30 @@ export async function initializeDatabase(): Promise<void> {
   
   // Import fitout costs from the clean redacted Excel file
   try {
-    const excelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx');
-    if (existsSync(excelPath)) {
-      await importFitoutCostsFromExcel(excelPath);
+    const fitoutExcelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx');
+    if (existsSync(fitoutExcelPath)) {
+      await importFitoutCostsFromExcel(fitoutExcelPath);
     } else {
-      console.log('Fitout costs Excel file not found at path:', excelPath);
+      console.log('Fitout costs Excel file not found at path:', fitoutExcelPath);
     }
   } catch (error) {
     console.error('Error importing fitout costs from Excel during initialization:', error);
+    // Continue with other initialization steps even if this fails
+  }
+  
+  // Import furniture costs from the furniture dataset Excel file
+  try {
+    // Import the furniture import function
+    const { importFurnitureCostsFromExcel } = await import('./furnitureImport');
+    
+    const furnitureExcelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Furniture Only(1).xlsx');
+    if (existsSync(furnitureExcelPath)) {
+      await importFurnitureCostsFromExcel(furnitureExcelPath);
+    } else {
+      console.log('Furniture costs Excel file not found at path:', furnitureExcelPath);
+    }
+  } catch (error) {
+    console.error('Error importing furniture costs from Excel during initialization:', error);
     // Continue with other initialization steps even if this fails
   }
   
