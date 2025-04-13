@@ -30,10 +30,11 @@ type BudgetAction =
 interface BudgetContextType {
   state: BudgetState;
   updateProject: (project: Partial<InsertProject>) => void;
+  updateScope: (scope: string) => void;
   updateSpecification: (specification: string) => void;
   updateLayout: (layout: string) => void;
   updateSpaceAllocation: (spaceAllocation: SpaceAllocation) => void;
-  updateBudgetResults: (totalCost: number, costsBreakdown: any) => void;
+  updateBudgetResults: (totalCost: number, fitoutCost?: number, furnitureCost?: number, costsBreakdown?: any) => void;
   setSavedProject: (project: Project) => void;
   setSavedBudget: (budget: Budget) => void;
   loadBudget: (project: Project, budget: Budget) => void;
@@ -52,6 +53,14 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
         project: {
           ...(state.project || {}),
           ...action.payload
+        }
+      };
+    case 'UPDATE_SCOPE':
+      return {
+        ...state,
+        budget: {
+          ...(state.budget || {}),
+          scope: action.payload
         }
       };
     case 'UPDATE_SPECIFICATION':
@@ -84,6 +93,8 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
         budget: {
           ...(state.budget || {}),
           totalCost: action.payload.totalCost,
+          fitoutCost: action.payload.fitoutCost,
+          furnitureCost: action.payload.furnitureCost,
           costsBreakdown: action.payload.costsBreakdown
         }
       };
@@ -111,10 +122,13 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           projectId: action.payload.budget.projectId,
           version: action.payload.budget.version,
           name: action.payload.budget.name,
+          scope: action.payload.budget.scope || 'Fitout',
           specification: action.payload.budget.specification,
           layout: action.payload.budget.layout,
           spaceAllocation: action.payload.budget.spaceAllocation,
           totalCost: action.payload.budget.totalCost,
+          fitoutCost: action.payload.budget.fitoutCost,
+          furnitureCost: action.payload.budget.furnitureCost,
           costsBreakdown: action.payload.budget.costsBreakdown,
           status: action.payload.budget.status
         },
@@ -138,6 +152,10 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     dispatch({ type: 'UPDATE_PROJECT', payload: project });
   }, []);
 
+  const updateScope = useCallback((scope: string) => {
+    dispatch({ type: 'UPDATE_SCOPE', payload: scope });
+  }, []);
+
   const updateSpecification = useCallback((specification: string) => {
     dispatch({ type: 'UPDATE_SPECIFICATION', payload: specification });
   }, []);
@@ -150,10 +168,10 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     dispatch({ type: 'UPDATE_SPACE_ALLOCATION', payload: spaceAllocation });
   }, []);
 
-  const updateBudgetResults = useCallback((totalCost: number, costsBreakdown: any) => {
+  const updateBudgetResults = useCallback((totalCost: number, fitoutCost?: number, furnitureCost?: number, costsBreakdown?: any) => {
     dispatch({ 
       type: 'UPDATE_BUDGET_RESULTS', 
-      payload: { totalCost, costsBreakdown } 
+      payload: { totalCost, fitoutCost, furnitureCost, costsBreakdown } 
     });
   }, []);
 
@@ -233,6 +251,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     <BudgetContext.Provider value={{ 
       state, 
       updateProject, 
+      updateScope,
       updateSpecification, 
       updateLayout, 
       updateSpaceAllocation, 

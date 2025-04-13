@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useBudget } from '@/contexts/BudgetContext';
 import ProjectSetupStep from './ProjectSetupStep';
+import ScopeSelectionStep from './ScopeSelectionStep';
 import SpecificationStep from './SpecificationStep';
 import LayoutStep from './LayoutStep';
 import SpaceAllocationStep from './SpaceAllocationStep';
