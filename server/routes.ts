@@ -3,12 +3,12 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import fs from "fs";
 import path from "path";
-import { FitoutCostData, SpecificationData, BudgetCategory, Specification } from "@shared/schema";
+import { FitoutCostData, SpecificationData, BudgetCategory, Specification, FurnitureCostData } from "@shared/schema";
 import { importFitoutCostsFromExcel } from "./utils/databaseImport";
 import { parseExcelFile } from "./utils/excelReader";
 import { db } from "./db";
 import { 
-  fitoutCosts, specifications, layoutTemplates, budgetTemplates, currencyRates
+  fitoutCosts, specifications, layoutTemplates, budgetTemplates, currencyRates, furnitureCosts
 } from "@shared/schema";
 import chatRoutes from './routes/chat';
 import { importCurrencyRatesFromExcel, getAllCurrencyRates } from './utils/currencyImport';
@@ -275,6 +275,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error fetching fitout cost data:', error);
       res.status(500).json({ 
         message: 'Failed to fetch fitout cost data',
+        error: error.message
+      });
+    }
+  });
+  
+  // Furniture cost data from database
+  app.get('/api/furniture-costs', async (req, res) => {
+    try {
+      // Get all furniture cost records from the database
+      const records = await db.select().from(furnitureCosts);
+      
+      if (records.length === 0) {
+        return res.status(404).json({ message: 'No furniture cost data found in database' });
+      }
+      
+      // Transform database records to FurnitureCostData format
+      const data: FurnitureCostData[] = records.map(record => ({
+        country: record.country,
+        city: record.city,
+        region: record.region,
+        costs: {
+          sqm: {
+            Activity: {
+              Low: parseFloat(record.activityLowSqm || '0'),
+              Medium: parseFloat(record.activityMediumSqm || '0'),
+              High: parseFloat(record.activityHighSqm || '0')
+            },
+            Team: {
+              Low: parseFloat(record.teamLowSqm || '0'),
+              Medium: parseFloat(record.teamMediumSqm || '0'),
+              High: parseFloat(record.teamHighSqm || '0')
+            },
+            Event: {
+              Low: parseFloat(record.eventLowSqm || '0'),
+              Medium: parseFloat(record.eventMediumSqm || '0'),
+              High: parseFloat(record.eventHighSqm || '0')
+            }
+          },
+          sqft: {
+            Activity: {
+              Low: parseFloat(record.activityLowSqft || '0'),
+              Medium: parseFloat(record.activityMediumSqft || '0'),
+              High: parseFloat(record.activityHighSqft || '0')
+            },
+            Team: {
+              Low: parseFloat(record.teamLowSqft || '0'),
+              Medium: parseFloat(record.teamMediumSqft || '0'),
+              High: parseFloat(record.teamHighSqft || '0')
+            },
+            Event: {
+              Low: parseFloat(record.eventLowSqft || '0'),
+              Medium: parseFloat(record.eventMediumSqft || '0'),
+              High: parseFloat(record.eventHighSqft || '0')
+            }
+          }
+        },
+        locationFactors: {
+          EMEA: parseFloat(record.locationFactorEMEA || '1.0'),
+          AMERICA: parseFloat(record.locationFactorAMERICA || '1.0'),
+          APAC: parseFloat(record.locationFactorAPAC || '1.0')
+        }
+      }));
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error fetching furniture cost data:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch furniture cost data',
         error: error.message
       });
     }
