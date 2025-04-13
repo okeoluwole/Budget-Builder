@@ -1,12 +1,124 @@
 import fs from 'fs';
 import path from 'path';
-import { parseExcelFile } from './excelReader';
+import { parseExcelFile, sheetToJson } from './excelReader';
 
 interface DatasetValidationResult {
   isValid: boolean;
   datasetName: string;
   issues: string[];
   timestamp: Date;
+}
+
+/**
+ * Validates that the correct furniture dataset file is being used
+ * @param datasetPath The path to the furniture dataset file
+ * @returns Validation result object
+ */
+export async function validateFurnitureDataset(datasetPath: string = 'attached_assets/CBRE Fit Out Guide Cost Data_Furniture Only(1).xlsx'): Promise<DatasetValidationResult> {
+  const result: DatasetValidationResult = {
+    isValid: true,
+    datasetName: path.basename(datasetPath),
+    issues: [],
+    timestamp: new Date()
+  };
+  
+  try {
+    // Check if file exists
+    if (!fs.existsSync(datasetPath)) {
+      result.isValid = false;
+      result.issues.push(`Furniture dataset file not found: ${datasetPath}`);
+      return result;
+    }
+    
+    // Check filename pattern
+    const filename = path.basename(datasetPath);
+    if (!filename.includes('Furniture')) {
+      result.isValid = false;
+      result.issues.push(`Furniture dataset filename should contain 'Furniture': ${filename}`);
+    }
+    
+    // Parse Excel file
+    const xlsx = await parseExcelFile(datasetPath);
+    
+    // Check required sheets
+    const requiredSheets = [
+      'Table 1_Activity BYOB Sqm',
+      'Table 1_Activity BYOB SqFt',
+      'Table 2_Team BYOB Sqm',
+      'Table 2_Team BYOB SqFt',
+      'Table 3_Event BYOB Sqm',
+      'Table 3_Event BYOB SqFt'
+    ];
+    
+    // Show sheets for debugging
+    console.log(`Available sheets in furniture dataset:`, xlsx.SheetNames);
+    
+    // Check all required sheets exist
+    for (const sheet of requiredSheets) {
+      if (!xlsx.SheetNames.includes(sheet)) {
+        result.isValid = false;
+        result.issues.push(`Required sheet missing in furniture dataset: ${sheet}`);
+      }
+    }
+    
+    // Check a sample of each sheet
+    for (const sheet of xlsx.SheetNames) {
+      if (requiredSheets.includes(sheet)) {
+        const sheetData = xlsx.Sheets[sheet];
+        const jsonData = sheetToJson(sheetData);
+        
+        // Log sample data
+        console.log(`First row of sheet ${sheet}:`, jsonData[0]);
+        
+        // Check for expected identifiers in first row
+        const firstRow = jsonData[0];
+        if (sheet.includes('Table 1_Activity') && !firstRow['ACTIVITY SPACE']) {
+          result.isValid = false;
+          result.issues.push(`Missing 'ACTIVITY SPACE' header in ${sheet}`);
+        } else if (sheet.includes('Table 2_Team') && !firstRow['TEAM SPACE']) {
+          result.isValid = false;
+          result.issues.push(`Missing 'TEAM SPACE' header in ${sheet}`);
+        } else if (sheet.includes('Table 3_Event') && !firstRow['EVENT SPACE']) {
+          result.isValid = false;
+          result.issues.push(`Missing 'EVENT SPACE' header in ${sheet}`);
+        }
+        
+        // Check if the headers indicate furniture data
+        const firstCell = Object.values(firstRow)[0];
+        if (typeof firstCell === 'string' && !firstCell.includes('FURNITURE')) {
+          result.isValid = false;
+          result.issues.push(`Sheet ${sheet} appears to be for fitout, not furniture data`);
+        }
+      }
+    }
+    
+    // Check for at least some data rows in a couple of sheets
+    const activitySqmData = sheetToJson(xlsx.Sheets['Table 1_Activity BYOB Sqm']);
+    if (activitySqmData.length < 5) {
+      result.isValid = false;
+      result.issues.push('Insufficient data rows in Activity SQM sheet');
+    }
+    
+    const teamSqmData = sheetToJson(xlsx.Sheets['Table 2_Team BYOB Sqm']);
+    if (teamSqmData.length < 5) {
+      result.isValid = false;
+      result.issues.push('Insufficient data rows in Team SQM sheet');
+    }
+    
+    if (result.isValid) {
+      console.log(`✅ Furniture dataset validation successful: ${result.datasetName}`);
+    } else {
+      console.log(`❌ Furniture dataset validation failed: ${result.datasetName}`);
+      result.issues.forEach(issue => console.log(`- ${issue}`));
+    }
+    
+    return result;
+  } catch (error) {
+    result.isValid = false;
+    result.issues.push(`Error validating furniture dataset: ${error.message}`);
+    console.error('Error validating furniture dataset:', error);
+    return result;
+  }
 }
 
 /**
