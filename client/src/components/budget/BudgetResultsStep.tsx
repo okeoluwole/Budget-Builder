@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useToast } from '@/hooks/use-toast';
-import BudgetSummary from './BudgetSummary';
 import { calculateBudget } from '@/utils/budgetCalculator';
 import { formatCurrency } from '@/utils/formatters';
 import { apiRequest } from '@/lib/queryClient';
@@ -468,31 +467,8 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                 </div>
               </div>
               
-              <BudgetSummary 
-                budgetBreakdown={{
-                  ...budgetBreakdown,
-                  projectName: state.project?.name,
-                  location: state.project?.country && state.project?.city 
-                    ? `${state.project.city}, ${state.project.country}` 
-                    : undefined,
-                  totalArea: state.project?.totalArea,
-                  areaUnit: state.project?.areaUnit,
-                  inflationRate: state.project?.inflationRate,
-                  layoutType: state.budget?.layout,
-                  spaceTypes: budgetBreakdown?.spaceTypesDescription
-                }}
-                totalCost={totalCost} 
-                currency={state.project?.currency || 'USD'}
-                scope={state.budget?.scope}
-                fitoutCost={state.budget?.fitoutCost}
-                furnitureCost={state.budget?.furnitureCost}
-                specification={state.budget?.specification}
-                fitoutSpecification={state.budget?.fitoutSpecification}
-                furnitureSpecification={state.budget?.furnitureSpecification}
-              />
-              
               <div className="mt-8 border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-4">Budget Summary</h3>
+                <h3 className="text-lg font-medium text-gray-800 mb-4">Budget Details</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="bg-white p-4 border rounded-lg">
@@ -542,33 +518,69 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           <td className="py-1 font-medium">{state.budget?.layout} Based</td>
                         </tr>
                         <tr>
+                          <td className="py-1 text-gray-500">Budget Scope:</td>
+                          <td className="py-1 font-medium">
+                            {state.budget?.scope === 'Both' ? 'Complete Package (Fitout & Furniture)' :
+                             state.budget?.scope === 'Fitout' ? 'Fitout Only' : 
+                             state.budget?.scope === 'Furniture' ? 'Furniture Only' : '-'}
+                          </td>
+                        </tr>
+                        <tr>
                           <td className="py-1 text-gray-500">Space Types:</td>
                           <td className="py-1 font-medium">
                             {state.budget?.spaceAllocation && 
                               Object.keys(state.budget.spaceAllocation).length} types
                           </td>
                         </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Base Unit Cost:</td>
-                          <td className="py-1 font-medium">
-                            {rawUnitCost && formatCurrency(rawUnitCost, 'USD')}/{areaUnit}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Adjusted Unit Cost:</td>
-                          <td className="py-1 font-medium">
-                            {adjustedUnitCost && formatCurrency(adjustedUnitCost, 'USD')}/{areaUnit}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Final Rate:</td>
-                          <td className="py-1 font-medium">
-                            {adjustedUnitCost ? 
-                              formatCurrency(adjustedUnitCost, 'USD') : 
-                              formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')
-                            }/{state.project?.areaUnit}
-                          </td>
-                        </tr>
+                        
+                        {/* Show appropriate rate information based on scope */}
+                        {state.budget?.scope === 'Both' ? (
+                          <>
+                            <tr>
+                              <td className="py-1 text-gray-500">Fitout Base Rate:</td>
+                              <td className="py-1 font-medium">
+                                {state.budget?.fitoutCost && state.project?.totalArea ? 
+                                  formatCurrency(state.budget.fitoutCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-1 text-gray-500">Furniture Base Rate:</td>
+                              <td className="py-1 font-medium">
+                                {state.budget?.furnitureCost && state.project?.totalArea ? 
+                                  formatCurrency(state.budget.furnitureCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-1 text-gray-500">Combined Rate:</td>
+                              <td className="py-1 font-medium">
+                                {totalCost && state.project?.totalArea ?
+                                  formatCurrency(totalCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
+                                <span 
+                                  className="ml-1 text-xs text-gray-500 cursor-help" 
+                                  title="This rate is a weighted average based on the proportion of fitout vs. furniture costs in the total budget"
+                                >
+                                  ⓘ
+                                </span>
+                              </td>
+                            </tr>
+                          </>
+                        ) : (
+                          <>
+                            <tr>
+                              <td className="py-1 text-gray-500">Base Rate:</td>
+                              <td className="py-1 font-medium">
+                                {rawUnitCost && formatCurrency(rawUnitCost, 'USD')}/{areaUnit}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-1 text-gray-500">Final Rate:</td>
+                              <td className="py-1 font-medium">
+                                {totalCost && state.project?.totalArea ? 
+                                  formatCurrency(totalCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
+                              </td>
+                            </tr>
+                          </>
+                        )}
                       </tbody>
                     </table>
                   </div>
