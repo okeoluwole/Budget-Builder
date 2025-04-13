@@ -1,134 +1,158 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useBudget } from '@/contexts/BudgetContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { BudgetScope } from '@shared/schema';
-import { CheckIcon } from 'lucide-react';
 
 interface ScopeSelectionStepProps {
   onNext: () => void;
-  onBack: () => void;
-  onSaveAsDraft?: () => void;
+  onSaveAsDraft: () => Promise<void>;
 }
 
-const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack, onSaveAsDraft }) => {
+const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onSaveAsDraft }) => {
   const { state, updateScope } = useBudget();
-  const selectedScope = state.budget?.scope || 'Fitout';
+  const { toast } = useToast();
+  const [selectedScope, setSelectedScope] = useState<BudgetScope>(state.budget?.scope as BudgetScope || 'Fitout');
 
-  const handleScopeSelect = (scope: BudgetScope) => {
-    updateScope(scope);
+  const handleSelectScope = (scope: BudgetScope) => {
+    setSelectedScope(scope);
   };
 
+  const handleNext = () => {
+    if (!selectedScope) {
+      toast({
+        title: "Selection required",
+        description: "Please select a budget scope before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateScope(selectedScope);
+    onNext();
+  };
+
+  const scopeOptions = [
+    {
+      value: 'Fitout',
+      title: 'Fitout Only',
+      description: 'Construction elements and permanently installed components only.',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+        </svg>
+      ),
+      benefits: [
+        'Focus exclusively on construction elements',
+        'Includes partitions, walls, floors and ceilings',
+        'Excludes furniture, fixtures and equipment',
+        'Ideal for shell-and-core projects'
+      ]
+    },
+    {
+      value: 'Furniture',
+      title: 'Furniture Only',
+      description: 'Standalone furniture, fixtures and equipment only.',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+        </svg>
+      ),
+      benefits: [
+        'Focus exclusively on movable items',
+        'Includes desks, chairs and workstations',
+        'Includes soft seating and conference room furniture',
+        'Ideal for tenant improvement projects'
+      ]
+    },
+    {
+      value: 'Both',
+      title: 'Complete Package',
+      description: 'Comprehensive budget including both fitout construction and furniture components.',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V9.236a1 1 0 00-1.447-.894l-4 2a1 1 0 00-.553.894V17zM15.211 6.276a1 1 0 000-1.788l-4.764-2.382a1 1 0 00-.894 0L4.789 4.488a1 1 0 000 1.788l4.764 2.382a1 1 0 00.894 0l4.764-2.382zM4.447 8.342A1 1 0 003 9.236V15a1 1 0 00.553.894l4 2A1 1 0 009 17v-5.764a1 1 0 00-.553-.894l-4-2z" />
+        </svg>
+      ),
+      benefits: [
+        'Comprehensive total project cost',
+        'Includes both construction and movable items',
+        'Separate specifications for each component',
+        'Most suitable for full office refresh projects'
+      ]
+    }
+  ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Select Budget Scope</h2>
-        <p className="text-gray-600">Choose what to include in your budget estimate</p>
-      </div>
-
+    <div className="p-6">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Budget Scope Selection</h2>
+      <p className="text-gray-600 mb-6">
+        Select the scope of your budget. This will determine which components are included in your estimate.
+      </p>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <ScopeCard 
-          title="Fit-out Only" 
-          description="Construction, finishes, and built-in elements only" 
-          selected={selectedScope === 'Fitout'} 
-          onClick={() => handleScopeSelect('Fitout')}
-          features={[
-            'Construction works',
-            'Walls and partitions',
-            'Flooring and ceilings',
-            'Electrical and MEP',
-            'Fixed joinery'
-          ]}
-        />
-        
-        <ScopeCard 
-          title="Furniture Only" 
-          description="Loose furniture and movable items only" 
-          selected={selectedScope === 'Furniture'} 
-          onClick={() => handleScopeSelect('Furniture')}
-          features={[
-            'Desks and chairs',
-            'Storage units',
-            'Meeting room furniture',
-            'Breakout furniture',
-            'Reception furniture'
-          ]}
-        />
-        
-        <ScopeCard 
-          title="Complete Package" 
-          description="Combined fit-out and furniture budget" 
-          selected={selectedScope === 'Both'} 
-          onClick={() => handleScopeSelect('Both')}
-          features={[
-            'All fit-out elements',
-            'All furniture items',
-            'Coordinated design',
-            'Complete space planning',
-            'Comprehensive budget view'
-          ]}
-        />
+        {scopeOptions.map((option) => (
+          <div
+            key={option.value}
+            className={`border rounded-lg overflow-hidden hover:shadow-md cursor-pointer transition-shadow ${
+              selectedScope === option.value ? 'border-primary shadow-sm' : ''
+            }`}
+            onClick={() => handleSelectScope(option.value as BudgetScope)}
+          >
+            <div className={`p-4 border-b ${
+              selectedScope === option.value ? 'bg-blue-50 border-primary' : 'bg-gray-50'
+            }`}>
+              <div className="flex items-center">
+                <div className="mr-3">
+                  {option.icon}
+                </div>
+                <div>
+                  <h3 className={`text-lg font-semibold ${
+                    selectedScope === option.value ? 'text-primary' : 'text-gray-800'
+                  }`}>
+                    {option.title}
+                  </h3>
+                  <p className="text-sm text-gray-600">{option.description}</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">Includes:</p>
+              <ul className="space-y-2 text-sm">
+                {option.benefits.map((benefit, idx) => (
+                  <li key={idx} className="flex items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))}
       </div>
-
-      <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
-        <div className="space-x-2">
-          {onSaveAsDraft && (
-            <Button variant="outline" onClick={onSaveAsDraft}>
-              Save as Draft
-            </Button>
-          )}
-          <Button onClick={onNext}>
-            Next Step
-          </Button>
-        </div>
+      
+      <div className="mt-8 flex justify-end">
+        <button
+          type="button"
+          className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+          onClick={onSaveAsDraft}
+        >
+          Save as Draft
+        </button>
+        
+        <button
+          type="button"
+          className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          onClick={handleNext}
+        >
+          Next: Project Setup
+          <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </div>
-  );
-};
-
-interface ScopeCardProps {
-  title: string;
-  description: string;
-  features: string[];
-  selected: boolean;
-  onClick: () => void;
-}
-
-const ScopeCard: React.FC<ScopeCardProps> = ({ title, description, features, selected, onClick }) => {
-  return (
-    <Card 
-      className={`cursor-pointer transition-all ${
-        selected 
-          ? 'border-2 border-primary shadow-md' 
-          : 'border hover:border-gray-300'
-      }`}
-      onClick={onClick}
-    >
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center">
-          {title}
-          {selected && (
-            <span className="ml-2 text-primary">
-              <CheckIcon size={18} />
-            </span>
-          )}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ul className="space-y-1">
-          {features.map((feature, index) => (
-            <li key={index} className="text-sm flex items-start">
-              <span className="text-primary mr-2">•</span>
-              {feature}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
   );
 };
 

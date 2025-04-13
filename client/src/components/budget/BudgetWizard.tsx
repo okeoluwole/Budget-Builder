@@ -12,14 +12,14 @@ import { useToast } from '@/hooks/use-toast';
 type Step = 'project' | 'scope' | 'specification' | 'layout' | 'space' | 'results';
 
 const BudgetWizard: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState<Step>('project');
+  const [currentStep, setCurrentStep] = useState<Step>('scope');
   const { state, saveBudget } = useBudget();
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const steps: { id: Step; title: string; description: string }[] = [
-    { id: 'project', title: 'Project Setup', description: 'Basic project information' },
     { id: 'scope', title: 'Scope Selection', description: 'Choose budget scope' },
+    { id: 'project', title: 'Project Setup', description: 'Basic project information' },
     { id: 'specification', title: 'Specification', description: 'Select quality level' },
     { id: 'layout', title: 'Layout', description: 'Select space layout' },
     { id: 'space', title: 'Space Allocation', description: 'Define space usage' },
@@ -76,9 +76,9 @@ const BudgetWizard: React.FC = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 'project':
-        return <ProjectSetupStep onNext={goToNextStep} onSaveAsDraft={handleSaveAsDraft} />;
+        return <ProjectSetupStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'scope':
-        return <ScopeSelectionStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
+        return <ScopeSelectionStep onNext={goToNextStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'specification':
         return <SpecificationStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'layout':

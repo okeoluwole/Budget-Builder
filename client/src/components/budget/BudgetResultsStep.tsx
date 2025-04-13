@@ -459,9 +459,26 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
               </div>
               
               <BudgetSummary 
-                budgetBreakdown={budgetBreakdown} 
+                budgetBreakdown={{
+                  ...budgetBreakdown,
+                  projectName: state.project?.name,
+                  location: state.project?.country && state.project?.city 
+                    ? `${state.project.city}, ${state.project.country}` 
+                    : undefined,
+                  totalArea: state.project?.totalArea,
+                  areaUnit: state.project?.areaUnit,
+                  inflationRate: state.project?.inflationRate,
+                  layoutType: state.budget?.layout,
+                  spaceTypes: budgetBreakdown?.spaceTypesDescription
+                }}
                 totalCost={totalCost} 
-                currency={state.project?.currency || 'USD'} 
+                currency={state.project?.currency || 'USD'}
+                scope={state.budget?.scope}
+                fitoutCost={state.budget?.fitoutCost}
+                furnitureCost={state.budget?.furnitureCost}
+                specification={state.budget?.specification}
+                fitoutSpecification={state.budget?.fitoutSpecification}
+                furnitureSpecification={state.budget?.furnitureSpecification}
               />
               
               <div className="mt-8 border-t border-gray-200 pt-6">
@@ -504,7 +521,11 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                       <tbody>
                         <tr>
                           <td className="py-1 text-gray-500">Specification Level:</td>
-                          <td className="py-1 font-medium">{state.budget?.specification}</td>
+                          <td className="py-1 font-medium">
+                            {state.budget?.scope === 'Both' && state.budget?.fitoutSpecification && state.budget?.furnitureSpecification
+                              ? `Fitout: ${state.budget.fitoutSpecification}, Furniture: ${state.budget.furnitureSpecification}`
+                              : state.budget?.specification}
+                          </td>
                         </tr>
                         <tr>
                           <td className="py-1 text-gray-500">Layout Type:</td>
