@@ -1,4 +1,4 @@
-import { Project, Budget, BudgetCategory, FitoutCostData, SpaceAllocation, CurrencyRate } from '@shared/schema';
+import { Project, Budget, BudgetCategory, FitoutCostData, SpaceAllocation, CurrencyRate, BudgetScope, FurnitureCostData } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 
 interface BudgetCalculationParams {
@@ -9,6 +9,8 @@ interface BudgetCalculationParams {
 
 interface CalculationResult {
   totalCost: number;
+  fitoutCost?: number;      // Cost for fit-out portion
+  furnitureCost?: number;   // Cost for furniture portion
   costsBreakdown: { [key: string]: number };
   rawUnitCost?: number;     // Raw unit cost from dataset
   adjustedUnitCost?: number; // Unit cost after applying factors
@@ -46,8 +48,9 @@ const applyInflation = (value: number, inflationRate: number, years: number = 1)
   return value * factor;
 };
 
-// Cache for fitout costs data to avoid repeated API calls
+// Cache for data to avoid repeated API calls
 let cachedFitoutCostsData: FitoutCostData[] | null = null;
+let cachedFurnitureCostsData: FurnitureCostData[] | null = null;
 
 // We don't need currency rates cache as we use direct endpoint
 // let cachedCurrencyRates: CurrencyRate[] | null = null;
@@ -63,74 +66,132 @@ export const calculateBudget = async ({
   }
 
   try {
-    // Use cached data if available, otherwise fetch from API
-    let fitoutCostsData: FitoutCostData[];
-    if (cachedFitoutCostsData) {
-      console.log("Using cached fitout costs data");
-      fitoutCostsData = cachedFitoutCostsData;
-    } else {
-      console.log("Fetching fitout costs data from API");
-      const res = await apiRequest('GET', '/api/fitout-costs', undefined);
-      fitoutCostsData = await res.json();
-      cachedFitoutCostsData = fitoutCostsData; // Cache the results
+    // Get the scope from the budget
+    const scope = budget.scope || 'Fitout';
+    console.log(`Calculating budget for scope: ${scope}`);
+    
+    let fitoutCost = 0;
+    let furnitureCost = 0;
+    let totalCost = 0;
+    
+    // Calculate fitout costs if scope is 'Fitout' or 'Both'
+    if (scope === 'Fitout' || scope === 'Both') {
+      // Use cached data if available, otherwise fetch from API
+      let fitoutCostsData: FitoutCostData[];
+      if (cachedFitoutCostsData) {
+        console.log("Using cached fitout costs data");
+        fitoutCostsData = cachedFitoutCostsData;
+      } else {
+        console.log("Fetching fitout costs data from API");
+        const res = await apiRequest('GET', '/api/fitout-costs', undefined);
+        fitoutCostsData = await res.json();
+        cachedFitoutCostsData = fitoutCostsData; // Cache the results
+      }
+
+      // Find location-specific cost data
+      const fitoutLocationData = fitoutCostsData.find(item => 
+        item.country === project.country && item.city === project.city
+      );
+
+      if (!fitoutLocationData) {
+        throw new Error(`No fitout cost data found for ${project.city}, ${project.country}`);
+      }
+
+      // Get base costs based on layout type and specification level
+      const specificationLevel = budget.specification === 'Bronze' ? 'Low' : 
+                               budget.specification === 'Silver' ? 'Medium' : 'High';
+      
+      const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
+      const layoutType = budget.layout as keyof typeof fitoutLocationData.costs[typeof areaUnit];
+      
+      // Get base rate per unit area
+      const fitoutBaseRate = fitoutLocationData.costs[areaUnit][layoutType][specificationLevel];
+      if (!fitoutBaseRate) {
+        throw new Error(`No fitout base rate found for ${budget.layout} layout with ${budget.specification} specification`);
+      }
+      
+      // Calculate fitout cost
+      const fitoutAreaCost = fitoutBaseRate * project.totalArea;
+      
+      // Apply inflation if specified for fitout cost
+      fitoutCost = project.inflationRate 
+        ? applyInflation(fitoutAreaCost, project.inflationRate)
+        : fitoutAreaCost;
     }
+    
+    // Calculate furniture costs if scope is 'Furniture' or 'Both'
+    if (scope === 'Furniture' || scope === 'Both') {
+      // Use cached data if available, otherwise fetch from API
+      let furnitureCostsData: FurnitureCostData[];
+      if (cachedFurnitureCostsData) {
+        console.log("Using cached furniture costs data");
+        furnitureCostsData = cachedFurnitureCostsData;
+      } else {
+        console.log("Fetching furniture costs data from API");
+        const res = await apiRequest('GET', '/api/furniture-costs', undefined);
+        furnitureCostsData = await res.json();
+        cachedFurnitureCostsData = furnitureCostsData; // Cache the results
+      }
 
-    // Find location-specific cost data
-    const locationData = fitoutCostsData.find(item => 
-      item.country === project.country && item.city === project.city
-    );
+      // Find location-specific cost data
+      const furnitureLocationData = furnitureCostsData.find(item => 
+        item.country === project.country && item.city === project.city
+      );
 
-    if (!locationData) {
-      throw new Error(`No cost data found for ${project.city}, ${project.country}`);
+      if (!furnitureLocationData) {
+        throw new Error(`No furniture cost data found for ${project.city}, ${project.country}`);
+      }
+
+      // Get base costs based on layout type and specification level
+      const specificationLevel = budget.specification === 'Bronze' ? 'Low' : 
+                               budget.specification === 'Silver' ? 'Medium' : 'High';
+      
+      const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
+      const layoutType = budget.layout as keyof typeof furnitureLocationData.costs[typeof areaUnit];
+      
+      // Get base rate per unit area
+      const furnitureBaseRate = furnitureLocationData.costs[areaUnit][layoutType][specificationLevel];
+      if (!furnitureBaseRate) {
+        throw new Error(`No furniture base rate found for ${budget.layout} layout with ${budget.specification} specification`);
+      }
+      
+      // Calculate furniture cost
+      const furnitureAreaCost = furnitureBaseRate * project.totalArea;
+      
+      // Apply inflation if specified for furniture cost
+      furnitureCost = project.inflationRate 
+        ? applyInflation(furnitureAreaCost, project.inflationRate)
+        : furnitureAreaCost;
     }
-
-    // Get base costs based on layout type and specification level
-    const specificationLevel = budget.specification === 'Bronze' ? 'Low' : 
-                             budget.specification === 'Silver' ? 'Medium' : 'High';
     
-    const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
-    const layoutType = budget.layout as keyof typeof locationData.costs[typeof areaUnit];
+    // Calculate total cost based on scope
+    totalCost = scope === 'Fitout' ? fitoutCost : 
+                scope === 'Furniture' ? furnitureCost : 
+                fitoutCost + furnitureCost; // For 'Both'
     
-    // Get base rate per unit area
-    const baseRate = locationData.costs[areaUnit][layoutType][specificationLevel];
-    if (!baseRate) {
-      throw new Error(`No base rate found for ${budget.layout} layout with ${budget.specification} specification`);
-    }
-
-    // REMOVED: Previously we were applying a location factor here, but the CBRE data 
-    // already contains location-specific costs, so applying location factors is redundant
+    // Store the raw unit cost and adjusted unit cost for reference
+    // We'll use fitout costs for this if available, otherwise furniture costs
+    const rawUnitCost = (scope === 'Fitout' || scope === 'Both') ? 
+      (fitoutCost / project.totalArea) : 
+      (furnitureCost / project.totalArea);
+      
+    const adjustedUnitCost = rawUnitCost; // No adjustment needed as we use the rates directly
     
-    // Get specification factor if we need to adjust for custom specifications
-    // NOTE: This might also be redundant if CBRE data already specifies Low/Medium/High costs
-    // that correspond to our Bronze/Silver/Gold specifications
-    const specificationFactor = 1.0; // Removed specification factor application
-    
-    // Use the base rate directly from the location-specific CBRE data
-    // without applying duplicate location factors
-    const adjustedBaseRate = baseRate;
-    
-    // Calculate total area cost
-    const totalAreaCost = adjustedBaseRate * project.totalArea;
-    
-    // Store the raw unit cost from dataset and adjusted unit cost for reference
-    const rawUnitCost = baseRate;
-    const adjustedUnitCost = adjustedBaseRate;
-    
-    // Apply inflation if specified
-    const inflatedTotalCost = project.inflationRate 
-      ? applyInflation(totalAreaCost, project.inflationRate)
-      : totalAreaCost;
-
-    // Initialize costs breakdown for fitout only
+    // Initialize costs breakdown
     const costsBreakdown: { [key: string]: number } = {};
     
-    // Only use a single category - FITOUT COSTS
-    // Note: We're ignoring professional fees entirely now as per requirement
-    costsBreakdown['FITOUT COSTS'] = parseFloat(inflatedTotalCost.toFixed(2));
+    // Add the appropriate cost category based on scope
+    if (scope === 'Fitout' || scope === 'Both') {
+      costsBreakdown['FITOUT COSTS'] = parseFloat(fitoutCost.toFixed(2));
+    }
+    
+    if (scope === 'Furniture' || scope === 'Both') {
+      costsBreakdown['FURNITURE COSTS'] = parseFloat(furnitureCost.toFixed(2));
+    }
     
     // We can add space allocation breakdown for reference
     if (budget.spaceAllocation) {
-      const spaceAllocationCosts = calculateSpaceAllocationCosts(inflatedTotalCost, budget.spaceAllocation);
+      const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, budget.spaceAllocation);
       
       // Add space type costs for reference 
       Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {
@@ -270,17 +331,9 @@ export const calculateBudget = async ({
           
           console.log(`Currency rate for ${localCurrencyCode}: ${localCurrencyRate}`);
           
-          // Convert USD to local currency using the exchange rate
-          // Note: Rate is formatted as USD to Local, so we multiply
-          localCurrencyTotalCost = parseFloat((inflatedTotalCost * localCurrencyRate).toFixed(2));
-          
-          // Convert cost breakdown to local currency
-          localCurrencyCostsBreakdown = {};
-          Object.entries(costsBreakdown).forEach(([key, value]) => {
-            localCurrencyCostsBreakdown![key] = parseFloat((value * localCurrencyRate!).toFixed(2));
-          });
-          
-          console.log(`Converted ${inflatedTotalCost} USD to ${localCurrencyTotalCost} ${localCurrencyCode}`);
+          // Convert USD to local currency using the exchange rate will be done later
+          // after we have calculated the total cost
+          console.log(`Will convert USD to ${localCurrencyCode} using rate ${localCurrencyRate}`);
         } else {
           console.log(`No rate found for ${localCurrencyCode}`);
         }
@@ -292,26 +345,66 @@ export const calculateBudget = async ({
     
     // Log currency information before returning
     console.log("Budget calculation results:", {
-      totalCost: parseFloat(inflatedTotalCost.toFixed(2)),
+      totalCost: parseFloat(totalCost.toFixed(2)),
+      fitoutCost: parseFloat(fitoutCost.toFixed(2)),
+      furnitureCost: parseFloat(furnitureCost.toFixed(2)),
       localCurrencyCode,
       localCurrencyRate,
       localCurrencyTotalCost
     });
     
+    // Get the area unit from the project
+    const areaUnitToUse = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
+    
     // Determine the sheet name used based on the layout and area unit
-    const sheetName = `Table ${budget.layout === 'Activity' ? '1' : budget.layout === 'Team' ? '2' : '3'}_${budget.layout} BYOB ${areaUnit === 'sqm' ? 'Sqm' : 'SqFt'}`;
+    const sheetName = `Table ${budget.layout === 'Activity' ? '1' : budget.layout === 'Team' ? '2' : '3'}_${budget.layout} BYOB ${areaUnitToUse === 'sqm' ? 'Sqm' : 'SqFt'}`;
     
     // Create dataset information for revalidation and transparency
+    const datasetFileInfo = scope === 'Fitout' ? 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx' :
+                        scope === 'Furniture' ? 'CBRE Fit Out Guide Cost Data_Furniture Only.xlsx' :
+                        'CBRE Fit Out Guide Cost Data_Combined.xlsx';
+    
+    // We need to be sure we have region information
+    let region = '';
+    if (scope === 'Fitout' || scope === 'Both') {
+      const fitoutLocationData = cachedFitoutCostsData?.find(item => 
+        item.country === project.country && item.city === project.city
+      );
+      if (fitoutLocationData) {
+        region = fitoutLocationData.region;
+      }
+    } else if (scope === 'Furniture') {
+      const furnitureLocationData = cachedFurnitureCostsData?.find(item => 
+        item.country === project.country && item.city === project.city
+      );
+      if (furnitureLocationData) {
+        region = furnitureLocationData.region;
+      }
+    }
+    
     const datasetInfo = {
-      name: 'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx', // Hardcoded as this is the required dataset
+      name: datasetFileInfo,
       sheet: sheetName,
-      region: locationData.region,
+      region: region,
       benchmark: `${project.country}/${project.city}`
     };
     
+    // Convert local currency values if needed
+    if (localCurrencyRate) {
+      localCurrencyTotalCost = parseFloat((totalCost * localCurrencyRate).toFixed(2));
+      
+      // Convert cost breakdown to local currency
+      localCurrencyCostsBreakdown = {};
+      Object.entries(costsBreakdown).forEach(([key, value]) => {
+        localCurrencyCostsBreakdown![key] = parseFloat((value * localCurrencyRate!).toFixed(2));
+      });
+    }
+    
     // Return the calculated total and breakdown with detailed unit costs and dataset info
     return {
-      totalCost: parseFloat(inflatedTotalCost.toFixed(2)),
+      totalCost: parseFloat(totalCost.toFixed(2)),
+      fitoutCost: scope === 'Fitout' || scope === 'Both' ? parseFloat(fitoutCost.toFixed(2)) : undefined,
+      furnitureCost: scope === 'Furniture' || scope === 'Both' ? parseFloat(furnitureCost.toFixed(2)) : undefined,
       costsBreakdown,
       rawUnitCost: parseFloat(rawUnitCost.toFixed(2)),
       adjustedUnitCost: parseFloat(adjustedUnitCost.toFixed(2)),
@@ -332,47 +425,99 @@ export const calculateBudget = async ({
 export const estimateBudget = async (
   project: Partial<Project>,
   specification: string,
-  layout: string
+  layout: string,
+  scope: BudgetScope = 'Fitout'
 ): Promise<number> => {
   if (!project.totalArea || !project.country || !specification || !layout) {
     return 0;
   }
 
+  let fitoutCost = 0;
+  let furnitureCost = 0;
+
   try {
-    // Try to use actual cost data if available
-    if (project.country && project.city) {
-      // Fetch costs data
-      const res = await apiRequest('GET', '/api/fitout-costs', undefined);
-      const fitoutCostsData = await res.json();
-      
-      // Find the location data
-      const locationData = fitoutCostsData.find((item: any) => 
-        item.country === project.country && item.city === project.city
-      );
-      
-      if (locationData) {
-        // Map specification to data format
-        const specLevel = specification === 'Bronze' ? 'Low' : 
-                        specification === 'Silver' ? 'Medium' : 'High';
+    // Calculate fitout cost if scope is 'Fitout' or 'Both'
+    if (scope === 'Fitout' || scope === 'Both') {
+      // Try to use actual cost data if available
+      if (project.country && project.city) {
+        // Fetch costs data
+        const fitoutRes = await apiRequest('GET', '/api/fitout-costs', undefined);
+        const fitoutCostsData = await fitoutRes.json();
         
-        // Determine area unit
-        const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
-        const layoutType = layout as string;
+        // Find the location data
+        const fitoutLocationData = fitoutCostsData.find((item: any) => 
+          item.country === project.country && item.city === project.city
+        );
         
-        // Get the appropriate base rate
-        const baseRate = locationData.costs[areaUnit][layoutType][specLevel];
-        
-        if (baseRate) {
-          // Calculate cost - without applying location factors as they're redundant
-          const totalCost = baseRate * (project.totalArea || 0);
+        if (fitoutLocationData) {
+          // Map specification to data format
+          const specLevel = specification === 'Bronze' ? 'Low' : 
+                          specification === 'Silver' ? 'Medium' : 'High';
           
-          // Apply inflation if specified
-          return project.inflationRate 
-            ? applyInflation(totalCost, project.inflationRate as number)
-            : totalCost;
+          // Determine area unit
+          const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
+          const layoutType = layout as string;
+          
+          // Get the appropriate base rate
+          const fitoutBaseRate = fitoutLocationData.costs[areaUnit][layoutType][specLevel];
+          
+          if (fitoutBaseRate) {
+            // Calculate cost - without applying location factors as they're redundant
+            const rawFitoutCost = fitoutBaseRate * (project.totalArea || 0);
+            
+            // Apply inflation if specified
+            fitoutCost = project.inflationRate 
+              ? applyInflation(rawFitoutCost, project.inflationRate as number)
+              : rawFitoutCost;
+          }
         }
       }
     }
+    
+    // Calculate furniture cost if scope is 'Furniture' or 'Both'
+    if (scope === 'Furniture' || scope === 'Both') {
+      // Try to use actual cost data if available
+      if (project.country && project.city) {
+        // Fetch costs data
+        const furnitureRes = await apiRequest('GET', '/api/furniture-costs', undefined);
+        const furnitureCostsData = await furnitureRes.json();
+        
+        // Find the location data
+        const furnitureLocationData = furnitureCostsData.find((item: any) => 
+          item.country === project.country && item.city === project.city
+        );
+        
+        if (furnitureLocationData) {
+          // Map specification to data format
+          const specLevel = specification === 'Bronze' ? 'Low' : 
+                          specification === 'Silver' ? 'Medium' : 'High';
+          
+          // Determine area unit
+          const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
+          const layoutType = layout as string;
+          
+          // Get the appropriate base rate
+          const furnitureBaseRate = furnitureLocationData.costs[areaUnit][layoutType][specLevel];
+          
+          if (furnitureBaseRate) {
+            // Calculate cost - without applying location factors as they're redundant
+            const rawFurnitureCost = furnitureBaseRate * (project.totalArea || 0);
+            
+            // Apply inflation if specified
+            furnitureCost = project.inflationRate 
+              ? applyInflation(rawFurnitureCost, project.inflationRate as number)
+              : rawFurnitureCost;
+          }
+        }
+      }
+    }
+    
+    // Calculate total based on scope
+    const totalCost = scope === 'Fitout' ? fitoutCost : 
+                      scope === 'Furniture' ? furnitureCost : 
+                      fitoutCost + furnitureCost; // For 'Both'
+    
+    return totalCost;
   } catch (error) {
     console.error('Error in budget estimation, using fallback method:', error);
   }
@@ -380,7 +525,14 @@ export const estimateBudget = async (
   // Fallback to simplified estimation if real data isn't available
   // This provides a basic estimate without location or other adjustments
   const fallbackBaseRate = layout === 'Activity' ? 1200 : layout === 'Team' ? 1100 : 1300;
-  const fallbackEstimatedCost = (project.totalArea || 0) * fallbackBaseRate;
+  let fallbackEstimatedCost = (project.totalArea || 0) * fallbackBaseRate;
+  
+  // Adjust fallback cost based on scope
+  if (scope === 'Furniture') {
+    fallbackEstimatedCost *= 0.4; // Furniture is typically 40% of fitout cost
+  } else if (scope === 'Both') {
+    fallbackEstimatedCost *= 1.4; // Both is typically 140% of fitout cost
+  }
   
   // Apply inflation if specified
   return project.inflationRate 
