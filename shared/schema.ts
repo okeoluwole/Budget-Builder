@@ -74,6 +74,7 @@ export type Budget = typeof budgets.$inferSelect;
 
 export type Specification = 'Bronze' | 'Silver' | 'Gold';
 export type Layout = 'Activity' | 'Team' | 'Event';
+export type BudgetScope = 'Fitout' | 'Furniture' | 'Both';
 
 // Fit-out cost data
 export type FitoutCostData = {
@@ -326,3 +327,95 @@ export const insertCurrencyRateSchema = createInsertSchema(currencyRates).omit({
 
 export type InsertCurrencyRate = z.infer<typeof insertCurrencyRateSchema>;
 export type CurrencyRate = typeof currencyRates.$inferSelect;
+
+// Furniture costs database schema
+export const furnitureCosts = pgTable("furniture_costs", {
+  id: serial("id").primaryKey(),
+  country: text("country").notNull(),
+  city: text("city").notNull(),
+  region: text("region").notNull(),
+  
+  // Activity layout costs
+  activityLowSqm: numeric("activity_low_sqm"),
+  activityMediumSqm: numeric("activity_medium_sqm"),
+  activityHighSqm: numeric("activity_high_sqm"),
+  activityLowSqft: numeric("activity_low_sqft"),
+  activityMediumSqft: numeric("activity_medium_sqft"),
+  activityHighSqft: numeric("activity_high_sqft"),
+  
+  // Team layout costs
+  teamLowSqm: numeric("team_low_sqm"),
+  teamMediumSqm: numeric("team_medium_sqm"),
+  teamHighSqm: numeric("team_high_sqm"),
+  teamLowSqft: numeric("team_low_sqft"),
+  teamMediumSqft: numeric("team_medium_sqft"),
+  teamHighSqft: numeric("team_high_sqft"),
+  
+  // Event layout costs
+  eventLowSqm: numeric("event_low_sqm"),
+  eventMediumSqm: numeric("event_medium_sqm"),
+  eventHighSqm: numeric("event_high_sqm"),
+  eventLowSqft: numeric("event_low_sqft"),
+  eventMediumSqft: numeric("event_medium_sqft"),
+  eventHighSqft: numeric("event_high_sqft"),
+  
+  // Location factors
+  locationFactorEMEA: numeric("location_factor_emea"),
+  locationFactorAMERICA: numeric("location_factor_america"),
+  locationFactorAPAC: numeric("location_factor_apac")
+});
+
+export const insertFurnitureCostSchema = createInsertSchema(furnitureCosts).omit({
+  id: true
+});
+
+export type InsertFurnitureCost = z.infer<typeof insertFurnitureCostSchema>;
+export type FurnitureCost = typeof furnitureCosts.$inferSelect;
+
+// Furniture cost data type
+export type FurnitureCostData = {
+  country: string;
+  city: string;
+  region: string;
+  costs: {
+    sqm: {
+      Activity: {
+        Low: number;
+        Medium: number;
+        High: number;
+      };
+      Team: {
+        Low: number;
+        Medium: number;
+        High: number;
+      };
+      Event: {
+        Low: number;
+        Medium: number;
+        High: number;
+      };
+    };
+    sqft: {
+      Activity: {
+        Low: number;
+        Medium: number;
+        High: number;
+      };
+      Team: {
+        Low: number;
+        Medium: number;
+        High: number;
+      };
+      Event: {
+        Low: number;
+        Medium: number;
+        High: number;
+      };
+    };
+  };
+  locationFactors: {
+    EMEA: number;
+    AMERICA: number;
+    APAC: number;
+  };
+};
