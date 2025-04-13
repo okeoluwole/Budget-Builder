@@ -78,6 +78,12 @@ export async function importFurnitureCostsFromExcel(filePath: string): Promise<v
     // Log the first row to understand the structure
     console.log('First row from Activity SQM furniture sheet:', activitySqmJson[0]);
     
+    // Skip header and find first data row for debugging
+    // Log a few rows to understand the structure
+    for (let i = 0; i < Math.min(5, activitySqmJson.length); i++) {
+      console.log(`Row ${i} from furniture data:`, activitySqmJson[i]);
+    }
+    
     // Find benchmark cities to calculate location factors
     const newyorkRow = activitySqmJson.find((row: any) => 
       row['COUNTRY'] === 'United States' && row['CITY'] === 'New York'
