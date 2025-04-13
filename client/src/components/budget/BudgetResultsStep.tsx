@@ -563,7 +563,10 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                         <tr>
                           <td className="py-1 text-gray-500">Final Rate:</td>
                           <td className="py-1 font-medium">
-                            {formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}/{state.project?.areaUnit}
+                            {adjustedUnitCost ? 
+                              formatCurrency(adjustedUnitCost, 'USD') : 
+                              formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')
+                            }/{state.project?.areaUnit}
                           </td>
                         </tr>
                       </tbody>
