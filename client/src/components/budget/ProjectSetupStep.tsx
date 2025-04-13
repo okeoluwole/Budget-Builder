@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface ProjectSetupStepProps {
   onNext: () => void;
+  onBack: () => void;
   onSaveAsDraft: () => Promise<void>;
 }
 
@@ -27,7 +28,7 @@ const projectFormSchema = z.object({
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
-const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onSaveAsDraft }) => {
+const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onBack, onSaveAsDraft }) => {
   const { state, updateProject } = useBudget();
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const { toast } = useToast();
@@ -271,23 +272,38 @@ const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onSaveAsDra
         </div>
         
         <div className="mt-8 flex justify-between">
-          <button
-            type="button"
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
-            onClick={onSaveAsDraft}
-          >
-            Save as Draft
-          </button>
+          <div>
+            <button
+              type="button"
+              className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+              onClick={onBack}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back: Scope Selection
+            </button>
+          </div>
           
-          <button
-            type="submit"
-            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            Next: Specification Selection
-            <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          <div>
+            <button
+              type="button"
+              className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+              onClick={onSaveAsDraft}
+            >
+              Save as Draft
+            </button>
+            
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
+              Next: Specification Selection
+              <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       </form>
     </div>
