@@ -31,12 +31,33 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
     return null;
   }
 
-  // Get the breakdown costs
-  const calculatedFitoutCost = fitoutCost || budgetBreakdown['FITOUT COSTS'] || 
-    (scope === 'Fitout' ? totalCost : 0);
+  // Get the breakdown costs with improved fallback handling and logging
+  console.log("BudgetSummary received props:", { 
+    totalCost, 
+    fitoutCost, 
+    furnitureCost, 
+    scope,
+    breakdown: budgetBreakdown
+  });
+  
+  // More explicit fallback logic with better default values
+  const calculatedFitoutCost = (fitoutCost !== undefined && fitoutCost !== null) 
+    ? fitoutCost 
+    : (budgetBreakdown && budgetBreakdown['FITOUT COSTS'] !== undefined) 
+      ? budgetBreakdown['FITOUT COSTS'] 
+      : (scope === 'Fitout' || scope === 'Both') ? totalCost : 0;
     
-  const calculatedFurnitureCost = furnitureCost || budgetBreakdown['FURNITURE COSTS'] || 
-    (scope === 'Furniture' ? totalCost : 0);
+  const calculatedFurnitureCost = (furnitureCost !== undefined && furnitureCost !== null)
+    ? furnitureCost 
+    : (budgetBreakdown && budgetBreakdown['FURNITURE COSTS'] !== undefined) 
+      ? budgetBreakdown['FURNITURE COSTS'] 
+      : (scope === 'Furniture' || scope === 'Both') ? totalCost : 0;
+      
+  console.log("Calculated costs:", {
+    calculatedFitoutCost,
+    calculatedFurnitureCost,
+    totalCost
+  });
   
   // Format the scope for display
   const formattedScope = scope === 'Both' 

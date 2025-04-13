@@ -384,8 +384,18 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         if (calcLocalCurrencyTotalCost) setLocalCurrencyTotalCost(calcLocalCurrencyTotalCost);
         if (calcLocalCurrencyCostsBreakdown) setLocalCurrencyCostsBreakdown(calcLocalCurrencyCostsBreakdown);
         
-        // Update context with results
-        updateBudgetResults(calculatedTotalCost, costsBreakdown);
+        // Update context with results - properly pass the fitout and furniture costs
+        const fitoutCost = costsBreakdown['FITOUT COSTS']; 
+        const furnitureCost = costsBreakdown['FURNITURE COSTS'];
+        
+        console.log("Updating budget results with:", { 
+          totalCost: calculatedTotalCost,
+          fitoutCost,
+          furnitureCost,
+          costsBreakdown
+        });
+        
+        updateBudgetResults(calculatedTotalCost, fitoutCost, furnitureCost, costsBreakdown);
       } catch (error) {
         console.error('Error calculating budget:', error);
         toast({

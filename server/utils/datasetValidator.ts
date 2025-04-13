@@ -113,9 +113,10 @@ export async function validateFurnitureDataset(datasetPath: string = 'attached_a
     }
     
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     result.isValid = false;
-    result.issues.push(`Error validating furniture dataset: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    result.issues.push(`Error validating furniture dataset: ${errorMessage}`);
     console.error('Error validating furniture dataset:', error);
     return result;
   }
@@ -151,20 +152,75 @@ export async function validateDataset(datasetPath: string = 'attached_assets/CBR
     try {
       const excelData = await parseExcelFile(datasetPath);
       
-      // Check expected sheets exist
-      const requiredSheets = ['Table 1_Activity BYOB Sqm', 'Table 2_Team BYOB Sqm', 'Table 3_Event BYOB Sqm'];
+      // Define patterns for required sheets with more flexible matching
+      const requiredSheetPatterns = [
+        // Activity sheets - multiple possible naming conventions
+        [
+          'Table 1_Activity BYOB Sqm', 
+          'Table 1_Activity BYOB SQM', 
+          'Table 1_Activity Sqm',
+          'Activity BYOB Sqm',
+          'Activity Sqm'
+        ],
+        // Team sheets - multiple possible naming conventions
+        [
+          'Table 2_Team BYOB Sqm', 
+          'Table 2_Team BYOB SQM',
+          'Table 2_Team Sqm', 
+          'Team BYOB Sqm',
+          'Team Sqm'
+        ],
+        // Event sheets - multiple possible naming conventions
+        [
+          'Table 3_Event BYOB Sqm', 
+          'Table 3_Event BYOB SQM', 
+          'Table 3_Event Sqm',
+          'Event BYOB Sqm',
+          'Event Sqm'
+        ]
+      ];
       
-      const sheetNames = Object.keys(excelData);
-      for (const sheetName of requiredSheets) {
-        if (!sheetNames.includes(sheetName)) {
-          result.issues.push(`Required sheet "${sheetName}" not found in dataset`);
+      // Get actual sheet names from the Excel file
+      const sheetNames = excelData.SheetNames || [];
+      console.log('Available sheets:', sheetNames);
+      
+      // For each required sheet pattern group, check if at least one pattern matches
+      const missingSheetTypes = [];
+      for (let i = 0; i < requiredSheetPatterns.length; i++) {
+        const patternGroup = requiredSheetPatterns[i];
+        const sheetType = i === 0 ? 'Activity' : i === 1 ? 'Team' : 'Event';
+        
+        // Check if any pattern in this group matches an existing sheet
+        const foundMatch = patternGroup.some(pattern => 
+          sheetNames.some(sheetName => 
+            sheetName.includes(pattern) || 
+            // Also check for case insensitive matches
+            sheetName.toLowerCase().includes(pattern.toLowerCase())
+          )
+        );
+        
+        if (!foundMatch) {
+          missingSheetTypes.push(sheetType);
+          result.issues.push(`Could not find any "${sheetType}" sheet in dataset.`);
         }
       }
       
-      // Sample data validation for each sheet
-      for (const sheetName of requiredSheets) {
-        if (sheetNames.includes(sheetName)) {
-          const sheetData = excelData[sheetName];
+      // If we're missing any sheet types, provide a more helpful error message
+      if (missingSheetTypes.length > 0) {
+        result.issues.push(
+          `Expected sheets for: ${missingSheetTypes.join(', ')}. Found sheets: ${sheetNames.join(', ')}`
+        );
+      }
+      
+      // Sample data validation for available sheets 
+      for (const sheetName of sheetNames) {
+        // Check if this is a relevant sheet we want to validate
+        const isActivitySheet = sheetName.toLowerCase().includes('activity');
+        const isTeamSheet = sheetName.toLowerCase().includes('team');
+        const isEventSheet = sheetName.toLowerCase().includes('event');
+        
+        if (isActivitySheet || isTeamSheet || isEventSheet) {
+          const sheetData = sheetToJson(excelData.Sheets[sheetName]);
           
           // Check that sheet has at least some rows
           if (!Array.isArray(sheetData) || sheetData.length < 5) {
@@ -211,14 +267,20 @@ export async function validateDataset(datasetPath: string = 'attached_assets/CBR
       // For example, check if specific benchmark values are present
       
       // Additional verification by checking some expected sheet content patterns
-      if (sheetNames.includes('Table 1_Activity BYOB Sqm')) {
-        const activitySheet = excelData['Table 1_Activity BYOB Sqm'];
+      // Find an activity sheet to check for benchmark locations
+      const activitySheet = sheetNames.find(name => 
+        name.toLowerCase().includes('activity') && 
+        name.toLowerCase().includes('sqm')
+      );
+      
+      if (activitySheet) {
+        const activityData = sheetToJson(excelData.Sheets[activitySheet]);
         
         // Check for common indicators that this is the correct file - expected regions or areas
         let foundLondonIndicator = false;
         let foundNewYorkIndicator = false;
         
-        for (const row of activitySheet) {
+        for (const row of activityData) {
           // Check all fields for common indicators
           const allValues = Object.values(row).map(val => 
             typeof val === 'string' ? val.toLowerCase() : String(val).toLowerCase()
@@ -247,16 +309,18 @@ export async function validateDataset(datasetPath: string = 'attached_assets/CBR
           result.issues.push('Expected benchmark data for New York not found in Activity sheet');
         }
       }
-    } catch (error: any) {
-      result.issues.push(`Error parsing Excel file: ${error.message || 'Unknown error'}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.issues.push(`Error parsing Excel file: ${errorMessage || 'Unknown error'}`);
     }
 
     // Set isValid based on issues
     result.isValid = result.issues.length === 0;
     
     return result;
-  } catch (error: any) {
-    result.issues.push(`Validation error: ${error.message || 'Unknown error'}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    result.issues.push(`Validation error: ${errorMessage || 'Unknown error'}`);
     return result;
   }
 }
