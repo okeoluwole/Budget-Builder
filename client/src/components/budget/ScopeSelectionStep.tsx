@@ -8,9 +8,10 @@ import { CheckIcon } from 'lucide-react';
 interface ScopeSelectionStepProps {
   onNext: () => void;
   onBack: () => void;
+  onSaveAsDraft?: () => void;
 }
 
-const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack }) => {
+const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack, onSaveAsDraft }) => {
   const { state, updateScope } = useBudget();
   const selectedScope = state.budget?.scope || 'Fitout';
 
@@ -73,9 +74,16 @@ const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack 
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={onNext}>
-          Next Step
-        </Button>
+        <div className="space-x-2">
+          {onSaveAsDraft && (
+            <Button variant="outline" onClick={onSaveAsDraft}>
+              Save as Draft
+            </Button>
+          )}
+          <Button onClick={onNext}>
+            Next Step
+          </Button>
+        </div>
       </div>
     </div>
   );
