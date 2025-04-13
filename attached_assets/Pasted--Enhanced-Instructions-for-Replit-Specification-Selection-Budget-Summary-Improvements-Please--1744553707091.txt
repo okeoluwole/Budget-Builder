@@ -1,0 +1,42 @@
+# Enhanced Instructions for Replit: Specification Selection & Budget Summary Improvements
+
+Please enhance the current implementation with these specific improvements:
+
+## 1. Independent Specification Selection for Multi-Scope Projects
+
+When the user selects "The Complete Package" (both Fitout and Furniture), modify the specification selection step to:
+
+- Split the specification selection into two distinct sections: one for Fitout and one for Furniture
+- Allow users to select different quality levels for each category independently
+- For example, a user should be able to select:
+  * Fitout: Silver specification
+  * Furniture: Gold specification
+- Include clear visual separation between the two specification areas
+- Add descriptive headers like "Fitout Specification" and "Furniture Specification" 
+- Ensure the specification descriptions are category-specific (different descriptions for furniture vs fitout)
+- Include a brief explanation that different specification levels can be selected for each category
+
+## 2. Enhanced Budget Summary Display
+
+Update the Budget Summary page to clearly indicate the project scope and provide a breakdown of costs:
+
+- Add a new "Budget Scope" field in the Budget Configuration section showing what's included:
+  * "Fitout Only"
+  * "Furniture Only" 
+  * "Complete Package (Fitout & Furniture)"
+
+- When multiple scopes are selected (Complete Package):
+  * Show separate specification levels for each category (e.g., "Fitout: Silver, Furniture: Gold")
+  * Display individual cost subtotals for each category
+  * Clearly separate the costs with appropriate labels and visual dividers
+  * Show the combined total cost prominently
+
+- Include a budget breakdown section that shows:
+  * Fitout cost subtotal (when applicable)
+  * Furniture cost subtotal (when applicable)
+  * Combined total (when both are selected)
+  * Per square foot/meter rates for each category
+
+- Ensure all unit costs are displayed appropriately for each category
+
+This enhancement will provide users with a more detailed and transparent view of their budget composition when working with multiple scope elements.

@@ -17,7 +17,7 @@ interface BudgetState {
 type BudgetAction =
   | { type: 'UPDATE_PROJECT'; payload: Partial<InsertProject> }
   | { type: 'UPDATE_SCOPE'; payload: string }
-  | { type: 'UPDATE_SPECIFICATION'; payload: string }
+  | { type: 'UPDATE_SPECIFICATION'; payload: { specification: string; fitoutSpecification?: string | null; furnitureSpecification?: string | null } }
   | { type: 'UPDATE_LAYOUT'; payload: string }
   | { type: 'UPDATE_SPACE_ALLOCATION'; payload: SpaceAllocation }
   | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; fitoutCost?: number; furnitureCost?: number; costsBreakdown: any } }
