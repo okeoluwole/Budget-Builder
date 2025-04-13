@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useToast } from '@/hooks/use-toast';
+import BudgetSummary from './BudgetSummary';
 import { calculateBudget } from '@/utils/budgetCalculator';
 import { formatCurrency } from '@/utils/formatters';
 import { apiRequest } from '@/lib/queryClient';
@@ -467,6 +468,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                 </div>
               </div>
               
+              {/* Enhanced budget configuration section */}
               <div className="mt-8 border-t border-gray-200 pt-6">
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Budget Details</h3>
                 
@@ -585,6 +587,32 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                     </table>
                   </div>
                 </div>
+                
+                {/* Add BudgetSummary component for cost summary and space allocation charts */}
+                <BudgetSummary 
+                  budgetBreakdown={{
+                    ...budgetBreakdown,
+                    projectName: state.project?.name,
+                    location: state.project?.country && state.project?.city 
+                      ? `${state.project.city}, ${state.project.country}` 
+                      : undefined,
+                    totalArea: state.project?.totalArea,
+                    areaUnit: state.project?.areaUnit,
+                    inflationRate: state.project?.inflationRate,
+                    layoutType: state.budget?.layout,
+                    spaceTypes: state.budget?.spaceAllocation ? Object.keys(state.budget.spaceAllocation).length + " types" : undefined,
+                    baseUnitCost: rawUnitCost,
+                    adjustedUnitCost: adjustedUnitCost
+                  }}
+                  totalCost={totalCost || 0} 
+                  currency={state.project?.currency || 'USD'}
+                  scope={state.budget?.scope}
+                  fitoutCost={state.budget?.fitoutCost}
+                  furnitureCost={state.budget?.furnitureCost}
+                  specification={state.budget?.specification}
+                  fitoutSpecification={state.budget?.fitoutSpecification}
+                  furnitureSpecification={state.budget?.furnitureSpecification}
+                />
 
                 {datasetInfo && (
                   <div className="bg-white p-4 border rounded-lg mb-6">
