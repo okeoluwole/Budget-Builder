@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useBudget } from '@/contexts/BudgetContext';
-import { DataSourceType } from '@shared/schema';
+import { DataSourceType, JLLLayout, JLLQuality } from '@shared/schema';
 import ProjectSetupStep from './ProjectSetupStep';
 import DataSourceStep from './DataSourceStep';
 import ScopeSelectionStep from './ScopeSelectionStep';
@@ -9,13 +9,14 @@ import SpecificationStep from './SpecificationStep';
 import LayoutStep from './LayoutStep';
 import SpaceAllocationStep from './SpaceAllocationStep';
 import BudgetResultsStep from './BudgetResultsStep';
+import JllOptionsStep from './JllOptionsStep';
 import { useToast } from '@/hooks/use-toast';
 
-type Step = 'project' | 'datasource' | 'scope' | 'specification' | 'layout' | 'space' | 'results';
+type Step = 'project' | 'datasource' | 'scope' | 'specification' | 'layout' | 'jllOptions' | 'space' | 'results';
 
 const BudgetWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<Step>('project');
-  const { state, saveBudget, updateDataSource } = useBudget();
+  const { state, saveBudget, updateDataSource, updateJllOptions } = useBudget();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [selectedDataSource, setSelectedDataSource] = useState<DataSourceType>(
@@ -28,15 +29,30 @@ const BudgetWizard: React.FC = () => {
     state.budget?.comparisonSources || []
   );
 
-  const steps: { id: Step; title: string; description: string }[] = [
+  // Define initial steps array
+  const initialSteps: { id: Step; title: string; description: string }[] = [
     { id: 'project', title: 'Project Setup', description: 'Basic project information' },
     { id: 'datasource', title: 'Data Source', description: 'Select cost data source' },
     { id: 'scope', title: 'Scope Selection', description: 'Choose budget scope' },
     { id: 'specification', title: 'Specification', description: 'Select quality level' },
     { id: 'layout', title: 'Layout', description: 'Select space layout' },
+    { id: 'jllOptions', title: 'JLL Options', description: 'JLL-specific configuration' },
     { id: 'space', title: 'Space Allocation', description: 'Define space usage' },
     { id: 'results', title: 'Budget Results', description: 'Review and export' },
   ];
+  
+  // Filter steps based on selected data source
+  const [steps, setSteps] = useState(initialSteps);
+  
+  // Update steps whenever data source changes
+  useEffect(() => {
+    if (selectedDataSource === 'JLL') {
+      setSteps(initialSteps);
+    } else {
+      // Remove JLL-specific steps for other data sources
+      setSteps(initialSteps.filter(step => step.id !== 'jllOptions'));
+    }
+  }, [selectedDataSource]);
 
   const goToNextStep = () => {
     const currentIndex = steps.findIndex(step => step.id === currentStep);
@@ -85,6 +101,10 @@ const BudgetWizard: React.FC = () => {
     }
   };
 
+  // State for JLL options
+  const [jllLayout, setJllLayout] = useState<JLLLayout>(state.budget?.jllLayout || 'Open & flexible');
+  const [jllQuality, setJllQuality] = useState<JLLQuality>(state.budget?.jllQuality || 'Medium');
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 'project':
@@ -118,6 +138,24 @@ const BudgetWizard: React.FC = () => {
         return <SpecificationStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'layout':
         return <LayoutStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
+      case 'jllOptions':
+        return (
+          <JllOptionsStep 
+            onNext={goToNextStep} 
+            onBack={goToPreviousStep} 
+            onSaveAsDraft={handleSaveAsDraft}
+            jllLayout={jllLayout}
+            jllQuality={jllQuality}
+            onSelectJllLayout={(layout) => {
+              setJllLayout(layout);
+              updateJllOptions(layout, jllQuality);
+            }}
+            onSelectJllQuality={(quality) => {
+              setJllQuality(quality);
+              updateJllOptions(jllLayout, quality);
+            }}
+          />
+        );
       case 'space':
         return <SpaceAllocationStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'results':

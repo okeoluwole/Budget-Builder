@@ -231,6 +231,13 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     });
   }, []);
 
+  const updateJllOptions = useCallback((jllLayout: JLLLayout, jllQuality: JLLQuality) => {
+    dispatch({
+      type: 'UPDATE_JLL_OPTIONS',
+      payload: { jllLayout, jllQuality }
+    });
+  }, []);
+
   const setSavedProject = useCallback((project: Project) => {
     dispatch({ type: 'SET_SAVED_PROJECT', payload: project });
   }, []);
@@ -363,6 +370,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       updateSpaceAllocation, 
       updateBudgetResults,
       updateDataSource,
+      updateJllOptions,
       setSavedProject,
       setSavedBudget,
       loadBudget,
