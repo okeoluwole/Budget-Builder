@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { DataSourceType } from '@shared/schema';
-import { FaBuilding, FaChartLine } from 'react-icons/fa';
+import { FaBuilding, FaChartLine, FaCogs, FaIndustry } from 'react-icons/fa';
 import { BsBuildings } from 'react-icons/bs';
-import { Building2 } from 'lucide-react';
+import { Building2, Factory } from 'lucide-react';
 
 interface DataSourceStepProps {
   onNext: () => void;
@@ -76,6 +76,17 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
       version: '2024 Q1',
       releaseDate: 'February 2024',
       countries: ['United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore', 'UAE', '+42 more'],
+      isDefault: false
+    },
+    {
+      id: 'mmc',
+      name: 'MMC',
+      displayName: 'MMC Cost Data',
+      description: 'Industry-specific MMC cost data with detailed project budgeting capabilities.',
+      logo: <FaIndustry className="w-8 h-8 text-emerald-600" />,
+      version: '2024 ED',
+      releaseDate: 'April 2024',
+      countries: ['United States', 'United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Canada', '+39 more'],
       isDefault: false
     }
   ];

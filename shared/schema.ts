@@ -79,7 +79,7 @@ export type InsertBudget = z.infer<typeof insertBudgetSchema>;
 export type Budget = typeof budgets.$inferSelect;
 
 // Data Source Types
-export type DataSourceType = 'CBRE' | 'JLL' | 'TT';
+export type DataSourceType = 'CBRE' | 'JLL' | 'TT' | 'MMC';
 export type JLLLayout = 'Open & flexible' | 'High spatial variety' | 'Structured';
 export type JLLQuality = 'Baseline' | 'Medium' | 'High';
 

@@ -117,7 +117,8 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
         budget: {
           ...(state.budget || {}),
           primaryDataSource: action.payload.dataSource,
-          isComparisonEnabled: action.payload.enableComparison
+          isComparisonEnabled: action.payload.enableComparison,
+          comparisonSources: action.payload.comparisonSources || []
         }
       };
     case 'SET_SAVED_PROJECT':
@@ -210,10 +211,10 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     });
   }, []);
 
-  const updateDataSource = useCallback((dataSource: DataSourceType, enableComparison: boolean) => {
+  const updateDataSource = useCallback((dataSource: DataSourceType, enableComparison: boolean, comparisonSources: DataSourceType[] = []) => {
     dispatch({
       type: 'UPDATE_DATA_SOURCE',
-      payload: { dataSource, enableComparison }
+      payload: { dataSource, enableComparison, comparisonSources }
     });
   }, []);
 
@@ -277,6 +278,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
             isComparisonEnabled: typeof state.budget.isComparisonEnabled !== 'undefined' ? 
               state.budget.isComparisonEnabled : 
               state.savedBudget.isComparisonEnabled || false,
+            comparisonSources: state.budget.comparisonSources || [],
             fitoutCost: state.budget.fitoutCost !== undefined ? state.budget.fitoutCost : state.savedBudget.fitoutCost,
             furnitureCost: state.budget.furnitureCost !== undefined ? state.budget.furnitureCost : state.savedBudget.furnitureCost,
             totalCost: state.budget.totalCost !== undefined ? state.budget.totalCost : state.savedBudget.totalCost,
@@ -311,6 +313,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
             layout: state.budget.layout || 'Activity',
             primaryDataSource: state.budget.primaryDataSource || 'CBRE',
             isComparisonEnabled: state.budget.isComparisonEnabled || false,
+            comparisonSources: state.budget.comparisonSources || [],
             fitoutCost: state.budget.fitoutCost,
             furnitureCost: state.budget.furnitureCost,
             totalCost: state.budget.totalCost,
