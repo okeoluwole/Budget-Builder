@@ -252,12 +252,15 @@ export const calculateBudget = async ({
         : jllAreaCost;
       
       // Get JLL regional cost breakdown percentages
-      // Add clear type assertion to help TypeScript understand the structure
-      const breakdownPercentages = jllCostsBreakdownPercentages[jllRegion as keyof typeof jllCostsBreakdownPercentages] || 
-                              jllCostsBreakdownPercentages.global;
+      // Use the mapped JLL region to get the right cost breakdown percentages
+      console.log(`Using ${jllRegion} cost breakdown percentages`);
+      const jllBreakdownPercentages = jllRegion === 'APAC' || jllRegion === 'EMEA' || 
+                                jllRegion === 'LATAM' || jllRegion === 'NAM' 
+                                  ? jllCostsBreakdownPercentages[jllRegion as keyof typeof jllCostsBreakdownPercentages] 
+                                  : jllCostsBreakdownPercentages.global;
       
       // For JLL, we'll directly apply the furniture percentage from JLL's breakdown
-      const furniturePercentage = breakdownPercentages['Furniture, Fixtures, Equipment']; // 12-15% depending on region
+      const furniturePercentage = jllBreakdownPercentages['Furniture, Fixtures, Equipment']; // 12-15% depending on region
       
       // Based on scope, assign to fitout or furniture cost
       if (scope === 'Fitout' || scope === 'Both') {
@@ -436,22 +439,64 @@ export const calculateBudget = async ({
         // Add the main fitout cost
         costsBreakdown['FITOUT COSTS'] = parseFloat(fitoutCost.toFixed(2));
         
-        // Adding detailed logging for debugging
-        console.log('JLL breakdown percentages:', breakdownPercentages);
+        // Get JLL regional cost breakdown percentages for the current region
+        // Use the region information from the cached data
+        let currentRegion = 'AMERICAS'; // Default if we can't determine
+        
+        // Find the location data from cached data
+        if (cachedFitoutCostsData) {
+          const locationData = cachedFitoutCostsData.find(item => 
+            item.country === project.country && item.city === project.city
+          );
+          
+          if (locationData) {
+            currentRegion = locationData.region; // AMERICAS, EMEA, APAC
+          }
+        }
+        
+        // Map to JLL's region structure
+        let currentJllRegion = 'global'; // Default to global averages
+        if (currentRegion === 'AMERICAS') {
+          // CBRE's AMERICAS region maps to JLL's NAM (North America) or LATAM (Latin America)
+          if (['United States', 'Canada'].includes(project.country)) {
+            currentJllRegion = 'NAM';
+          } else {
+            currentJllRegion = 'LATAM';
+          }
+        } else if (currentRegion === 'EMEA') {
+          currentJllRegion = 'EMEA';
+        } else if (currentRegion === 'APAC') {
+          currentJllRegion = 'APAC';
+        }
+        
+        // Get the breakdown percentages for the current region
+        const jllBreakdownPercentages = currentJllRegion === 'APAC' || 
+                                    currentJllRegion === 'EMEA' || 
+                                    currentJllRegion === 'LATAM' || 
+                                    currentJllRegion === 'NAM' 
+                                      ? jllCostsBreakdownPercentages[currentJllRegion] 
+                                      : jllCostsBreakdownPercentages.global;
+        
+        console.log('JLL breakdown percentages:', jllBreakdownPercentages);
         
         // Add JLL-specific breakdown categories using the correct region with error handling
         try {
-          const buildersWorksPercent = breakdownPercentages['Builders Works'] || 0.37; // Default to global value
-          costsBreakdown['BUILDERS WORKS'] = parseFloat((totalCost * buildersWorksPercent).toFixed(2));
+          // Using the local variable with proper error handling
+          costsBreakdown['BUILDERS WORKS'] = parseFloat(
+            (totalCost * jllBreakdownPercentages['Builders Works']).toFixed(2)
+          );
           
-          const meServicesPercent = breakdownPercentages['M&E Services'] || 0.29; // Default to global value
-          costsBreakdown['M&E SERVICES'] = parseFloat((totalCost * meServicesPercent).toFixed(2));
+          costsBreakdown['M&E SERVICES'] = parseFloat(
+            (totalCost * jllBreakdownPercentages['M&E Services']).toFixed(2)
+          );
           
-          const securityPercent = breakdownPercentages['Security, IT & AV works'] || 0.12; // Default to global value
-          costsBreakdown['SECURITY, IT & AV WORKS'] = parseFloat((totalCost * securityPercent).toFixed(2));
+          costsBreakdown['SECURITY, IT & AV WORKS'] = parseFloat(
+            (totalCost * jllBreakdownPercentages['Security, IT & AV works']).toFixed(2)
+          );
           
-          const profServicesPercent = breakdownPercentages['Professional Services'] || 0.08; // Default to global value
-          costsBreakdown['PROFESSIONAL SERVICES'] = parseFloat((totalCost * profServicesPercent).toFixed(2));
+          costsBreakdown['PROFESSIONAL SERVICES'] = parseFloat(
+            (totalCost * jllBreakdownPercentages['Professional Services']).toFixed(2)
+          );
         } catch (err) {
           console.error('Error calculating JLL cost breakdown:', err);
           // Use global averages as fallback
