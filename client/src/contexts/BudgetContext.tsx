@@ -247,7 +247,15 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       } else {
         // Create new project
         const res = await apiRequest('POST', '/api/projects', {
-          ...state.project,
+          name: state.project.name || 'Untitled Project',
+          country: state.project.country || 'United States',
+          city: state.project.city || 'New York',
+          totalArea: state.project.totalArea || 1000,
+          areaUnit: state.project.areaUnit || 'sqm',
+          currency: state.project.currency || 'USD',
+          reference: state.project.reference,
+          startDate: state.project.startDate,
+          inflationRate: state.project.inflationRate,
           status: 'active'
         });
         project = await res.json();
@@ -258,11 +266,32 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       if (state.budget) {
         if (state.savedBudget) {
           // Update existing budget
-          const res = await apiRequest('PUT', `/api/budgets/${state.savedBudget.id}`, {
-            ...state.budget,
+          const updateBudgetData = {
             projectId: project.id,
+            name: state.budget.name || state.savedBudget.name,
+            scope: state.budget.scope || state.savedBudget.scope,
+            specification: state.budget.specification || state.savedBudget.specification,
+            layout: state.budget.layout || state.savedBudget.layout,
+            primaryDataSource: state.budget.primaryDataSource || state.savedBudget.primaryDataSource || 'CBRE',
+            isComparisonEnabled: typeof state.budget.isComparisonEnabled !== 'undefined' ? 
+              state.budget.isComparisonEnabled : 
+              state.savedBudget.isComparisonEnabled || false,
+            fitoutCost: state.budget.fitoutCost !== undefined ? state.budget.fitoutCost : state.savedBudget.fitoutCost,
+            furnitureCost: state.budget.furnitureCost !== undefined ? state.budget.furnitureCost : state.savedBudget.furnitureCost,
+            totalCost: state.budget.totalCost !== undefined ? state.budget.totalCost : state.savedBudget.totalCost,
             status
-          });
+          };
+          
+          // Add JSON fields
+          if (state.budget.spaceAllocation) {
+            updateBudgetData['spaceAllocation'] = state.budget.spaceAllocation;
+          }
+          
+          if (state.budget.costsBreakdown) {
+            updateBudgetData['costsBreakdown'] = state.budget.costsBreakdown;
+          }
+          
+          const res = await apiRequest('PUT', `/api/budgets/${state.savedBudget.id}`, updateBudgetData);
           const budget = await res.json();
           dispatch({ type: 'SET_SAVED_BUDGET', payload: budget });
         } else {
@@ -271,13 +300,32 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
             ? `${state.project.name} Budget` 
             : `Budget ${new Date().toLocaleDateString()}`;
             
-          const res = await apiRequest('POST', '/api/budgets', {
-            ...state.budget,
+          // Build budget data with defaults for any missing fields
+          const budgetData = {
             projectId: project.id,
             name: budgetName,
             version: 1,
+            scope: state.budget.scope || 'Fitout',
+            specification: state.budget.specification || 'Bronze',
+            layout: state.budget.layout || 'Activity',
+            primaryDataSource: state.budget.primaryDataSource || 'CBRE',
+            isComparisonEnabled: state.budget.isComparisonEnabled || false,
+            fitoutCost: state.budget.fitoutCost,
+            furnitureCost: state.budget.furnitureCost,
+            totalCost: state.budget.totalCost,
             status
-          });
+          };
+
+          // Add non-schema fields as JSON
+          if (state.budget.spaceAllocation) {
+            budgetData['spaceAllocation'] = state.budget.spaceAllocation;
+          }
+          
+          if (state.budget.costsBreakdown) {
+            budgetData['costsBreakdown'] = state.budget.costsBreakdown;
+          }
+          
+          const res = await apiRequest('POST', '/api/budgets', budgetData);
           const budget = await res.json();
           dispatch({ type: 'SET_SAVED_BUDGET', payload: budget });
         }
