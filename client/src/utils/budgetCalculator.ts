@@ -148,6 +148,12 @@ export const calculateBudget = async ({
   budget,
   budgetStructure
 }: BudgetCalculationParams): Promise<CalculationResult> => {
+  // Initialize cost variables and breakdown at the start
+  let fitoutCost = 0;
+  let furnitureCost = 0;
+  let totalCost = 0;
+  let datasetInfo = null;
+  let costsBreakdown: { [key: string]: number } = {};
   // Check required parameters, but make space allocation optional for JLL data source
   if (!project || !budget || !budget.specification || !budget.layout) {
     throw new Error('Missing required budget parameters');
@@ -163,10 +169,6 @@ export const calculateBudget = async ({
     const scope = budget.scope || 'Fitout';
     console.log(`Calculating budget for scope: ${scope}`);
     console.log('Using data source:', budget.primaryDataSource || 'CBRE'); // Log selected data source
-    
-    let fitoutCost = 0;
-    let furnitureCost = 0;
-    let totalCost = 0;
     
     // Handle JLL data source calculation
     if (budget.primaryDataSource && budget.primaryDataSource === 'JLL') {
@@ -283,24 +285,19 @@ export const calculateBudget = async ({
         console.log('====== JLL CALCULATION COMPLETE ======');
         
         // Initialize costs breakdown with JLL marker
-        let jllCostsBreakdown: { [key: string]: number } = {
-          'JLL DATA SOURCE': 1  // Marker to identify JLL data source
-        };
+        costsBreakdown['JLL DATA SOURCE'] = 1;  // Marker to identify JLL data source
         
         // Add basic breakdown to costs breakdown
-        jllCostsBreakdown['FITOUT BASE COSTS'] = parseFloat((scope === 'Fitout' || scope === 'Both' ? fitoutCost : 0).toFixed(2));
-        jllCostsBreakdown['FURNITURE BASE COSTS'] = parseFloat((scope === 'Furniture' || scope === 'Both' ? furnitureCost : 0).toFixed(2));
+        costsBreakdown['FITOUT BASE COSTS'] = parseFloat((scope === 'Fitout' || scope === 'Both' ? fitoutCost : 0).toFixed(2));
+        costsBreakdown['FURNITURE BASE COSTS'] = parseFloat((scope === 'Furniture' || scope === 'Both' ? furnitureCost : 0).toFixed(2));
         
         // Add detailed JLL breakdown
         if (scope === 'Fitout' || scope === 'Both') {
           const fitoutPortion = inflatedCost * (1 - defaultBreakdown['Furniture, Fixtures, Equipment']);
-          jllCostsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutPortion * defaultBreakdown['Builders Works'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
-          jllCostsBreakdown['M&E SERVICES'] = parseFloat((fitoutPortion * defaultBreakdown['M&E Services'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
-          jllCostsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutPortion * defaultBreakdown['Security, IT & AV works'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
+          costsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutPortion * defaultBreakdown['Builders Works'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
+          costsBreakdown['M&E SERVICES'] = parseFloat((fitoutPortion * defaultBreakdown['M&E Services'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
+          costsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutPortion * defaultBreakdown['Security, IT & AV works'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
         }
-        
-        // Assign to the main costsBreakdown
-        costsBreakdown = jllCostsBreakdown;
         
       } catch (error) {
         console.error('Error in JLL calculation', error);
@@ -450,8 +447,8 @@ export const calculateBudget = async ({
     // There's no additional adjustment being applied
     const adjustedUnitCost = rawUnitCost;
     
-    // Initialize costs breakdown
-    const costsBreakdown: { [key: string]: number } = {};
+    // Initialize costs breakdown - We need to declare this here BEFORE JLL code tries to use it
+    let costsBreakdown: { [key: string]: number } = {};
     
     // Handle cost breakdown differently depending on data source
     if (budget.primaryDataSource && budget.primaryDataSource === 'JLL') {
