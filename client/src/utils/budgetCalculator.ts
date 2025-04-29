@@ -1,5 +1,6 @@
 import { Project, Budget, BudgetCategory, FitoutCostData, SpaceAllocation, CurrencyRate, BudgetScope, FurnitureCostData, JLLLayout, JLLQuality, DataSourceType } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import { calculateJllBudget } from './jllCalculator';
 
 interface BudgetCalculationParams {
   project: Project;
@@ -148,12 +149,6 @@ export const calculateBudget = async ({
   budget,
   budgetStructure
 }: BudgetCalculationParams): Promise<CalculationResult> => {
-  // Initialize cost variables and breakdown at the start
-  let fitoutCost = 0;
-  let furnitureCost = 0;
-  let totalCost = 0;
-  let datasetInfo = null;
-  let costsBreakdown: { [key: string]: number } = {};
   // Check required parameters, but make space allocation optional for JLL data source
   if (!project || !budget || !budget.specification || !budget.layout) {
     throw new Error('Missing required budget parameters');
