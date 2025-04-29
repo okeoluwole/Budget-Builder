@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, real, boolean, timestamp, json, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, real, boolean, timestamp, json, numeric, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -49,6 +49,9 @@ export const budgets = pgTable("budgets", {
   scope: text("scope").default("Fitout").notNull(), // Fitout, Furniture, Both
   specification: text("specification").notNull(), // Bronze, Silver, Gold
   layout: text("layout").notNull(), // Activity, Team, Event
+  primaryDataSource: text("primary_data_source").default("CBRE").notNull(), // CBRE, JLL, TT
+  jllLayout: text("jll_layout"), // Open & flexible, High spatial variety, Structured
+  jllQuality: text("jll_quality"), // Baseline, Medium, High
   spaceAllocation: json("space_allocation").notNull(),
   totalCost: real("total_cost"),
   fitoutCost: real("fitout_cost"),
@@ -75,9 +78,135 @@ export type Project = typeof projects.$inferSelect;
 export type InsertBudget = z.infer<typeof insertBudgetSchema>;
 export type Budget = typeof budgets.$inferSelect;
 
+// Data Source Types
+export type DataSourceType = 'CBRE' | 'JLL' | 'TT';
+export type JLLLayout = 'Open & flexible' | 'High spatial variety' | 'Structured';
+export type JLLQuality = 'Baseline' | 'Medium' | 'High';
+
+// Legacy Types
 export type Specification = 'Bronze' | 'Silver' | 'Gold';
 export type Layout = 'Activity' | 'Team' | 'Event';
 export type BudgetScope = 'Fitout' | 'Furniture' | 'Both';
+
+// Budget model to hold selected data source
+export const budgetDataSources = pgTable("budget_data_sources", {
+  id: serial("id").primaryKey(),
+  budgetId: integer("budget_id").notNull().references(() => budgets.id),
+  dataSource: text("data_source").notNull(), // CBRE, JLL, TT
+  isComparisonEnabled: boolean("is_comparison_enabled").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertBudgetDataSourceSchema = createInsertSchema(budgetDataSources).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type InsertBudgetDataSource = z.infer<typeof insertBudgetDataSourceSchema>;
+export type BudgetDataSource = typeof budgetDataSources.$inferSelect;
+
+// Data sources table for metadata
+export const dataSources = pgTable("data_sources", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  description: text("description").notNull(),
+  version: text("version").notNull(),
+  releaseDate: text("release_date").notNull(),
+  countries: jsonb("countries").notNull(), // Array of country names
+  logoUrl: text("logo_url"),
+  isEnabled: boolean("is_enabled").default(true),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertDataSourceSchema = createInsertSchema(dataSources).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type InsertDataSource = z.infer<typeof insertDataSourceSchema>;
+export type DataSource = typeof dataSources.$inferSelect;
+
+// JLL cost data
+export const jllCosts = pgTable("jll_costs", {
+  id: serial("id").primaryKey(),
+  country: text("country").notNull(),
+  city: text("city").notNull(),
+  region: text("region").notNull(), // NAM, LATAM, EMEA, APAC
+  
+  // Open & flexible layout costs
+  openFlexBaselineSqm: numeric("open_flex_baseline_sqm"),
+  openFlexMediumSqm: numeric("open_flex_medium_sqm"),
+  openFlexHighSqm: numeric("open_flex_high_sqm"),
+  
+  // High spatial variety layout costs
+  spatialVarietyBaselineSqm: numeric("spatial_variety_baseline_sqm"),
+  spatialVarietyMediumSqm: numeric("spatial_variety_medium_sqm"),
+  spatialVarietyHighSqm: numeric("spatial_variety_high_sqm"),
+  
+  // Structured layout costs
+  structuredBaselineSqm: numeric("structured_baseline_sqm"),
+  structuredMediumSqm: numeric("structured_medium_sqm"),
+  structuredHighSqm: numeric("structured_high_sqm"),
+  
+  // Cost breakdown percentages
+  buildersWorksPercentage: numeric("builders_works_percentage"), // Global average: 37%
+  mAndEServicesPercentage: numeric("m_and_e_services_percentage"), // Global average: 29%
+  furnitureFixturesEquipmentPercentage: numeric("furniture_fixtures_equipment_percentage"), // Global average: 13%
+  securityITAVPercentage: numeric("security_it_av_percentage"), // Global average: 12%
+  professionalServicesPercentage: numeric("professional_services_percentage"), // Global average: 8%
+  
+  // City cost index (London = 1)
+  costIndex: numeric("cost_index"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertJllCostSchema = createInsertSchema(jllCosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type InsertJllCost = z.infer<typeof insertJllCostSchema>;
+export type JllCost = typeof jllCosts.$inferSelect;
+
+// JLL specification mapping table
+export const jllSpecifications = pgTable("jll_specifications", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Baseline, Medium, High
+  description: text("description").notNull(),
+  sustainabilityCriteria: text("sustainability_criteria"),
+  recommendedFor: text("recommended_for")
+});
+
+export const insertJllSpecificationSchema = createInsertSchema(jllSpecifications).omit({
+  id: true
+});
+
+export type InsertJllSpecification = z.infer<typeof insertJllSpecificationSchema>;
+export type JllSpecification = typeof jllSpecifications.$inferSelect;
+
+// JLL layout templates table
+export const jllLayoutTemplates = pgTable("jll_layout_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Open & flexible, High spatial variety, Structured
+  description: text("description").notNull(),
+  benefits: text("benefits").notNull(), // JSON string with array of benefits
+  defaultAllocation: json("default_allocation").notNull() // JSON with default space allocation percentages
+});
+
+export const insertJllLayoutTemplateSchema = createInsertSchema(jllLayoutTemplates).omit({
+  id: true
+});
+
+export type InsertJllLayoutTemplate = z.infer<typeof insertJllLayoutTemplateSchema>;
+export type JllLayoutTemplate = typeof jllLayoutTemplates.$inferSelect;
 
 // Fit-out cost data
 export type FitoutCostData = {

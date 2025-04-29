@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useBudget } from '@/contexts/BudgetContext';
 import ProjectSetupStep from './ProjectSetupStep';
+import DataSourceStep from './DataSourceStep';
 import ScopeSelectionStep from './ScopeSelectionStep';
 import SpecificationStep from './SpecificationStep';
 import LayoutStep from './LayoutStep';
@@ -12,14 +13,17 @@ import { useToast } from '@/hooks/use-toast';
 type Step = 'project' | 'scope' | 'specification' | 'layout' | 'space' | 'results';
 
 const BudgetWizard: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState<Step>('scope');
+  const [currentStep, setCurrentStep] = useState<Step>('project');
   const { state, saveBudget } = useBudget();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [selectedDataSource, setSelectedDataSource] = useState<'CBRE' | 'JLL' | 'TT'>('CBRE');
+  const [enableComparison, setEnableComparison] = useState<boolean>(false);
 
   const steps: { id: Step; title: string; description: string }[] = [
-    { id: 'scope', title: 'Scope Selection', description: 'Choose budget scope' },
     { id: 'project', title: 'Project Setup', description: 'Basic project information' },
+    { id: 'datasource', title: 'Data Source', description: 'Select cost data source' },
+    { id: 'scope', title: 'Scope Selection', description: 'Choose budget scope' },
     { id: 'specification', title: 'Specification', description: 'Select quality level' },
     { id: 'layout', title: 'Layout', description: 'Select space layout' },
     { id: 'space', title: 'Space Allocation', description: 'Define space usage' },
