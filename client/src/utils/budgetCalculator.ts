@@ -155,197 +155,220 @@ function calculateJllCosts(
   quality: JLLQuality,
   scope: string = 'Fitout'
 ): JllCalculationResult {
-  // Initialize the result
-  let fitoutCost = 0;
-  let furnitureCost = 0;
-  let totalCost = 0;
-  let costsBreakdown: { [key: string]: number } = {};
-  let defaultAllocation: SpaceAllocation = {};
+  console.log("===== JLL CALCULATION START =====");
   
-  // Define JLL rate matrix
-  const jllBaseRates = {
-    'Open & flexible': {
-      'Baseline': 1700, // $1,700/sqm
-      'Medium': 1830,   // $1,830/sqm
-      'High': 2090      // $2,090/sqm
-    },
-    'High spatial variety': {
-      'Baseline': 1830, // $1,830/sqm
-      'Medium': 1970,   // $1,970/sqm 
-      'High': 2250      // $2,250/sqm
-    },
-    'Structured': {
-      'Baseline': 1900, // $1,900/sqm
-      'Medium': 2050,   // $2,050/sqm
-      'High': 2360      // $2,360/sqm
-    }
-  };
-  
-  // Get region factor based on country
-  let regionFactor = 1.0; // Default - no adjustment
-  if (project.country === 'United States') {
-    regionFactor = 1.05; // 5% higher than global average
-  } else if (['United Kingdom', 'France', 'Germany'].includes(project.country)) {
-    regionFactor = 1.08; // 8% higher for major European markets
-  } else if (['Japan', 'Singapore', 'Hong Kong'].includes(project.country)) {
-    regionFactor = 1.12; // 12% higher for premium Asian markets
-  } else if (['China', 'India', 'Brazil'].includes(project.country)) {
-    regionFactor = 0.92; // 8% lower for emerging markets
-  }
-  
-  // Get base rate and calculate adjusted rate
-  const baseRate = jllBaseRates[layout][quality];
-  const adjustedRate = baseRate * regionFactor;
-  
-  // Convert to project area unit if needed
-  let calculationRate = adjustedRate;
-  if (project.areaUnit === 'sqft') {
-    calculationRate = adjustedRate / 10.764; // Convert sqm to sqft
-  }
-  
-  // Calculate raw and inflation-adjusted costs
-  const rawAreaCost = calculationRate * project.totalArea;
-  const inflatedCost = project.inflationRate 
-    ? applyInflation(rawAreaCost, project.inflationRate, 1)
-    : rawAreaCost;
-    
-  // Determine appropriate JLL region based on country
-  let jllRegion = 'global'; // Default region
-  
-  if (['United States', 'Canada'].includes(project.country)) {
-    jllRegion = 'NAM';
-  } else if (['Brazil', 'Mexico', 'Argentina', 'Colombia', 'Chile', 'Peru'].includes(project.country)) {
-    jllRegion = 'LATAM';
-  } else if ([
-    'United Kingdom', 'France', 'Germany', 'Italy', 'Spain', 'Netherlands', 
-    'Belgium', 'Sweden', 'Switzerland', 'Ireland', 'Poland', 'Denmark', 
-    'Norway', 'Finland', 'Czech Republic', 'Austria', 'Portugal', 'Greece',
-    'Turkey', 'Saudi Arabia', 'United Arab Emirates', 'South Africa'
-  ].includes(project.country)) {
-    jllRegion = 'EMEA';
-  } else if ([
-    'China', 'Japan', 'India', 'Australia', 'Singapore', 'South Korea', 
-    'Hong Kong', 'Malaysia', 'Thailand', 'Indonesia', 'Philippines', 
-    'Vietnam', 'New Zealand', 'Taiwan'
-  ].includes(project.country)) {
-    jllRegion = 'APAC';
-  }
-  
-  console.log(`JLL calculation using region: ${jllRegion} for country: ${project.country}`);
-  
-  // Get the breakdown percentages for the current region with type safety
-  const breakdownPercentages = 
-    jllRegion === 'APAC' ? jllCostsBreakdownPercentages.APAC :
-    jllRegion === 'EMEA' ? jllCostsBreakdownPercentages.EMEA :
-    jllRegion === 'LATAM' ? jllCostsBreakdownPercentages.LATAM :
-    jllRegion === 'NAM' ? jllCostsBreakdownPercentages.NAM :
-    jllCostsBreakdownPercentages.global;
-  
-  // Use JLL's standard breakdown percentages for furniture with error handling
-  let ffePortion = 0.13; // Default to global average (13%)
   try {
-    // Safely access the FF&E portion with fallback
+    // Initialize the result variables
+    let fitoutCost = 0;
+    let furnitureCost = 0;
+    let totalCost = 0;
+    let costsBreakdown: { [key: string]: number } = {};
+    let defaultAllocation: SpaceAllocation = {};
+    
+    // Determine JLL region based on country
+    let jllRegion = 'global'; // Default region
+    
+    if (['United States', 'Canada'].includes(project.country)) {
+      jllRegion = 'NAM';
+    } else if (['Brazil', 'Mexico', 'Argentina', 'Colombia', 'Chile', 'Peru'].includes(project.country)) {
+      jllRegion = 'LATAM';
+    } else if ([
+      'United Kingdom', 'France', 'Germany', 'Italy', 'Spain', 'Netherlands', 
+      'Belgium', 'Sweden', 'Switzerland', 'Ireland', 'Poland', 'Denmark', 
+      'Norway', 'Finland', 'Czech Republic', 'Austria', 'Portugal', 'Greece',
+      'Turkey', 'Saudi Arabia', 'United Arab Emirates', 'South Africa'
+    ].includes(project.country)) {
+      jllRegion = 'EMEA';
+    } else if ([
+      'China', 'Japan', 'India', 'Australia', 'Singapore', 'South Korea', 
+      'Hong Kong', 'Malaysia', 'Thailand', 'Indonesia', 'Philippines', 
+      'Vietnam', 'New Zealand', 'Taiwan'
+    ].includes(project.country)) {
+      jllRegion = 'APAC';
+    }
+    
+    console.log(`JLL calculation using region: ${jllRegion} for country: ${project.country}`);
+    
+    // Define JLL rate matrix - latest global base rates from JLL 2025 guide
+    const jllBaseRates = {
+      'Open & flexible': {
+        'Baseline': 1700, // $1,700/sqm
+        'Medium': 1830,   // $1,830/sqm
+        'High': 2090      // $2,090/sqm
+      },
+      'High spatial variety': {
+        'Baseline': 1830, // $1,830/sqm
+        'Medium': 1970,   // $1,970/sqm 
+        'High': 2250      // $2,250/sqm
+      },
+      'Structured': {
+        'Baseline': 1900, // $1,900/sqm
+        'Medium': 2050,   // $2,050/sqm
+        'High': 2360      // $2,360/sqm
+      }
+    };
+    
+    // Region-specific rate adjustments
+    const regionFactors: {[key: string]: number} = {
+      'NAM': 1.05,      // North America: 5% above global average
+      'LATAM': 0.85,    // Latin America: 15% below global average
+      'EMEA': 1.02,     // Europe, Middle East & Africa: 2% above global average
+      'APAC': 0.95,     // Asia Pacific: 5% below global average
+      'global': 1.0     // Global average (no adjustment)
+    };
+    
+    // Get base cost from the matrix with validation
+    const baseRate = jllBaseRates[layout]?.[quality];
+    if (!baseRate) {
+      throw new Error(`Base cost not found for layout: ${layout}, quality: ${quality}`);
+    }
+    
+    // Apply regional adjustment
+    const regionFactor = regionFactors[jllRegion] || 1.0;
+    const baseRateWithRegion = baseRate * regionFactor;
+    
+    console.log(`Base rate: $${baseRate}/sqm, Region factor: ${regionFactor}, Adjusted: $${baseRateWithRegion}/sqm`);
+    
+    // Convert to appropriate unit if needed
+    let calculationRate = baseRateWithRegion;
+    if (project.areaUnit === 'sqft') {
+      calculationRate = baseRateWithRegion / 10.764; // Convert sqm to sqft
+      console.log(`Converted to sqft rate: $${calculationRate.toFixed(2)}/sqft`);
+    }
+    
+    // Calculate raw cost
+    const rawAreaCost = calculationRate * project.totalArea;
+    console.log(`Raw area cost (${project.totalArea} ${project.areaUnit}): $${rawAreaCost.toFixed(2)}`);
+    
+    // Apply inflation if applicable
+    const inflatedCost = project.inflationRate 
+      ? applyInflation(rawAreaCost, project.inflationRate, 1)
+      : rawAreaCost;
+    
+    console.log(`Cost after inflation (${project.inflationRate || 0}%): $${inflatedCost.toFixed(2)}`);
+    
+    // Get the breakdown percentages for the current region
+    let breakdownPercentages;
+    switch (jllRegion) {
+      case 'APAC': 
+        breakdownPercentages = jllCostsBreakdownPercentages.APAC;
+        break;
+      case 'EMEA':
+        breakdownPercentages = jllCostsBreakdownPercentages.EMEA;
+        break;
+      case 'LATAM':
+        breakdownPercentages = jllCostsBreakdownPercentages.LATAM;
+        break;
+      case 'NAM':
+        breakdownPercentages = jllCostsBreakdownPercentages.NAM;
+        break;
+      default:
+        breakdownPercentages = jllCostsBreakdownPercentages.global;
+    }
+    
+    // Get the FF&E portion with fallback
+    let ffePortion = 0.13; // Default furniture portion (13%)
     if (breakdownPercentages && typeof breakdownPercentages['Furniture, Fixtures, Equipment'] === 'number') {
       ffePortion = breakdownPercentages['Furniture, Fixtures, Equipment'];
     }
-  } catch (err) {
-    console.error('Error getting FF&E portion:', err);
-  }
-  console.log(`Using FF&E portion for ${jllRegion}: ${ffePortion}`);
-  
-  // Calculate costs based on scope
-  if (scope === 'Fitout' || scope === 'Both') {
-    fitoutCost = scope === 'Fitout' 
-      ? inflatedCost 
-      : inflatedCost * (1 - ffePortion);
-  }
-  
-  if (scope === 'Furniture' || scope === 'Both') {
-    furnitureCost = scope === 'Furniture'
-      ? inflatedCost
-      : inflatedCost * ffePortion;
-  }
-  
-  // Set total cost based on scope
-  totalCost = scope === 'Both' 
-    ? fitoutCost + furnitureCost
-    : fitoutCost + furnitureCost; // Only one will be non-zero for Fitout/Furniture
     
-  // Record calculation results in costs breakdown
-  costsBreakdown['JLL DATA SOURCE'] = 1;
-  costsBreakdown['FITOUT BASE COSTS'] = parseFloat((fitoutCost).toFixed(2));
-  costsBreakdown['FURNITURE BASE COSTS'] = parseFloat((furnitureCost).toFixed(2));
-  
-  // Add detailed breakdown for fitout using the region-specific percentages with error handling
-  if (fitoutCost > 0) {
-    try {
-      // Make sure we have all necessary keys and use fallbacks if not
-      const buildersWorksPct = breakdownPercentages && typeof breakdownPercentages['Builders Works'] === 'number' 
-        ? breakdownPercentages['Builders Works'] : 0.37; // Default to 37%
+    console.log(`FF&E portion for ${jllRegion}: ${ffePortion}`);
+    
+    // Calculate costs based on scope
+    if (scope === 'Fitout' || scope === 'Both') {
+      fitoutCost = scope === 'Fitout' 
+        ? inflatedCost 
+        : inflatedCost * (1 - ffePortion);
       
-      const meServicesPct = breakdownPercentages && typeof breakdownPercentages['M&E Services'] === 'number'
-        ? breakdownPercentages['M&E Services'] : 0.29; // Default to 29%
+      console.log(`Fitout cost: $${fitoutCost.toFixed(2)}`);
+    }
+    
+    if (scope === 'Furniture' || scope === 'Both') {
+      furnitureCost = scope === 'Furniture'
+        ? inflatedCost
+        : inflatedCost * ffePortion;
       
-      const securityAvPct = breakdownPercentages && typeof breakdownPercentages['Security, IT & AV works'] === 'number'
-        ? breakdownPercentages['Security, IT & AV works'] : 0.12; // Default to 12%
+      console.log(`Furniture cost: $${furnitureCost.toFixed(2)}`);
+    }
+    
+    // Set total cost
+    totalCost = fitoutCost + furnitureCost;
+    console.log(`Total cost: $${totalCost.toFixed(2)}`);
+    
+    // Record results in costs breakdown
+    costsBreakdown['JLL DATA SOURCE'] = 1;
+    costsBreakdown['FITOUT BASE COSTS'] = parseFloat(fitoutCost.toFixed(2));
+    costsBreakdown['FURNITURE BASE COSTS'] = parseFloat(furnitureCost.toFixed(2));
+    
+    // Add detailed breakdown for fitout if applicable
+    if (fitoutCost > 0) {
+      // Extract breakdown percentages with fallbacks
+      const buildersWorksPct = (breakdownPercentages && typeof breakdownPercentages['Builders Works'] === 'number')
+        ? breakdownPercentages['Builders Works'] : 0.37;
       
-      const professionalServicesPct = breakdownPercentages && typeof breakdownPercentages['Professional Services'] === 'number'
-        ? breakdownPercentages['Professional Services'] : 0.08; // Default to 8%
+      const meServicesPct = (breakdownPercentages && typeof breakdownPercentages['M&E Services'] === 'number')
+        ? breakdownPercentages['M&E Services'] : 0.29;
       
-      // Now safely use these values
+      const securityAvPct = (breakdownPercentages && typeof breakdownPercentages['Security, IT & AV works'] === 'number')
+        ? breakdownPercentages['Security, IT & AV works'] : 0.12;
+      
+      const professionalServicesPct = (breakdownPercentages && typeof breakdownPercentages['Professional Services'] === 'number')
+        ? breakdownPercentages['Professional Services'] : 0.08;
+      
+      // Calculate and record component costs
       costsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutCost * buildersWorksPct).toFixed(2));
       costsBreakdown['M&E SERVICES'] = parseFloat((fitoutCost * meServicesPct).toFixed(2));
       costsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutCost * securityAvPct).toFixed(2));
       costsBreakdown['PROJECT MANAGEMENT'] = parseFloat((fitoutCost * professionalServicesPct).toFixed(2));
       
-      console.log('JLL breakdown successfully added to costs:', {
-        buildersWorks: buildersWorksPct,
-        meServices: meServicesPct,
-        securityAv: securityAvPct,
-        professionalServices: professionalServicesPct
+      console.log('JLL breakdown added:', {
+        buildersWorks: costsBreakdown['BUILDERS WORKS'],
+        meServices: costsBreakdown['M&E SERVICES'],
+        securityAv: costsBreakdown['SECURITY, IT & AV'],
+        projectManagement: costsBreakdown['PROJECT MANAGEMENT']
       });
-    } catch (err) {
-      console.error('Error applying JLL breakdown percentages:', err);
-      // Fall back to global averages
-      costsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutCost * 0.37).toFixed(2));
-      costsBreakdown['M&E SERVICES'] = parseFloat((fitoutCost * 0.29).toFixed(2));
-      costsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutCost * 0.12).toFixed(2));
-      costsBreakdown['PROJECT MANAGEMENT'] = parseFloat((fitoutCost * 0.08).toFixed(2));
     }
+    
+    // Generate default space allocation based on layout type
+    if (layout === 'Open & flexible') {
+      defaultAllocation = {
+        'Open workspace': { percentage: 65, area: project.totalArea * 0.65 },
+        'Meeting areas': { percentage: 20, area: project.totalArea * 0.20 },
+        'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
+      };
+    } else if (layout === 'High spatial variety') {
+      defaultAllocation = {
+        'Open workspace': { percentage: 45, area: project.totalArea * 0.45 },
+        'Focus rooms': { percentage: 15, area: project.totalArea * 0.15 },
+        'Meeting areas': { percentage: 25, area: project.totalArea * 0.25 },
+        'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
+      };
+    } else if (layout === 'Structured') {
+      defaultAllocation = {
+        'Open workspace': { percentage: 40, area: project.totalArea * 0.40 },
+        'Private offices': { percentage: 25, area: project.totalArea * 0.25 },
+        'Meeting areas': { percentage: 20, area: project.totalArea * 0.20 },
+        'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
+      };
+    }
+    
+    console.log("===== JLL CALCULATION COMPLETE =====");
+    
+    // Return complete calculation result
+    return {
+      fitoutCost,
+      furnitureCost,
+      totalCost,
+      rawUnitCost: baseRate,
+      adjustedUnitCost: calculationRate,
+      costsBreakdown,
+      defaultAllocation
+    };
+    
+  } catch (error) {
+    console.error("JLL Budget calculation error:", error);
+    throw new Error(`JLL calculation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
-  
-  // Create default allocation based on JLL layout type
-  if (layout === 'Open & flexible') {
-    defaultAllocation = {
-      'Open workspace': { percentage: 65, area: project.totalArea * 0.65 },
-      'Meeting areas': { percentage: 20, area: project.totalArea * 0.20 },
-      'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
-    };
-  } else if (layout === 'High spatial variety') {
-    defaultAllocation = {
-      'Open workspace': { percentage: 45, area: project.totalArea * 0.45 },
-      'Focus rooms': { percentage: 15, area: project.totalArea * 0.15 },
-      'Meeting areas': { percentage: 25, area: project.totalArea * 0.25 },
-      'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
-    };
-  } else if (layout === 'Structured') {
-    defaultAllocation = {
-      'Open workspace': { percentage: 40, area: project.totalArea * 0.40 },
-      'Private offices': { percentage: 25, area: project.totalArea * 0.25 },
-      'Meeting areas': { percentage: 20, area: project.totalArea * 0.20 },
-      'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
-    };
-  }
-  
-  return {
-    fitoutCost,
-    furnitureCost,
-    totalCost,
-    rawUnitCost: calculationRate,
-    adjustedUnitCost: calculationRate,
-    costsBreakdown,
-    defaultAllocation
-  };
 }
 
 // Cache for data to avoid repeated API calls
