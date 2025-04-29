@@ -163,6 +163,11 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           fitoutSpecification: action.payload.budget.fitoutSpecification || action.payload.budget.specification,
           furnitureSpecification: action.payload.budget.furnitureSpecification || action.payload.budget.specification,
           layout: action.payload.budget.layout,
+          primaryDataSource: action.payload.budget.primaryDataSource,
+          isComparisonEnabled: action.payload.budget.isComparisonEnabled,
+          comparisonSources: action.payload.budget.comparisonSources || [],
+          jllLayout: action.payload.budget.jllLayout,
+          jllQuality: action.payload.budget.jllQuality,
           spaceAllocation: action.payload.budget.spaceAllocation,
           totalCost: action.payload.budget.totalCost,
           fitoutCost: action.payload.budget.fitoutCost,
@@ -314,6 +319,15 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
             updateBudgetData['costsBreakdown'] = state.budget.costsBreakdown;
           }
           
+          // Add JLL-specific fields if present
+          if (state.budget.jllLayout) {
+            updateBudgetData['jllLayout'] = state.budget.jllLayout;
+          }
+          
+          if (state.budget.jllQuality) {
+            updateBudgetData['jllQuality'] = state.budget.jllQuality;
+          }
+          
           const res = await apiRequest('PUT', `/api/budgets/${state.savedBudget.id}`, updateBudgetData);
           const budget = await res.json();
           dispatch({ type: 'SET_SAVED_BUDGET', payload: budget });
@@ -347,6 +361,15 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
           
           if (state.budget.costsBreakdown) {
             budgetData['costsBreakdown'] = state.budget.costsBreakdown;
+          }
+          
+          // Add JLL-specific fields if present
+          if (state.budget.jllLayout) {
+            budgetData['jllLayout'] = state.budget.jllLayout;
+          }
+          
+          if (state.budget.jllQuality) {
+            budgetData['jllQuality'] = state.budget.jllQuality;
           }
           
           const res = await apiRequest('POST', '/api/budgets', budgetData);
