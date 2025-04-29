@@ -234,7 +234,7 @@ const Settings: React.FC = () => {
             
             <div className="flex justify-between items-center p-4 border border-gray-200 rounded-md">
               <div>
-                <h3 className="font-medium text-gray-800">MMC Design Standards</h3>
+                <h3 className="font-medium text-gray-800">Design Standards</h3>
                 <p className="text-sm text-gray-500">Last updated: 15.12.2023</p>
               </div>
               <button

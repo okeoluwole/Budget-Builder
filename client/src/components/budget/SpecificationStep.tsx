@@ -317,7 +317,7 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
   return (
     <div className="p-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Specification Selection</h2>
-      <p className="text-gray-600 mb-6">Choose the quality level for your project based on MMC Design Standards.</p>
+      <p className="text-gray-600 mb-6">Choose the quality level for your project based on industry Design Standards.</p>
       
       {renderSpecificationSections()}
       

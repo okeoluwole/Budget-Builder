@@ -23,7 +23,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </button>
           
           {/* Display app title only on mobile, since sidebar has the title on desktop */}
-          <h1 className="text-lg font-semibold ml-3 text-gray-800 md:hidden">MMC Budget Tool</h1>
+          <h1 className="text-lg font-semibold ml-3 text-gray-800 md:hidden">Fitout Cost Budget Tool</h1>
         </div>
         
         <div className="flex items-center">
