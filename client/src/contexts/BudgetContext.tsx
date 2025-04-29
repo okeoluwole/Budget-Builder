@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
-import { Project, Budget, SpaceAllocation, InsertProject, InsertBudget, DataSourceType } from '@shared/schema';
+import { Project, Budget, SpaceAllocation, InsertProject, InsertBudget, DataSourceType, JLLLayout, JLLQuality } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 
 // Define the state type
@@ -13,6 +13,8 @@ interface BudgetState {
     primaryDataSource?: DataSourceType;
     isComparisonEnabled?: boolean;
     comparisonSources?: DataSourceType[];
+    jllLayout?: JLLLayout;
+    jllQuality?: JLLQuality;
   };
   savedProject?: Project;
   savedBudget?: Budget;
@@ -27,6 +29,7 @@ type BudgetAction =
   | { type: 'UPDATE_SPACE_ALLOCATION'; payload: SpaceAllocation }
   | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; fitoutCost?: number; furnitureCost?: number; costsBreakdown: any } }
   | { type: 'UPDATE_DATA_SOURCE'; payload: { dataSource: DataSourceType; enableComparison: boolean; comparisonSources?: DataSourceType[] } }
+  | { type: 'UPDATE_JLL_OPTIONS'; payload: { jllLayout: JLLLayout; jllQuality: JLLQuality } }
   | { type: 'SET_SAVED_PROJECT'; payload: Project }
   | { type: 'SET_SAVED_BUDGET'; payload: Budget }
   | { type: 'CLEAR_STATE' }
@@ -46,6 +49,7 @@ interface BudgetContextType {
   updateSpaceAllocation: (spaceAllocation: SpaceAllocation) => void;
   updateBudgetResults: (totalCost: number, fitoutCost?: number, furnitureCost?: number, costsBreakdown?: any) => void;
   updateDataSource: (dataSource: DataSourceType, enableComparison: boolean, comparisonSources?: DataSourceType[]) => void;
+  updateJllOptions: (jllLayout: JLLLayout, jllQuality: JLLQuality) => void;
   setSavedProject: (project: Project) => void;
   setSavedBudget: (budget: Budget) => void;
   loadBudget: (project: Project, budget: Budget) => void;
@@ -119,6 +123,15 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           primaryDataSource: action.payload.dataSource,
           isComparisonEnabled: action.payload.enableComparison,
           comparisonSources: action.payload.comparisonSources || []
+        }
+      };
+    case 'UPDATE_JLL_OPTIONS':
+      return {
+        ...state,
+        budget: {
+          ...(state.budget || {}),
+          jllLayout: action.payload.jllLayout,
+          jllQuality: action.payload.jllQuality
         }
       };
     case 'SET_SAVED_PROJECT':
