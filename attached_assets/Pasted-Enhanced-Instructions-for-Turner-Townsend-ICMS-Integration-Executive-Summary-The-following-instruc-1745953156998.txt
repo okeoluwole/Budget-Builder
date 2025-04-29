@@ -1,0 +1,790 @@
+Enhanced Instructions for Turner & Townsend ICMS Integration
+Executive Summary
+The following instructions outline the implementation approach for integrating the Turner & Townsend International Construction Market Survey (ICMS) 2024 data into our budget estimation tool. Based on lessons learned from the JLL integration challenges, these instructions emphasize clear data modeling, robust error handling, and a cohesive user experience while respecting T&T's unique data organization.
+1. Data Structure Implementation
+The T&T data requires a comprehensive model that accurately reflects its organization while ensuring compatibility with the calculation engine. Instead of the simplified JSON approach in the draft, we should implement a more robust data structure:
+javascript// Initialize the T&T data module with proper typing and structure
+const TurnerTownsendDataModule = {
+  // Metadata about the data source
+  metadata: {
+    source: "Turner & Townsend International Construction Market Survey 2024",
+    regions: ['Africa', 'Asia', 'Australia and New Zealand', 'Europe', 'Middle East', 'North America', 'South America', 'UK'],
+    buildingTypes: [
+      {id: 'high_rise_prestige', label: 'CBD Offices - high-rise prestige', description: 'Premium high-rise office buildings in central business districts'},
+      {id: 'medium_a_grade', label: 'CBD Offices - up to 20 floors medium (A-Grade)', description: 'Medium-quality office buildings up to 20 floors in central business districts'}
+    ],
+    tenderingConditions: ['Cold', 'Lukewarm', 'Warm', 'Hot', 'Overheating'],
+    marketOutlooks: ['Cooler', 'Staying the same', 'Warmer'],
+    baseDateForPricing: "April 2024"
+  },
+  
+  // Region-to-countries mapping for hierarchical selection
+  regionCountryMapping: {
+    'Africa': ['South Africa', 'Nigeria', 'Kenya', 'Rwanda', 'Botswana', 'Zimbabwe', 'Uganda'],
+    'Asia': ['China', 'Hong Kong', 'India', 'Japan', 'Singapore', 'South Korea', 'Vietnam', 'Malaysia', 'Indonesia', 'Philippines'],
+    // Add remaining regions with their countries
+  },
+  
+  // Country-to-cities mapping for city selection
+  countryToCities: {
+    'United States': ['New York City', 'Boston', 'Chicago', 'Los Angeles', 'San Francisco', 'Seattle', 'Washington DC', 'Denver', 'Phoenix', 'Atlanta', 'Miami', 'Dallas'],
+    'United Kingdom': ['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Glasgow', 'Leeds', 'Bristol', 'Newcastle', 'Belfast'],
+    // Add remaining countries with their cities
+  },
+  
+  // Complete market data organized by city
+  marketData: {
+    'New York City': {
+      country: 'United States',
+      region: 'North America',
+      tenderingCondition: 'Hot',
+      marketOutlook: 'Staying the same',
+      inflation: {
+        '2023': 0.06, // 6.0%
+        '2024': 0.035, // 3.5%
+        '2025': 0.035 // 3.5%
+      },
+      contractorMargin: 0.05, // 5.0%
+      preliminaries: 0.10, // 10.0%
+      locationIndex: 127.9, // London = 100
+      
+      // Office building costs in both measurement units
+      buildingCosts: {
+        'high_rise_prestige': {
+          costPerSqFt: 991,
+          costPerSqM: 10660
+        },
+        'medium_a_grade': {
+          costPerSqFt: 758,
+          costPerSqM: 8152
+        }
+      },
+      
+      // Labor costs (USD per hour)
+      laborCosts: {
+        'plumber_electrician': { label: 'Group 1 Tradesman (e.g. plumber/electrician)', rate: 178 },
+        'carpenter_bricklayer': { label: 'Group 2 Tradesman (e.g. carpenter/bricklayer)', rate: 150 },
+        'tiler_plasterer': { label: 'Group 3 Tradesman (e.g. carpet layer, tiler, plasterer)', rate: 150 },
+        'green_collar': { label: 'Group 4 Green collar installation operative', rate: 175 },
+        'general_laborer': { label: 'General laborer', rate: 105 },
+        'site_foreman': { label: 'Site foreman', rate: 175 }
+      },
+      
+      // Key material costs with units
+      materialCosts: {
+        'plasterboard': { label: '13 mm plasterboard', unit: 'm²', cost: 6 },
+        'concrete': { label: 'Concrete 30 MPa', unit: 'm³ (1500m³ job)', cost: 211 },
+        'concrete_block': { label: 'Concrete block (400x200)', unit: 'per 1000 (>10,000 block job)', cost: 2400 },
+        'copper_cable': { label: 'Copper cable (3C + E, 2.5mm PVC)', unit: 'metre (100,000m+ job)', cost: 8 },
+        'reinforcement_bar': { label: 'Reinforcement bar 16mm', unit: 'tonne (120 tonne job)', cost: 2300 }
+        // Add other materials as needed
+      },
+      
+      // Plant costs
+      plantCosts: {
+        'mobile_crane': { label: 'Hire 50t mobile crane + operator', unit: 'day', cost: 5245 }
+      }
+    },
+    // Add remaining cities with their complete data
+  },
+  
+  // Utility functions for data access and manipulation
+  getRegions() {
+    return this.metadata.regions;
+  },
+  
+  getCountriesInRegion(region) {
+    return this.regionCountryMapping[region] || [];
+  },
+  
+  getCitiesInCountry(country) {
+    return this.countryToCities[country] || [];
+  },
+  
+  getCityData(city) {
+    return this.marketData[city];
+  },
+  
+  getBuildingTypes() {
+    return this.metadata.buildingTypes;
+  },
+  
+  getBuildingCost(city, buildingType, areaUnit = 'sqm') {
+    const cityData = this.getCityData(city);
+    if (!cityData) return null;
+    
+    const costs = cityData.buildingCosts[buildingType];
+    if (!costs) return null;
+    
+    return areaUnit.toLowerCase() === 'sqm' ? costs.costPerSqM : costs.costPerSqFt;
+  }
+};
+
+// Make the data module available globally
+window.TurnerTownsendData = TurnerTownsendDataModule;
+2. User Interface Flow Integration
+Instead of creating a separate workflow, integrate T&T smoothly into the existing step sequence with data-source-specific components:
+javascript// Enhance the existing step configuration to accommodate T&T
+const enhancedStepConfig = {
+  // Existing steps remain the same
+  project_setup: {
+    title: "Project Setup",
+    description: "Basic project information",
+    next: "data_source"
+  },
+  data_source: {
+    title: "Data Source",
+    description: "Select cost data source",
+    // Dynamic next step based on data source selection
+    getNext: (state) => {
+      if (state.dataSource === 'turner_townsend') {
+        return 'tt_region_selection';
+      } else if (state.dataSource === 'jll') {
+        return 'jll_options';
+      }
+      return 'scope_selection'; // Default CBRE path
+    }
+  },
+  
+  // Add T&T-specific steps
+  tt_region_selection: {
+    title: "Region Selection",
+    description: "Select the global region",
+    dataSource: 'turner_townsend',
+    next: 'tt_country_selection'
+  },
+  tt_country_selection: {
+    title: "Country Selection",
+    description: "Select the country for your project",
+    dataSource: 'turner_townsend',
+    next: 'tt_city_selection'
+  },
+  tt_city_selection: {
+    title: "City Selection",
+    description: "Select the specific city for your project",
+    dataSource: 'turner_townsend',
+    next: 'tt_building_type'
+  },
+  tt_building_type: {
+    title: "Building Type",
+    description: "Select the type of office building",
+    dataSource: 'turner_townsend',
+    next: 'tt_project_details'
+  },
+  tt_project_details: {
+    title: "Project Details",
+    description: "Enter area and other project specifics",
+    dataSource: 'turner_townsend',
+    next: 'tt_additional_factors'
+  },
+  tt_additional_factors: {
+    title: "Additional Factors",
+    description: "Select inflation adjustments and other factors",
+    dataSource: 'turner_townsend',
+    next: 'budget_results'
+  },
+  
+  // Common results step
+  budget_results: {
+    title: "Budget Results",
+    description: "Review and export the details as needed"
+  }
+};
+3. Component Implementations
+Create dynamic components that adapt to the T&T data structure while maintaining design consistency:
+Region Selection Component
+jsxfunction TTRegionSelection({ state, updateState, goToNextStep }) {
+  const regions = window.TurnerTownsendData.getRegions();
+  
+  const handleRegionChange = (e) => {
+    const region = e.target.value;
+    updateState({
+      region: region,
+      // Clear dependent fields when region changes
+      country: '',
+      city: '',
+      buildingType: ''
+    });
+  };
+  
+  return (
+    <div className="step-container">
+      <h2>Select Region</h2>
+      <p className="helper-text">
+        The Turner & Townsend ICMS 2024 provides data for 91 markets across 8 global regions.
+      </p>
+      
+      <div className="form-group">
+        <label htmlFor="region-select">Global Region:</label>
+        <select 
+          id="region-select" 
+          value={state.region || ''} 
+          onChange={handleRegionChange}
+          required
+        >
+          <option value="" disabled>Select a region</option>
+          {regions.map(region => (
+            <option key={region} value={region}>{region}</option>
+          ))}
+        </select>
+      </div>
+      
+      {state.region && (
+        <div className="region-context">
+          <h3>About {state.region}</h3>
+          <p>The T&T ICMS 2024 provides data for {window.TurnerTownsendData.getCountriesInRegion(state.region).length} countries in {state.region}.</p>
+        </div>
+      )}
+      
+      <div className="navigation-buttons">
+        <button 
+          className="primary-button" 
+          onClick={goToNextStep}
+          disabled={!state.region}
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+Country and City Selection Components
+jsxfunction TTCountrySelection({ state, updateState, goToNextStep, goToPreviousStep }) {
+  const countries = window.TurnerTownsendData.getCountriesInRegion(state.region);
+  
+  const handleCountryChange = (e) => {
+    const country = e.target.value;
+    updateState({
+      country: country,
+      // Clear dependent fields
+      city: '',
+      buildingType: ''
+    });
+  };
+  
+  return (
+    <div className="step-container">
+      <h2>Select Country</h2>
+      <p className="helper-text">
+        Select the country where your project is located.
+      </p>
+      
+      <div className="form-group">
+        <label htmlFor="country-select">Country:</label>
+        <select 
+          id="country-select" 
+          value={state.country || ''} 
+          onChange={handleCountryChange}
+          required
+        >
+          <option value="" disabled>Select a country</option>
+          {countries.map(country => (
+            <option key={country} value={country}>{country}</option>
+          ))}
+        </select>
+      </div>
+      
+      <div className="navigation-buttons">
+        <button className="secondary-button" onClick={goToPreviousStep}>
+          Back
+        </button>
+        <button 
+          className="primary-button" 
+          onClick={goToNextStep}
+          disabled={!state.country}
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TTCitySelection({ state, updateState, goToNextStep, goToPreviousStep }) {
+  const cities = window.TurnerTownsendData.getCitiesInCountry(state.country);
+  
+  const handleCityChange = (e) => {
+    const city = e.target.value;
+    updateState({
+      city: city,
+      // Clear dependent fields
+      buildingType: ''
+    });
+  };
+  
+  // Get city data if a city is selected
+  const cityData = state.city ? window.TurnerTownsendData.getCityData(state.city) : null;
+  
+  return (
+    <div className="step-container">
+      <h2>Select City</h2>
+      <p className="helper-text">
+        Select the specific city for your project.
+      </p>
+      
+      <div className="form-group">
+        <label htmlFor="city-select">City:</label>
+        <select 
+          id="city-select" 
+          value={state.city || ''} 
+          onChange={handleCityChange}
+          required
+        >
+          <option value="" disabled>Select a city</option>
+          {cities.map(city => (
+            <option key={city} value={city}>{city}</option>
+          ))}
+        </select>
+      </div>
+      
+      {cityData && (
+        <div className="city-context">
+          <h3>Market Information: {state.city}</h3>
+          <div className="market-indicator">
+            <span>Current Market Condition:</span>
+            <span className={`condition ${cityData.tenderingCondition.toLowerCase()}`}>
+              {cityData.tenderingCondition}
+            </span>
+          </div>
+          <div className="market-indicator">
+            <span>Market Outlook:</span>
+            <span>{cityData.marketOutlook}</span>
+          </div>
+          <div className="market-indicator">
+            <span>2024 Inflation Forecast:</span>
+            <span>{(cityData.inflation['2024'] * 100).toFixed(1)}%</span>
+          </div>
+        </div>
+      )}
+      
+      <div className="navigation-buttons">
+        <button className="secondary-button" onClick={goToPreviousStep}>
+          Back
+        </button>
+        <button 
+          className="primary-button" 
+          onClick={goToNextStep}
+          disabled={!state.city}
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+Building Type Selection Component
+jsxfunction TTBuildingTypeSelection({ state, updateState, goToNextStep, goToPreviousStep }) {
+  const buildingTypes = window.TurnerTownsendData.getBuildingTypes();
+  const cityData = window.TurnerTownsendData.getCityData(state.city);
+  
+  const handleBuildingTypeChange = (e) => {
+    updateState({
+      buildingType: e.target.value
+    });
+  };
+  
+  // Get cost information if both city and building type are selected
+  const getCostInfo = () => {
+    if (!cityData || !state.buildingType) return null;
+    
+    const buildingCost = cityData.buildingCosts[state.buildingType];
+    if (!buildingCost) return null;
+    
+    return {
+      sqm: buildingCost.costPerSqM,
+      sqft: buildingCost.costPerSqFt
+    };
+  };
+  
+  const costInfo = getCostInfo();
+  const selectedBuildingType = buildingTypes.find(bt => bt.id === state.buildingType);
+  
+  return (
+    <div className="step-container">
+      <h2>Select Building Type</h2>
+      <p className="helper-text">
+        The Turner & Townsend ICMS 2024 provides cost data for specific office building categories.
+      </p>
+      
+      <div className="form-group">
+        <label htmlFor="building-type-select">Office Building Type:</label>
+        <select 
+          id="building-type-select" 
+          value={state.buildingType || ''} 
+          onChange={handleBuildingTypeChange}
+          required
+        >
+          <option value="" disabled>Select a building type</option>
+          {buildingTypes.map(type => (
+            <option key={type.id} value={type.id}>{type.label}</option>
+          ))}
+        </select>
+      </div>
+      
+      {selectedBuildingType && (
+        <div className="building-type-info">
+          <h3>{selectedBuildingType.label}</h3>
+          <p>{selectedBuildingType.description}</p>
+          
+          {costInfo && (
+            <div className="cost-preview">
+              <h4>Base Cost Information</h4>
+              <div className="cost-item">
+                <span>Cost per m²:</span>
+                <span>${costInfo.sqm.toLocaleString()}</span>
+              </div>
+              <div className="cost-item">
+                <span>Cost per ft²:</span>
+                <span>${costInfo.sqft.toLocaleString()}</span>
+              </div>
+              <div className="info-note">
+                <small>* Base costs before adjustments, preliminaries, and margin</small>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      
+      <div className="navigation-buttons">
+        <button className="secondary-button" onClick={goToPreviousStep}>
+          Back
+        </button>
+        <button 
+          className="primary-button" 
+          onClick={goToNextStep}
+          disabled={!state.buildingType}
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+4. Robust Calculation Implementation
+Create a comprehensive calculation function that properly handles T&T's data structure:
+javascript// Main calculation function for T&T data
+function calculateTurnerTownsendBudget(inputs) {
+  console.log("Starting T&T budget calculation with inputs:", inputs);
+  
+  try {
+    // Destructure inputs with defaults
+    const { 
+      city, 
+      buildingType, 
+      area = 0, 
+      areaUnit = 'sqm', 
+      adjustForInflation = false, 
+      targetYear = new Date().getFullYear(), 
+      includePrelims = true, 
+      includeMargin = true 
+    } = inputs;
+    
+    // Validate required inputs
+    if (!city) throw new Error("City is required");
+    if (!buildingType) throw new Error("Building type is required");
+    if (!area || isNaN(parseFloat(area)) || parseFloat(area) <= 0) {
+      throw new Error("Area must be a positive number");
+    }
+    
+    // Get city data
+    const cityData = window.TurnerTownsendData.getCityData(city);
+    if (!cityData) {
+      throw new Error(`No data available for city: ${city}`);
+    }
+    
+    console.log("City data found:", city);
+    
+    // Get building cost data
+    const buildingCosts = cityData.buildingCosts[buildingType];
+    if (!buildingCosts) {
+      throw new Error(`No data available for building type: ${buildingType} in ${city}`);
+    }
+    
+    console.log("Building cost data found:", buildingCosts);
+    
+    // Determine cost per unit based on area unit
+    const costPerUnit = areaUnit.toLowerCase() === 'sqm' ? 
+      buildingCosts.costPerSqM : buildingCosts.costPerSqFt;
+    
+    console.log(`Base cost per ${areaUnit}: $${costPerUnit}`);
+    
+    // Parse area to ensure it's a number
+    const numericArea = parseFloat(area);
+    
+    // Calculate base cost
+    let baseCost = costPerUnit * numericArea;
+    console.log(`Base cost calculation: ${costPerUnit} × ${numericArea} = ${baseCost}`);
+    
+    // Apply inflation if requested
+    let appliedInflation = 0;
+    if (adjustForInflation && targetYear) {
+      const currentYear = new Date().getFullYear();
+      const yearDiff = targetYear - currentYear;
+      
+      if (yearDiff > 0) {
+        console.log(`Applying inflation for ${yearDiff} years ahead`);
+        
+        // Compound inflation calculation
+        let inflationMultiplier = 1.0;
+        
+        // Apply each year's inflation rate
+        for (let i = 0; i < yearDiff; i++) {
+          const yearToApply = currentYear + i;
+          let yearRate;
+          
+          if (yearToApply === currentYear) {
+            yearRate = cityData.inflation['2024'] || 0;
+          } else if (yearToApply === currentYear + 1) {
+            yearRate = cityData.inflation['2025'] || 0;
+          } else {
+            // For years beyond available data, use the latest available
+            yearRate = cityData.inflation['2025'] || 0;
+          }
+          
+          inflationMultiplier *= (1 + yearRate);
+          console.log(`Year ${yearToApply} inflation: ${(yearRate * 100).toFixed(1)}%, multiplier: ${inflationMultiplier.toFixed(4)}`);
+        }
+        
+        appliedInflation = baseCost * (inflationMultiplier - 1);
+        baseCost *= inflationMultiplier;
+        
+        console.log(`After inflation adjustment: ${baseCost}`);
+      }
+    }
+    
+    // Add preliminaries if requested
+    let prelimsCost = 0;
+    if (includePrelims) {
+      prelimsCost = baseCost * cityData.preliminaries;
+      console.log(`Preliminaries (${(cityData.preliminaries * 100).toFixed(1)}%): ${prelimsCost}`);
+    }
+    
+    // Add margin if requested
+    let marginCost = 0;
+    if (includeMargin) {
+      marginCost = (baseCost + prelimsCost) * cityData.contractorMargin;
+      console.log(`Contractor's margin (${(cityData.contractorMargin * 100).toFixed(1)}%): ${marginCost}`);
+    }
+    
+    // Calculate total
+    const totalCost = baseCost + prelimsCost + marginCost;
+    console.log(`Total cost: ${totalCost}`);
+    
+    // Format amounts for display
+    const formatAmount = (amount) => Math.round(amount);
+    
+    // Create detailed breakdown
+    const breakdown = {
+      baseBuildingCost: formatAmount(baseCost - appliedInflation),
+      inflationAdjustment: formatAmount(appliedInflation),
+      adjustedBaseCost: formatAmount(baseCost),
+      preliminaries: formatAmount(prelimsCost),
+      margin: formatAmount(marginCost),
+      total: formatAmount(totalCost),
+      costPerUnit: formatAmount(totalCost / numericArea),
+      marketCondition: cityData.tenderingCondition,
+      marketOutlook: cityData.marketOutlook,
+      inflationForecast: {
+        current: (cityData.inflation['2024'] * 100).toFixed(1), // Convert to percentage
+        nextYear: (cityData.inflation['2025'] * 100).toFixed(1)
+      },
+      // Additional context data
+      locationIndex: cityData.locationIndex,
+      laborRates: {
+        skilledTradesman: cityData.laborCosts.plumber_electrician.rate,
+        siteForeman: cityData.laborCosts.site_foreman.rate
+      }
+    };
+    
+    console.log("T&T budget calculation completed successfully");
+    
+    return {
+      success: true,
+      data: breakdown
+    };
+    
+  } catch (error) {
+    console.error("T&T calculation error:", error);
+    return {
+      success: false,
+      error: error.message || "An error occurred during calculation",
+      details: error.stack
+    };
+  }
+}
+
+// Make calculation function available globally
+window.calculateTurnerTownsendBudget = calculateTurnerTownsendBudget;
+5. Comprehensive Results Component
+Implement a detailed results component that showcases T&T's valuable market insights:
+jsxfunction TTBudgetResults({ budgetData, inputs }) {
+  // Early return if calculation failed
+  if (!budgetData || !budgetData.success) {
+    return (
+      <div className="error-container">
+        <div className="error-icon">⚠️</div>
+        <h2>Calculation Error</h2>
+        <p>{budgetData?.error || "Could not calculate budget. Please check your inputs and try again."}</p>
+        <button className="primary-button" onClick={() => window.location.reload()}>
+          Start Over
+        </button>
+      </div>
+    );
+  }
+  
+  const result = budgetData.data;
+  const { city, buildingType, area, areaUnit } = inputs;
+  
+  // Get building type label
+  const buildingTypeLabel = window.TurnerTownsendData.getBuildingTypes()
+    .find(bt => bt.id === buildingType)?.label || buildingType;
+  
+  // Format currency
+  const formatCurrency = (amount) => {
+    return '$' + amount.toLocaleString();
+  };
+  
+  // Get color class for market condition
+  const getConditionClass = (condition) => {
+    const conditions = {
+      'Cold': 'condition-cold',
+      'Lukewarm': 'condition-lukewarm',
+      'Warm': 'condition-warm',
+      'Hot': 'condition-hot',
+      'Overheating': 'condition-overheating'
+    };
+    
+    return conditions[condition] || 'condition-warm';
+  };
+  
+  // Get icon for market outlook
+  const getOutlookIcon = (outlook) => {
+    if (outlook === 'Warmer') return '↗️';
+    if (outlook === 'Cooler') return '↘️';
+    return '→';
+  };
+  
+  return (
+    <div className="tt-budget-results">
+      <div className="results-header">
+        <h1>Budget Estimate</h1>
+        <div className="results-source">
+          Based on Turner & Townsend International Construction Market Survey 2024
+        </div>
+      </div>
+      
+      <div className="results-summary">
+        <div className="total-budget card">
+          <h2>Total Budget</h2>
+          <div className="budget-amount">{formatCurrency(result.total)}</div>
+          <div className="budget-details">
+            <div className="budget-metric">
+              <span>{formatCurrency(result.costPerUnit)}</span> per {areaUnit}
+            </div>
+            <div className="budget-metric">
+              <span>{area.toLocaleString()}</span> {areaUnit} total area
+            </div>
+          </div>
+        </div>
+        
+        <div className="project-details card">
+          <h3>Project Information</h3>
+          <div className="detail-row">
+            <span>Location:</span>
+            <span>{city}</span>
+          </div>
+          <div className="detail-row">
+            <span>Building Type:</span>
+            <span>{buildingTypeLabel}</span>
+          </div>
+          <div className="detail-row">
+            <span>Area:</span>
+            <span>{area.toLocaleString()} {areaUnit}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="results-breakdown">
+        <div className="cost-breakdown card">
+          <h3>Cost Breakdown</h3>
+          <div className="breakdown-row">
+            <span>Base Building Cost:</span>
+            <span>{formatCurrency(result.baseBuildingCost)}</span>
+          </div>
+          {result.inflationAdjustment > 0 && (
+            <div className="breakdown-row">
+              <span>Inflation Adjustment:</span>
+              <span>{formatCurrency(result.inflationAdjustment)}</span>
+            </div>
+          )}
+          <div className="breakdown-row">
+            <span>Preliminaries:</span>
+            <span>{formatCurrency(result.preliminaries)}</span>
+          </div>
+          <div className="breakdown-row">
+            <span>Contractor's Margin:</span>
+            <span>{formatCurrency(result.margin)}</span>
+          </div>
+          <div className="breakdown-row total">
+            <span>Total:</span>
+            <span>{formatCurrency(result.total)}</span>
+          </div>
+        </div>
+        
+        <div className="market-insights card">
+          <h3>Market Insights</h3>
+          <div className="insight-row">
+            <span>Market Condition:</span>
+            <span className={getConditionClass(result.marketCondition)}>
+              {result.marketCondition}
+            </span>
+          </div>
+          <div className="insight-row">
+            <span>Market Outlook:</span>
+            <span>
+              {getOutlookIcon(result.marketOutlook)} {result.marketOutlook}
+            </span>
+          </div>
+          <div className="insight-row">
+            <span>2024 Inflation Forecast:</span>
+            <span>{result.inflationForecast.current}%</span>
+          </div>
+          <div className="insight-row">
+            <span>2025 Inflation Forecast:</span>
+            <span>{result.inflationForecast.nextYear}%</span>
+          </div>
+          <div className="insight-row">
+            <span>Location Index (London = 100):</span>
+            <span>{result.locationIndex}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="additional-context card">
+        <h3>Market Context</h3>
+        <p>The Turner & Townsend ICMS 2024 provides detailed insights into construction costs across 91 global markets. Key labor rates in {city} include:</p>
+        
+        <div className="context-row">
+          <span>Skilled Tradesman (Plumber/Electrician):</span>
+          <span>{formatCurrency(result.laborRates.skilledTradesman)}/hour</span>
+        </div>
+        <div className="context-row">
+          <span>Site Foreman:</span>
+          <span>{formatCurrency(result.laborRates.siteForeman)}/hour</span>
+        </div>
+      </div>
+      
+      <div className="results-actions">
+        <button className="secondary-button" onClick={() => window.print()}>
+          Print Budget
+        </button>
+        <button className="primary-button" onClick={() => window.location.reload()}>
+          Start New Budget
+        </button>
+      </div>
+    </div>
+  );
+}
+6. Main Integration Code
+Create a main integration script that ties everything together:
+javascript// Register T&TRetryThis response paused because Claude reached its max length for a message. Hit continue to nudge Claude along.ContinueClaude can make mistakes. Please double-check responses.ContinueExplanatory 3.7 SonnetChat controls 3.7 SonnetOur most intelligent model yet Learn moreProject contentMMC Budget AppCreated by Oluwole Okejll-global-office-fit-out-costs-guide-2025.pdf803 linespdfT&T ICMS 2024.pdf4,449 linespdfHistorical Chat 1.docx809 lines

@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
 import { Project, Budget, SpaceAllocation, InsertProject, InsertBudget, DataSourceType, JLLLayout, JLLQuality } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import { TTRegion, TTBuildingType } from '@/utils/turnerTownsendData';
+
+// T&T Options interface
+interface TTOptions {
+  region?: TTRegion;
+  country?: string;
+  city?: string;
+  buildingType?: TTBuildingType;
+  applyInflation?: boolean;
+}
 
 // Define the state type
 interface BudgetState {
@@ -18,6 +28,7 @@ interface BudgetState {
   };
   savedProject?: Project;
   savedBudget?: Budget;
+  ttOptions?: TTOptions;
 }
 
 // Define the action types
@@ -30,6 +41,7 @@ type BudgetAction =
   | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; fitoutCost?: number; furnitureCost?: number; costsBreakdown: any } }
   | { type: 'UPDATE_DATA_SOURCE'; payload: { dataSource: DataSourceType; enableComparison: boolean; comparisonSources?: DataSourceType[] } }
   | { type: 'UPDATE_JLL_OPTIONS'; payload: { jllLayout: JLLLayout; jllQuality: JLLQuality } }
+  | { type: 'UPDATE_TT_OPTIONS'; payload: Partial<TTOptions> }
   | { type: 'SET_SAVED_PROJECT'; payload: Project }
   | { type: 'SET_SAVED_BUDGET'; payload: Budget }
   | { type: 'CLEAR_STATE' }
