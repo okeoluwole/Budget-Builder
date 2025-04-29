@@ -13,6 +13,8 @@ interface DataSourceStepProps {
   onSelectDataSource: (dataSource: DataSourceType) => void;
   enableComparison: boolean;
   onToggleComparison: (enable: boolean) => void;
+  comparisonSources?: DataSourceType[];
+  onUpdateComparisonSources?: (sources: DataSourceType[]) => void;
 }
 
 interface DataSourceInfo {
@@ -36,8 +38,11 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
   onSelectDataSource,
   enableComparison,
   onToggleComparison,
+  comparisonSources = [],
+  onUpdateComparisonSources = () => {},
 }) => {
   const { toast } = useToast();
+  const [selectedComparisonSources, setSelectedComparisonSources] = useState<DataSourceType[]>(comparisonSources);
 
   const dataSources: DataSourceInfo[] = [
     {
@@ -146,15 +151,60 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
             id="enableComparison"
             className="h-4 w-4 text-primary border-gray-300 rounded"
             checked={enableComparison}
-            onChange={(e) => onToggleComparison(e.target.checked)}
+            onChange={(e) => {
+              const enabled = e.target.checked;
+              onToggleComparison(enabled);
+              if (!enabled) {
+                setSelectedComparisonSources([]);
+                onUpdateComparisonSources([]);
+              }
+            }}
           />
-          <label htmlFor="enableComparison" className="ml-2 block text-sm text-gray-700">
+          <label htmlFor="enableComparison" className="ml-2 block text-sm font-medium text-gray-700">
             Enable multi-source comparison
           </label>
         </div>
         <p className="text-xs text-gray-500 mt-1 ml-6">
           When enabled, your budget will include additional comparison data from other sources where available.
         </p>
+
+        {enableComparison && (
+          <div className="mt-4 ml-6">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Select comparison sources:</h4>
+            <div className="space-y-2">
+              {dataSources
+                .filter(source => source.name !== selectedDataSource)
+                .map(source => (
+                  <div key={source.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`compare-${source.id}`}
+                      className="h-4 w-4 text-primary border-gray-300 rounded"
+                      checked={selectedComparisonSources.includes(source.name)}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        let newSources = [...selectedComparisonSources];
+                        
+                        if (isChecked && !newSources.includes(source.name)) {
+                          newSources.push(source.name);
+                        } else if (!isChecked) {
+                          newSources = newSources.filter(s => s !== source.name);
+                        }
+                        
+                        setSelectedComparisonSources(newSources);
+                        onUpdateComparisonSources(newSources);
+                      }}
+                    />
+                    <label htmlFor={`compare-${source.id}`} className="ml-2 flex items-center text-sm text-gray-700">
+                      <span className="mr-2">{source.logo}</span>
+                      {source.displayName}
+                    </label>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 flex justify-between">

@@ -24,6 +24,9 @@ const BudgetWizard: React.FC = () => {
   const [enableComparison, setEnableComparison] = useState<boolean>(
     state.budget?.isComparisonEnabled || false
   );
+  const [comparisonSources, setComparisonSources] = useState<DataSourceType[]>(
+    state.budget?.comparisonSources || []
+  );
 
   const steps: { id: Step; title: string; description: string }[] = [
     { id: 'project', title: 'Project Setup', description: 'Basic project information' },
@@ -100,7 +103,12 @@ const BudgetWizard: React.FC = () => {
             enableComparison={enableComparison}
             onToggleComparison={(enable) => {
               setEnableComparison(enable);
-              updateDataSource(selectedDataSource, enable);
+              updateDataSource(selectedDataSource, enable, comparisonSources);
+            }}
+            comparisonSources={comparisonSources}
+            onUpdateComparisonSources={(sources) => {
+              setComparisonSources(sources);
+              updateDataSource(selectedDataSource, enableComparison, sources);
             }}
           />
         );

@@ -12,6 +12,7 @@ interface BudgetState {
     furnitureSpecification?: string;
     primaryDataSource?: DataSourceType;
     isComparisonEnabled?: boolean;
+    comparisonSources?: DataSourceType[];
   };
   savedProject?: Project;
   savedBudget?: Budget;
@@ -25,7 +26,7 @@ type BudgetAction =
   | { type: 'UPDATE_LAYOUT'; payload: string }
   | { type: 'UPDATE_SPACE_ALLOCATION'; payload: SpaceAllocation }
   | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; fitoutCost?: number; furnitureCost?: number; costsBreakdown: any } }
-  | { type: 'UPDATE_DATA_SOURCE'; payload: { dataSource: DataSourceType; enableComparison: boolean } }
+  | { type: 'UPDATE_DATA_SOURCE'; payload: { dataSource: DataSourceType; enableComparison: boolean; comparisonSources?: DataSourceType[] } }
   | { type: 'SET_SAVED_PROJECT'; payload: Project }
   | { type: 'SET_SAVED_BUDGET'; payload: Budget }
   | { type: 'CLEAR_STATE' }
@@ -44,7 +45,7 @@ interface BudgetContextType {
   updateLayout: (layout: string) => void;
   updateSpaceAllocation: (spaceAllocation: SpaceAllocation) => void;
   updateBudgetResults: (totalCost: number, fitoutCost?: number, furnitureCost?: number, costsBreakdown?: any) => void;
-  updateDataSource: (dataSource: DataSourceType, enableComparison: boolean) => void;
+  updateDataSource: (dataSource: DataSourceType, enableComparison: boolean, comparisonSources?: DataSourceType[]) => void;
   setSavedProject: (project: Project) => void;
   setSavedBudget: (budget: Budget) => void;
   loadBudget: (project: Project, budget: Budget) => void;
