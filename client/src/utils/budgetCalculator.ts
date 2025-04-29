@@ -148,8 +148,14 @@ export const calculateBudget = async ({
   budget,
   budgetStructure
 }: BudgetCalculationParams): Promise<CalculationResult> => {
-  if (!project || !budget || !budget.specification || !budget.layout || !budget.spaceAllocation) {
+  // Check required parameters, but make space allocation optional for JLL data source
+  if (!project || !budget || !budget.specification || !budget.layout) {
     throw new Error('Missing required budget parameters');
+  }
+  
+  // If using JLL data source, we don't require space allocation
+  if (budget.primaryDataSource !== 'JLL' && !budget.spaceAllocation) {
+    throw new Error('Space allocation is required for non-JLL data sources');
   }
 
   try {
@@ -526,6 +532,40 @@ export const calculateBudget = async ({
     // We can add space allocation breakdown for reference
     if (budget.spaceAllocation) {
       const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, budget.spaceAllocation);
+      
+      // Add space type costs for reference 
+      Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {
+        costsBreakdown[`SPACE: ${spaceName}`] = parseFloat(cost.toFixed(2));
+      });
+    } else if (budget.primaryDataSource === 'JLL') {
+      // For JLL, we create a simplified space allocation based on the JLL layout
+      // This ensures the budget results don't depend on actual space allocation
+      let defaultJllAllocation: SpaceAllocation = {};
+      
+      // Create default allocation based on JLL layout type
+      if (budget.jllLayout === 'Open & flexible') {
+        defaultJllAllocation = {
+          'Open workspace': { percentage: 65, area: project.totalArea * 0.65 },
+          'Meeting areas': { percentage: 20, area: project.totalArea * 0.20 },
+          'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
+        };
+      } else if (budget.jllLayout === 'High spatial variety') {
+        defaultJllAllocation = {
+          'Open workspace': { percentage: 45, area: project.totalArea * 0.45 },
+          'Focus rooms': { percentage: 15, area: project.totalArea * 0.15 },
+          'Meeting areas': { percentage: 25, area: project.totalArea * 0.25 },
+          'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
+        };
+      } else if (budget.jllLayout === 'Structured') {
+        defaultJllAllocation = {
+          'Open workspace': { percentage: 40, area: project.totalArea * 0.40 },
+          'Private offices': { percentage: 25, area: project.totalArea * 0.25 },
+          'Meeting areas': { percentage: 20, area: project.totalArea * 0.20 },
+          'Support spaces': { percentage: 15, area: project.totalArea * 0.15 }
+        };
+      }
+      
+      const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, defaultJllAllocation);
       
       // Add space type costs for reference 
       Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {
