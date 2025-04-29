@@ -179,6 +179,10 @@ export const calculateBudget = async ({
       
       console.log(`Using JLL layout: ${budget.jllLayout} and quality: ${budget.jllQuality}`);
       
+      // Log the entire budget object for debugging
+      console.log('Full budget object for JLL calculation:', JSON.stringify(budget));
+      console.log('Full project object for JLL calculation:', JSON.stringify(project));
+      
       // For demonstration, we'll base JLL costs on CBRE costs with modifiers
       // This is a simplification - in a real implementation we would use actual JLL data from API
       

@@ -100,6 +100,11 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
       });
       return;
     }
+    console.log('DataSourceStep: Moving to next step with selected data source:', selectedDataSource);
+    console.log('DataSourceStep: Comparison enabled:', enableComparison);
+    if (enableComparison) {
+      console.log('DataSourceStep: Comparison sources:', selectedComparisonSources);
+    }
     onNext();
   };
 

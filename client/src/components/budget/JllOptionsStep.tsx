@@ -314,9 +314,15 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
             onClick={() => {
               // Only proceed if both layout and quality are selected when using JLL
               if (jllLayout && jllQuality) {
+                console.log('JllOptionsStep: Moving to Budget Results with JLL options:');
+                console.log(`JllOptionsStep: Selected JLL Layout: ${jllLayout}`);
+                console.log(`JllOptionsStep: Selected JLL Quality: ${jllQuality}`);
                 onNext();
               } else {
                 // Could show an error toast here, but since we have defaults it shouldn't happen
+                console.log('JllOptionsStep: Warning - Missing JLL options but continuing with defaults');
+                console.log(`JllOptionsStep: Current JLL Layout: ${jllLayout || 'undefined'}`);
+                console.log(`JllOptionsStep: Current JLL Quality: ${jllQuality || 'undefined'}`);
                 onNext();
               }
             }}

@@ -46,6 +46,8 @@ const BudgetWizard: React.FC = () => {
   
   // Update steps whenever data source changes
   useEffect(() => {
+    console.log('Data source changed to:', selectedDataSource);
+    
     if (selectedDataSource === 'JLL') {
       // JLL uses its own options, and we skip the space allocation step per client request
       const jllSteps = initialSteps.filter(step => 
@@ -55,10 +57,13 @@ const BudgetWizard: React.FC = () => {
         step.id === 'jllOptions' || 
         step.id === 'results'
       );
+      console.log('JLL selected - Using JLL steps:', jllSteps.map(s => s.id).join(' → '));
       setSteps(jllSteps);
     } else {
       // For other data sources, use standard steps without JLL options
-      setSteps(initialSteps.filter(step => step.id !== 'jllOptions'));
+      const standardSteps = initialSteps.filter(step => step.id !== 'jllOptions');
+      console.log('Standard data source - Using steps:', standardSteps.map(s => s.id).join(' → '));
+      setSteps(standardSteps);
     }
   }, [selectedDataSource]);
 

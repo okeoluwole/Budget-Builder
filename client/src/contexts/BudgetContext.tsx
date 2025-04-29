@@ -230,6 +230,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   }, []);
 
   const updateDataSource = useCallback((dataSource: DataSourceType, enableComparison: boolean, comparisonSources: DataSourceType[] = []) => {
+    console.log('BudgetContext: Updating data source:', { dataSource, enableComparison, comparisonSources });
     dispatch({
       type: 'UPDATE_DATA_SOURCE',
       payload: { dataSource, enableComparison, comparisonSources }
@@ -237,6 +238,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   }, []);
 
   const updateJllOptions = useCallback((jllLayout: JLLLayout, jllQuality: JLLQuality) => {
+    console.log('BudgetContext: Updating JLL options:', { jllLayout, jllQuality });
     dispatch({
       type: 'UPDATE_JLL_OPTIONS',
       payload: { jllLayout, jllQuality }
