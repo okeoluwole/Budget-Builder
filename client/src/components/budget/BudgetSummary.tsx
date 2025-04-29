@@ -200,10 +200,12 @@ const BudgetSummary: React.FC<BudgetSummaryProps> = ({
         </div>
       </div>
 
-      {/* Show space allocation if we have any costs to display */}
+      {/* Show space allocation if we have any costs to display and we have space data
+          or we can generate default space data (check if budgetBreakdown has JLL in it) */}
       {((scope === 'Fitout' && calculatedFitoutCost > 0) || 
          (scope === 'Furniture' && calculatedFurnitureCost > 0) || 
-         (scope === 'Both' && (calculatedFitoutCost > 0 || calculatedFurnitureCost > 0))) && (
+         (scope === 'Both' && (calculatedFitoutCost > 0 || calculatedFurnitureCost > 0))) &&
+        (!Object.keys(budgetBreakdown).some(key => key.includes('JLL'))) && (
         <>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-800">Space Allocation Breakdown</h3>

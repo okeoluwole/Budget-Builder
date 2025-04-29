@@ -170,6 +170,9 @@ export const calculateBudget = async ({
     
     // Handle JLL data source calculation
     if (budget.primaryDataSource && budget.primaryDataSource === 'JLL') {
+      console.log('====== JLL CALCULATION START ======');
+      
+      // Ensure we have JLL layout and quality options
       if (!budget.jllLayout || !budget.jllQuality) {
         console.warn('JLL data source selected but missing layout or quality settings');
         // Fall back to default values if not specified
@@ -179,121 +182,130 @@ export const calculateBudget = async ({
       
       console.log(`Using JLL layout: ${budget.jllLayout} and quality: ${budget.jllQuality}`);
       
-      // Log the entire budget object for debugging
-      console.log('Full budget object for JLL calculation:', JSON.stringify(budget));
-      console.log('Full project object for JLL calculation:', JSON.stringify(project));
-      
-      // For demonstration, we'll base JLL costs on CBRE costs with modifiers
-      // This is a simplification - in a real implementation we would use actual JLL data from API
-      
-      // Get JLL cost factor based on selected layout and quality
-      const jllFactor = getJllRateFactor(budget.jllLayout, budget.jllQuality);
-      console.log(`JLL factor for ${budget.jllLayout}/${budget.jllQuality}: ${jllFactor}`);
-      
-      // First get base rates from CBRE data (same as normal calculation)
-      // Use cached data if available, otherwise fetch from API
-      let fitoutCostsData: FitoutCostData[];
-      if (cachedFitoutCostsData) {
-        console.log("Using cached fitout costs data as base for JLL calculation");
-        fitoutCostsData = cachedFitoutCostsData;
-      } else {
-        console.log("Fetching fitout costs data from API as base for JLL calculation");
-        const res = await apiRequest('GET', '/api/fitout-costs', undefined);
-        fitoutCostsData = await res.json();
-        cachedFitoutCostsData = fitoutCostsData; // Cache the results
-      }
-      
-      // Find location-specific cost data
-      const fitoutLocationData = fitoutCostsData.find(item => 
-        item.country === project.country && item.city === project.city
-      );
-      
-      if (!fitoutLocationData) {
-        throw new Error(`No cost data found for ${project.city}, ${project.country}`);
-      }
-      
-      // Get base costs - map CBRE specification to closest JLL quality
-      // JLL uses Baseline, Medium, High while CBRE uses Low, Medium, High
-      const specificationLevel = budget.jllQuality === 'Baseline' ? 'Low' : 
-                              budget.jllQuality === 'Medium' ? 'Medium' : 'High';
-      
-      const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
-      
-      // For JLL, we'll use Activity layout as base since it's most versatile
-      const baseLayoutType = 'Activity' as keyof typeof fitoutLocationData.costs[typeof areaUnit];
-      
-      // Get base rate per unit area
-      const baseRate = fitoutLocationData.costs[areaUnit][baseLayoutType][specificationLevel];
-      if (!baseRate) {
-        throw new Error(`No base rate found for JLL calculation`);
-      }
-      
-      // Get the region from location data to apply region-specific JLL costs
-      const region = fitoutLocationData.region; // AMERICAS, EMEA, APAC
-      console.log(`JLL calculation using region: ${region}`);
-
-      // Map CBRE regions to JLL regions
-      let jllRegion = 'global'; // Default to global averages
-      if (region === 'AMERICAS') {
-        // CBRE's AMERICAS region maps to JLL's NAM (North America) or LATAM (Latin America)
-        // For simplicity, we'll use NAM for US/Canada and LATAM for other American countries
-        if (['United States', 'Canada'].includes(project.country)) {
-          jllRegion = 'NAM';
-        } else {
-          jllRegion = 'LATAM';
+      try {
+        // SIMPLIFIED APPROACH: Use fixed JLL rates from the 2025 JLL report
+        // Global average costs matrix (in USD/sqm) from JLL 2025 guide
+        const jllBaseRates = {
+          'Open & flexible': {
+            'Baseline': 1700, // $1,700/sqm
+            'Medium': 1830,   // $1,830/sqm
+            'High': 2090      // $2,090/sqm
+          },
+          'High spatial variety': {
+            'Baseline': 1830, // $1,830/sqm
+            'Medium': 1970,   // $1,970/sqm 
+            'High': 2250      // $2,250/sqm
+          },
+          'Structured': {
+            'Baseline': 1900, // $1,900/sqm
+            'Medium': 2050,   // $2,050/sqm
+            'High': 2360      // $2,360/sqm
+          }
+        };
+        
+        // Determine region-based adjustment factors
+        let regionFactor = 1.0; // Default - no adjustment
+        
+        // Apply regional factors based on JLL 2025 data
+        if (project.country === 'United States') {
+          regionFactor = 1.05; // 5% higher than global average
+        } else if (['United Kingdom', 'France', 'Germany'].includes(project.country)) {
+          regionFactor = 1.08; // 8% higher for major European markets
+        } else if (['Japan', 'Singapore', 'Hong Kong'].includes(project.country)) {
+          regionFactor = 1.12; // 12% higher for premium Asian markets
+        } else if (['China', 'India', 'Brazil'].includes(project.country)) {
+          regionFactor = 0.92; // 8% lower for emerging markets
         }
-      } else if (region === 'EMEA') {
-        jllRegion = 'EMEA';
-      } else if (region === 'APAC') {
-        jllRegion = 'APAC';
+        
+        console.log(`Applied region factor for ${project.country}: ${regionFactor}`);
+        
+        // Get base rate for the selected layout and quality
+        const baseRate = jllBaseRates[budget.jllLayout][budget.jllQuality];
+        console.log(`JLL base rate for ${budget.jllLayout}/${budget.jllQuality}: ${baseRate} USD/sqm`);
+        
+        // Apply region factor to get adjusted rate
+        const adjustedRate = baseRate * regionFactor;
+        console.log(`Region-adjusted rate: ${adjustedRate} USD/sqm`);
+        
+        // If needed, convert from sqm to sqft or vice versa
+        let calculationRate = adjustedRate;
+        if (project.areaUnit === 'sqft') {
+          // Convert rate from USD/sqm to USD/sqft (1 sqm = 10.764 sqft)
+          calculationRate = adjustedRate / 10.764;
+          console.log(`Converted to USD/sqft: ${calculationRate}`);
+        }
+        
+        // Calculate raw cost
+        const rawAreaCost = calculationRate * project.totalArea;
+        console.log(`Raw area cost: ${rawAreaCost} USD`);
+        
+        // Apply inflation if specified
+        const inflatedCost = project.inflationRate 
+          ? applyInflation(rawAreaCost, project.inflationRate)
+          : rawAreaCost;
+        console.log(`After inflation: ${inflatedCost} USD`);
+        
+        // Use JLL's standard breakdown percentages by category
+        const defaultBreakdown = {
+          'Builders Works': 0.37, // 37% 
+          'M&E Services': 0.29,   // 29%
+          'Furniture, Fixtures, Equipment': 0.14, // 14% - For furniture portion
+          'Security, IT & AV works': 0.12,    // 12%
+          'Professional Services': 0.08  // 8%
+        };
+        
+        // Apply breakdown based on scope
+        if (scope === 'Fitout' || scope === 'Both') {
+          // For fitout, exclude furniture percentage
+          fitoutCost = inflatedCost * (1 - defaultBreakdown['Furniture, Fixtures, Equipment']);
+          console.log(`Fitout cost: ${fitoutCost} USD`);
+        }
+        
+        if (scope === 'Furniture' || scope === 'Both') {
+          // For furniture, include only furniture percentage
+          furnitureCost = inflatedCost * defaultBreakdown['Furniture, Fixtures, Equipment'];
+          console.log(`Furniture cost: ${furnitureCost} USD`);
+        }
+        
+        // Special case if scope is just furniture
+        if (scope === 'Furniture') {
+          // Override with just furniture (100%)
+          furnitureCost = inflatedCost;
+          console.log(`Furniture-only cost: ${furnitureCost} USD`);
+        }
+        
+        // Set total cost based on scope
+        totalCost = scope === 'Fitout' ? fitoutCost : 
+                  scope === 'Furniture' ? furnitureCost : 
+                  fitoutCost + furnitureCost; // For 'Both'
+        
+        console.log(`Total cost (${scope}): ${totalCost} USD`);
+        console.log('====== JLL CALCULATION COMPLETE ======');
+        
+        // Initialize costs breakdown with JLL marker
+        let jllCostsBreakdown: { [key: string]: number } = {
+          'JLL DATA SOURCE': 1  // Marker to identify JLL data source
+        };
+        
+        // Add basic breakdown to costs breakdown
+        jllCostsBreakdown['FITOUT BASE COSTS'] = parseFloat((scope === 'Fitout' || scope === 'Both' ? fitoutCost : 0).toFixed(2));
+        jllCostsBreakdown['FURNITURE BASE COSTS'] = parseFloat((scope === 'Furniture' || scope === 'Both' ? furnitureCost : 0).toFixed(2));
+        
+        // Add detailed JLL breakdown
+        if (scope === 'Fitout' || scope === 'Both') {
+          const fitoutPortion = inflatedCost * (1 - defaultBreakdown['Furniture, Fixtures, Equipment']);
+          jllCostsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutPortion * defaultBreakdown['Builders Works'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
+          jllCostsBreakdown['M&E SERVICES'] = parseFloat((fitoutPortion * defaultBreakdown['M&E Services'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
+          jllCostsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutPortion * defaultBreakdown['Security, IT & AV works'] / (1 - defaultBreakdown['Furniture, Fixtures, Equipment'])).toFixed(2));
+        }
+        
+        // Assign to the main costsBreakdown
+        costsBreakdown = jllCostsBreakdown;
+        
+      } catch (error) {
+        console.error('Error in JLL calculation', error);
+        throw new Error(`JLL calculation error: ${error.message}`);
       }
-      console.log(`Mapped to JLL region: ${jllRegion}`);
-
-      // Apply JLL-specific factor to the base rate
-      const jllRate = baseRate * jllFactor;
-      console.log(`Base rate: ${baseRate}, JLL-adjusted rate: ${jllRate}`);
-      
-      // Calculate cost
-      const jllAreaCost = jllRate * project.totalArea;
-      
-      // Apply inflation if specified
-      const inflatedCost = project.inflationRate 
-        ? applyInflation(jllAreaCost, project.inflationRate)
-        : jllAreaCost;
-      
-      // Get JLL regional cost breakdown percentages
-      // Use the mapped JLL region to get the right cost breakdown percentages
-      console.log(`Using ${jllRegion} cost breakdown percentages`);
-      const jllBreakdownPercentages = jllRegion === 'APAC' || jllRegion === 'EMEA' || 
-                                jllRegion === 'LATAM' || jllRegion === 'NAM' 
-                                  ? jllCostsBreakdownPercentages[jllRegion as keyof typeof jllCostsBreakdownPercentages] 
-                                  : jllCostsBreakdownPercentages.global;
-      
-      // For JLL, we'll directly apply the furniture percentage from JLL's breakdown
-      const furniturePercentage = jllBreakdownPercentages['Furniture, Fixtures, Equipment']; // 12-15% depending on region
-      
-      // Based on scope, assign to fitout or furniture cost
-      if (scope === 'Fitout' || scope === 'Both') {
-        // For fitout, exclude furniture percentage (as it's calculated separately)
-        fitoutCost = inflatedCost * (1 - furniturePercentage);
-      }
-      
-      if (scope === 'Furniture' || scope === 'Both') {
-        // For furniture, apply only furniture percentage
-        furnitureCost = inflatedCost * furniturePercentage;
-      }
-      
-      // If it's just furniture, we need a different calculation
-      if (scope === 'Furniture') {
-        // Just use the furniture portion directly (100% of cost is furniture)
-        furnitureCost = inflatedCost;
-      }
-      
-      // For JLL, the total depends on the scope
-      totalCost = scope === 'Fitout' ? fitoutCost : 
-                scope === 'Furniture' ? furnitureCost : 
-                fitoutCost + furnitureCost; // For 'Both'
-                
     } else {
       // Standard calculation for other data sources
     
