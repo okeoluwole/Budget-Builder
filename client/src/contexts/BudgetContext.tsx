@@ -62,6 +62,7 @@ interface BudgetContextType {
   updateBudgetResults: (totalCost: number, fitoutCost?: number, furnitureCost?: number, costsBreakdown?: any) => void;
   updateDataSource: (dataSource: DataSourceType, enableComparison: boolean, comparisonSources?: DataSourceType[]) => void;
   updateJllOptions: (jllLayout: JLLLayout, jllQuality: JLLQuality) => void;
+  updateTTOptions: (options: Partial<TTOptions>) => void;
   setSavedProject: (project: Project) => void;
   setSavedBudget: (budget: Budget) => void;
   loadBudget: (project: Project, budget: Budget) => void;
@@ -144,6 +145,14 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           ...(state.budget || {}),
           jllLayout: action.payload.jllLayout,
           jllQuality: action.payload.jllQuality
+        }
+      };
+    case 'UPDATE_TT_OPTIONS':
+      return {
+        ...state,
+        ttOptions: {
+          ...(state.ttOptions || {}),
+          ...action.payload
         }
       };
     case 'SET_SAVED_PROJECT':
@@ -254,6 +263,14 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     dispatch({
       type: 'UPDATE_JLL_OPTIONS',
       payload: { jllLayout, jllQuality }
+    });
+  }, []);
+  
+  const updateTTOptions = useCallback((options: Partial<TTOptions>) => {
+    console.log('BudgetContext: Updating T&T options:', options);
+    dispatch({
+      type: 'UPDATE_TT_OPTIONS',
+      payload: options
     });
   }, []);
 
@@ -408,6 +425,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       updateBudgetResults,
       updateDataSource,
       updateJllOptions,
+      updateTTOptions,
       setSavedProject,
       setSavedBudget,
       loadBudget,

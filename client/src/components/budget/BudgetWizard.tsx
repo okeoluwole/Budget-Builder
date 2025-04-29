@@ -10,13 +10,30 @@ import LayoutStep from './LayoutStep';
 import SpaceAllocationStep from './SpaceAllocationStep';
 import BudgetResultsStep from './BudgetResultsStep';
 import JllOptionsStep from './JllOptionsStep';
+import TTRegionSelectionStep from './TTRegionSelectionStep';
+import TTCountrySelectionStep from './TTCountrySelectionStep';
+import TTCitySelectionStep from './TTCitySelectionStep';
+import TTBuildingTypeStep from './TTBuildingTypeStep';
 import { useToast } from '@/hooks/use-toast';
+import { TTRegion, TTBuildingType } from '@/utils/turnerTownsendData';
 
-type Step = 'project' | 'datasource' | 'scope' | 'specification' | 'layout' | 'jllOptions' | 'space' | 'results';
+type Step = 
+  | 'project' 
+  | 'datasource' 
+  | 'scope' 
+  | 'specification' 
+  | 'layout' 
+  | 'jllOptions' 
+  | 'space' 
+  | 'results'
+  | 'ttRegion'
+  | 'ttCountry'
+  | 'ttCity'
+  | 'ttBuildingType';
 
 const BudgetWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<Step>('project');
-  const { state, saveBudget, updateDataSource, updateJllOptions } = useBudget();
+  const { state, saveBudget, updateDataSource, updateJllOptions, updateTTOptions } = useBudget();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [selectedDataSource, setSelectedDataSource] = useState<DataSourceType>(
@@ -37,6 +54,10 @@ const BudgetWizard: React.FC = () => {
     { id: 'specification', title: 'Specification', description: 'Select quality level' },
     { id: 'layout', title: 'Layout', description: 'Select space layout' },
     { id: 'jllOptions', title: 'JLL Options', description: 'JLL-specific configuration' },
+    { id: 'ttRegion', title: 'T&T Region', description: 'Select global region' },
+    { id: 'ttCountry', title: 'T&T Country', description: 'Select country' },
+    { id: 'ttCity', title: 'T&T City', description: 'Select city' },
+    { id: 'ttBuildingType', title: 'T&T Building Type', description: 'Select building type' },
     { id: 'space', title: 'Space Allocation', description: 'Define space usage' },
     { id: 'results', title: 'Budget Results', description: 'Review and export' },
   ];
@@ -59,9 +80,29 @@ const BudgetWizard: React.FC = () => {
       );
       console.log('JLL selected - Using JLL steps:', jllSteps.map(s => s.id).join(' → '));
       setSteps(jllSteps);
+    } else if (selectedDataSource === 'TT') {
+      // T&T uses its own region-country-city-building selection flow
+      const ttSteps = initialSteps.filter(step => 
+        step.id === 'project' || 
+        step.id === 'datasource' || 
+        step.id === 'scope' || 
+        step.id === 'ttRegion' || 
+        step.id === 'ttCountry' || 
+        step.id === 'ttCity' || 
+        step.id === 'ttBuildingType' || 
+        step.id === 'results'
+      );
+      console.log('T&T selected - Using T&T steps:', ttSteps.map(s => s.id).join(' → '));
+      setSteps(ttSteps);
     } else {
       // For other data sources, use standard steps without JLL options
-      const standardSteps = initialSteps.filter(step => step.id !== 'jllOptions');
+      const standardSteps = initialSteps.filter(step => 
+        step.id !== 'jllOptions' && 
+        step.id !== 'ttRegion' && 
+        step.id !== 'ttCountry' && 
+        step.id !== 'ttCity' && 
+        step.id !== 'ttBuildingType'
+      );
       console.log('Standard data source - Using steps:', standardSteps.map(s => s.id).join(' → '));
       setSteps(standardSteps);
     }
@@ -118,6 +159,13 @@ const BudgetWizard: React.FC = () => {
   const [jllLayout, setJllLayout] = useState<JLLLayout>(state.budget?.jllLayout || 'Open & flexible');
   const [jllQuality, setJllQuality] = useState<JLLQuality>(state.budget?.jllQuality || 'Medium');
 
+  // For T&T options
+  const [ttRegion, setTTRegion] = useState<TTRegion | undefined>(state.ttOptions?.region);
+  const [ttCountry, setTTCountry] = useState<string | undefined>(state.ttOptions?.country);
+  const [ttCity, setTTCity] = useState<string | undefined>(state.ttOptions?.city);
+  const [ttBuildingType, setTTBuildingType] = useState<TTBuildingType | undefined>(state.ttOptions?.buildingType);
+  const [ttApplyInflation, setTTApplyInflation] = useState<boolean>(state.ttOptions?.applyInflation || false);
+  
   const renderStepContent = () => {
     switch (currentStep) {
       case 'project':
@@ -167,6 +215,38 @@ const BudgetWizard: React.FC = () => {
               setJllQuality(quality);
               updateJllOptions(jllLayout, quality);
             }}
+          />
+        );
+      case 'ttRegion':
+        return (
+          <TTRegionSelectionStep 
+            onNext={goToNextStep} 
+            onBack={goToPreviousStep} 
+            onSaveAsDraft={handleSaveAsDraft}
+          />
+        );
+      case 'ttCountry':
+        return (
+          <TTCountrySelectionStep 
+            onNext={goToNextStep} 
+            onBack={goToPreviousStep} 
+            onSaveAsDraft={handleSaveAsDraft}
+          />
+        );
+      case 'ttCity':
+        return (
+          <TTCitySelectionStep 
+            onNext={goToNextStep} 
+            onBack={goToPreviousStep} 
+            onSaveAsDraft={handleSaveAsDraft}
+          />
+        );
+      case 'ttBuildingType':
+        return (
+          <TTBuildingTypeStep 
+            onNext={goToNextStep} 
+            onBack={goToPreviousStep} 
+            onSaveAsDraft={handleSaveAsDraft}
           />
         );
       case 'space':
