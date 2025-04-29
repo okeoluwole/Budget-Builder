@@ -32,7 +32,7 @@ type Step =
   | 'ttBuildingType';
 
 const BudgetWizard: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState<Step>('project');
+  const [currentStep, setCurrentStep] = useState<Step>('datasource');
   const { state, saveBudget, updateDataSource, updateJllOptions, updateTTOptions } = useBudget();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -48,8 +48,8 @@ const BudgetWizard: React.FC = () => {
 
   // Define initial steps array
   const initialSteps: { id: Step; title: string; description: string }[] = [
-    { id: 'project', title: 'Project Setup', description: 'Basic project information' },
     { id: 'datasource', title: 'Data Source', description: 'Select cost data source' },
+    { id: 'project', title: 'Project Setup', description: 'Basic project information' },
     { id: 'scope', title: 'Scope Selection', description: 'Choose budget scope' },
     { id: 'specification', title: 'Specification', description: 'Select quality level' },
     { id: 'layout', title: 'Layout', description: 'Select space layout' },

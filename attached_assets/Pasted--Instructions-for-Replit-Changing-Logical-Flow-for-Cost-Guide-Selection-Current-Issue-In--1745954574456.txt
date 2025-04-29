@@ -1,0 +1,168 @@
+# Instructions for Replit: Changing Logical Flow for Cost Guide Selection
+
+## Current Issue
+
+In the current application flow, users are immediately asked for project information before they select which cost guide they want to use for their budget estimation. This creates several limitations:
+
+1. Users don't have a chance to choose their preferred data source upfront
+2. Project information forms may contain fields that aren't relevant to the specific guide they'll eventually use
+3. The application can't tailor the subsequent questions based on the selected guide's methodology
+4. Users may need to re-enter information if they later change their mind about which guide to use
+
+## Proposed Flow Change
+
+Please modify the application to implement the following logical flow:
+
+1. **First Step: Cost Guide Selection**
+   - Present users with a selection of available cost guides (CBRE, JLL, T&T, etc.)
+   - Include brief descriptions of each guide's strengths and focus areas
+   - Allow users to make their selection before proceeding
+
+2. **Second Step: Project Information Collection**
+   - After guide selection, dynamically generate the project information form
+   - Include only fields relevant to the selected guide
+   - Use terminology consistent with the selected guide
+
+3. **Subsequent Steps: Continue as previously designed**
+   - Specification selection
+   - Layout type selection
+   - Budget calculation
+   - Results display
+
+## Implementation Guidance
+
+### Guide Selection Interface
+
+Create a new component for the guide selection step that:
+
+```jsx
+// Example component structure
+const GuideSelectionStep = () => {
+  const guides = [
+    {
+      id: "cbre",
+      name: "CBRE Global Fit-Out Cost Guide",
+      description: "Comprehensive global data with Bronze/Silver/Gold specification levels",
+      year: "2023-2024"
+    },
+    {
+      id: "jll",
+      name: "JLL Global Office Fit-Out Cost Guide",
+      description: "Focused on space typologies with detailed regional breakdowns",
+      year: "2025"
+    },
+    {
+      id: "tt",
+      name: "Turner & Townsend ICMS",
+      description: "International Construction Market Survey with detailed labor and material costs",
+      year: "2024"
+    }
+  ];
+  
+  // Implementation of selection UI and state management
+  // ...
+}
+```
+
+### Workflow Controller Modification
+
+Update the main workflow controller to:
+
+1. Start with the guide selection step
+2. Store the selected guide in application state
+3. Use the selected guide to determine which fields to include in the project information step
+4. Pass the guide selection to subsequent steps so they can adjust their behavior accordingly
+
+```jsx
+// Pseudocode for workflow controller
+const WorkflowController = () => {
+  const [currentStep, setCurrentStep] = useState("guideSelection");
+  const [selectedGuide, setSelectedGuide] = useState(null);
+  const [projectInfo, setProjectInfo] = useState({});
+  
+  // Rest of the component implementation
+  // ...
+  
+  // Render the appropriate step based on currentStep
+  return (
+    <div className="workflow-container">
+      {currentStep === "guideSelection" && (
+        <GuideSelectionStep 
+          onSelect={(guide) => {
+            setSelectedGuide(guide);
+            setCurrentStep("projectInfo");
+          }}
+        />
+      )}
+      
+      {currentStep === "projectInfo" && (
+        <ProjectInfoStep 
+          selectedGuide={selectedGuide}
+          onComplete={(info) => {
+            setProjectInfo(info);
+            setCurrentStep("specification");
+          }}
+        />
+      )}
+      
+      {/* Additional steps... */}
+    </div>
+  );
+};
+```
+
+### Dynamic Form Generation
+
+The project information form should adapt based on the selected guide:
+
+```jsx
+// Example of dynamic form generation
+const ProjectInfoStep = ({ selectedGuide, onComplete }) => {
+  // Define which fields to show based on selectedGuide
+  const getFieldsForGuide = (guideId) => {
+    switch(guideId) {
+      case "cbre":
+        return [
+          { id: "location", label: "Location", type: "select", options: cbreLocations },
+          { id: "area", label: "Floor Area (sq.m)", type: "number" },
+          // CBRE-specific fields...
+        ];
+      case "jll":
+        return [
+          { id: "location", label: "Location", type: "select", options: jllLocations },
+          { id: "area", label: "Floor Area (sq.m)", type: "number" },
+          { id: "typology", label: "Office Typology", type: "select", options: jllTypologies },
+          // JLL-specific fields...
+        ];
+      // Other guides...
+    }
+  };
+  
+  const fields = getFieldsForGuide(selectedGuide.id);
+  
+  // Render the dynamic form
+  // ...
+}
+```
+
+## Benefits of This Approach
+
+This flow change delivers several significant improvements:
+
+1. **User-Centered Experience**: Allows users to make conscious decisions about their data source upfront
+2. **Increased Efficiency**: Eliminates unnecessary fields and reduces form complexity
+3. **Reduced Errors**: Ensures all subsequent steps are aligned with the selected guide's methodology
+4. **Better Context**: Provides immediate clarity about which cost benchmarks will be used
+5. **Improved Flexibility**: Makes it easier to add new cost guides to the application in the future
+
+## Data Considerations
+
+Each guide has different data structures and terminology. For example:
+
+- CBRE uses Bronze/Silver/Gold specification levels and Activity/Team/Event layouts
+- JLL focuses on Open & Flexible, High Spatial Variety, and Traditional Focus typologies
+- T&T provides detailed labor and material cost breakdowns
+
+By selecting the guide first, we can ensure all subsequent UIs and calculations align with the appropriate data model.
+
+Please implement this logical flow change as a priority update to improve the application's usability and effectiveness.

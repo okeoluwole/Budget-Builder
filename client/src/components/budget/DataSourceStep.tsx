@@ -48,8 +48,8 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
     {
       id: 'cbre',
       name: 'CBRE',
-      displayName: 'CBRE Fit-Out Cost Guide',
-      description: 'Comprehensive fitout and furniture cost benchmark data from CBRE covering global markets.',
+      displayName: 'CBRE Global Fit-Out Cost Guide',
+      description: 'Comprehensive global data with Bronze/Silver/Gold specification levels and Activity/Team/Event layout options. Best for standard office spaces with detailed space allocation needs.',
       logo: <FaBuilding className="w-8 h-8 text-blue-600" />,
       version: '2024/25',
       releaseDate: 'January 2024',
@@ -59,8 +59,8 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
     {
       id: 'jll',
       name: 'JLL',
-      displayName: 'JLL Office Fit-Out Guide',
-      description: 'Global office fit-out cost data from JLL with detailed regional benchmarks.',
+      displayName: 'JLL Global Office Fit-Out Guide',
+      description: 'Focused on space typologies with detailed regional cost breakdowns. Uses Open & Flexible, High Spatial Variety, and Traditional Focus typologies with Baseline/Medium/High quality options.',
       logo: <BsBuildings className="w-8 h-8 text-red-600" />,
       version: '2025',
       releaseDate: 'March 2024',
@@ -70,8 +70,8 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
     {
       id: 'tt',
       name: 'TT',
-      displayName: 'Turner & Townsend Cost Data',
-      description: 'Detailed international construction and fit-out cost indices from Turner & Townsend.',
+      displayName: 'Turner & Townsend ICMS',
+      description: 'International Construction Market Survey with detailed labor, material, and equipment costs. Includes location indices, contractor margins, and regional market outlooks. Best for complex projects.',
       logo: <FaChartLine className="w-8 h-8 text-gray-700" />,
       version: '2024 Q1',
       releaseDate: 'February 2024',
@@ -82,7 +82,7 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
       id: 'mmc',
       name: 'MMC',
       displayName: 'MMC Cost Data',
-      description: 'Industry-specific MMC cost data with detailed project budgeting capabilities.',
+      description: 'Industry-specific Modern Methods of Construction data with detailed project budgeting capabilities. Includes specialized cost indices for prefabricated and modular construction approaches.',
       logo: <FaIndustry className="w-8 h-8 text-emerald-600" />,
       version: '2024 ED',
       releaseDate: 'April 2024',
@@ -112,7 +112,7 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
     <div className="p-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Select Cost Data Source</h2>
       <p className="text-gray-600 mb-6">
-        Choose the primary cost data source to use for your budget calculation. Each source provides different regional coverage and specifications.
+        <strong>This is the first and most important step.</strong> Choose which cost guide you want to use for your budget estimate. Your selection will determine the methodology, data points, and workflow for subsequent steps. Each source offers different strengths and regional coverage.
       </p>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -232,7 +232,7 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
           <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Back: Project Setup
+          Cancel
         </button>
         
         <div>
@@ -249,7 +249,7 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
             className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             onClick={handleNext}
           >
-            Next: Scope Selection
+            Next: Project Setup
             <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
