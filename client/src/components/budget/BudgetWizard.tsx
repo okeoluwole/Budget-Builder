@@ -47,9 +47,18 @@ const BudgetWizard: React.FC = () => {
   // Update steps whenever data source changes
   useEffect(() => {
     if (selectedDataSource === 'JLL') {
-      setSteps(initialSteps);
+      // JLL uses its own options, so we define the complete step flow for JLL
+      const jllSteps = initialSteps.filter(step => 
+        step.id === 'project' || 
+        step.id === 'datasource' || 
+        step.id === 'scope' || 
+        step.id === 'jllOptions' || 
+        step.id === 'space' || 
+        step.id === 'results'
+      );
+      setSteps(jllSteps);
     } else {
-      // Remove JLL-specific steps for other data sources
+      // For other data sources, use standard steps without JLL options
       setSteps(initialSteps.filter(step => step.id !== 'jllOptions'));
     }
   }, [selectedDataSource]);

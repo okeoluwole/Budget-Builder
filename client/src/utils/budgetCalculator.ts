@@ -252,7 +252,9 @@ export const calculateBudget = async ({
         : jllAreaCost;
       
       // Get JLL regional cost breakdown percentages
-      const breakdownPercentages = jllCostsBreakdownPercentages[jllRegion] || jllCostsBreakdownPercentages.global;
+      // Add clear type assertion to help TypeScript understand the structure
+      const breakdownPercentages = jllCostsBreakdownPercentages[jllRegion as keyof typeof jllCostsBreakdownPercentages] || 
+                              jllCostsBreakdownPercentages.global;
       
       // For JLL, we'll directly apply the furniture percentage from JLL's breakdown
       const furniturePercentage = breakdownPercentages['Furniture, Fixtures, Equipment']; // 12-15% depending on region
@@ -434,11 +436,30 @@ export const calculateBudget = async ({
         // Add the main fitout cost
         costsBreakdown['FITOUT COSTS'] = parseFloat(fitoutCost.toFixed(2));
         
-        // Add JLL-specific breakdown categories using the correct region
-        costsBreakdown['BUILDERS WORKS'] = parseFloat((totalCost * breakdownPercentages['Builders Works']).toFixed(2));
-        costsBreakdown['M&E SERVICES'] = parseFloat((totalCost * breakdownPercentages['M&E Services']).toFixed(2));
-        costsBreakdown['SECURITY, IT & AV WORKS'] = parseFloat((totalCost * breakdownPercentages['Security, IT & AV works']).toFixed(2));
-        costsBreakdown['PROFESSIONAL SERVICES'] = parseFloat((totalCost * breakdownPercentages['Professional Services']).toFixed(2));
+        // Adding detailed logging for debugging
+        console.log('JLL breakdown percentages:', breakdownPercentages);
+        
+        // Add JLL-specific breakdown categories using the correct region with error handling
+        try {
+          const buildersWorksPercent = breakdownPercentages['Builders Works'] || 0.37; // Default to global value
+          costsBreakdown['BUILDERS WORKS'] = parseFloat((totalCost * buildersWorksPercent).toFixed(2));
+          
+          const meServicesPercent = breakdownPercentages['M&E Services'] || 0.29; // Default to global value
+          costsBreakdown['M&E SERVICES'] = parseFloat((totalCost * meServicesPercent).toFixed(2));
+          
+          const securityPercent = breakdownPercentages['Security, IT & AV works'] || 0.12; // Default to global value
+          costsBreakdown['SECURITY, IT & AV WORKS'] = parseFloat((totalCost * securityPercent).toFixed(2));
+          
+          const profServicesPercent = breakdownPercentages['Professional Services'] || 0.08; // Default to global value
+          costsBreakdown['PROFESSIONAL SERVICES'] = parseFloat((totalCost * profServicesPercent).toFixed(2));
+        } catch (err) {
+          console.error('Error calculating JLL cost breakdown:', err);
+          // Use global averages as fallback
+          costsBreakdown['BUILDERS WORKS'] = parseFloat((totalCost * 0.37).toFixed(2));
+          costsBreakdown['M&E SERVICES'] = parseFloat((totalCost * 0.29).toFixed(2));
+          costsBreakdown['SECURITY, IT & AV WORKS'] = parseFloat((totalCost * 0.12).toFixed(2));
+          costsBreakdown['PROFESSIONAL SERVICES'] = parseFloat((totalCost * 0.08).toFixed(2));
+        }
       }
       
       // Add furniture costs as appropriate
