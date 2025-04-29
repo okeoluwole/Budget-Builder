@@ -53,8 +53,8 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
     {
       id: 'open-flexible',
       value: 'Open & flexible',
-      title: 'Open & Flexible',
-      description: 'A predominantly open plan layout with flexible spaces that can be reconfigured as needed.',
+      title: 'Open & flexible (Progressive)',
+      description: 'Open floor plan with no enclosed offices, prioritizing open collaboration spaces.',
       icon: <LayoutGrid className="h-10 w-10 text-blue-500" />,
       benefits: [
         'Maximizes space efficiency',
@@ -67,8 +67,8 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
     {
       id: 'spatial-variety',
       value: 'High spatial variety',
-      title: 'High Spatial Variety',
-      description: 'A mix of open and enclosed spaces with a variety of work settings to support different activities.',
+      title: 'High spatial variety (Moderate)',
+      description: 'Open floor plan with mix of open/enclosed collaboration spaces.',
       icon: <Layers3 className="h-10 w-10 text-indigo-600" />,
       benefits: [
         'Supports diverse work styles and preferences',
@@ -81,8 +81,8 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
     {
       id: 'structured',
       value: 'Structured',
-      title: 'Structured',
-      description: 'A more traditional layout with greater emphasis on private offices and dedicated workspaces.',
+      title: 'Structured (Traditional)',
+      description: 'Focus on dedicated desks, private offices and enclosed meeting rooms.',
       icon: <Building2 className="h-10 w-10 text-gray-700" />,
       benefits: [
         'Maximizes privacy and concentration',
@@ -100,7 +100,7 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
       id: 'baseline',
       value: 'Baseline',
       title: 'Baseline',
-      description: 'Functional and cost-effective finishes with standard specifications.',
+      description: 'Simple aesthetic with finishes focused on function.',
       features: [
         'Standard suspended ceiling systems',
         'Basic carpet tiles in open areas',
@@ -118,7 +118,7 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
       id: 'medium',
       value: 'Medium',
       title: 'Medium',
-      description: 'Enhanced quality finishes with a focus on aesthetics and functionality.',
+      description: 'Standard project complexity with some unique design features.',
       features: [
         'Mix of open and feature ceilings',
         'Mid-range flooring with accent areas',
@@ -137,7 +137,7 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
       id: 'high',
       value: 'High',
       title: 'High',
-      description: 'Premium quality finishes and specification with emphasis on design and sustainability.',
+      description: 'Emphasizes top-quality finishes with increased aesthetic detail.',
       features: [
         'Bespoke ceiling features',
         'Premium flooring materials including natural products',
@@ -157,9 +157,9 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-2">JLL Options</h2>
+      <h2 className="text-xl font-semibold text-gray-800 mb-2">JLL Typology & Quality Matrix</h2>
       <p className="text-gray-600 mb-6">
-        Configure the JLL-specific layout and quality options for your project.
+        Configure the JLL-specific layout typology and quality level based on JLL's 9-point matrix system.
       </p>
 
       <Tabs
@@ -169,15 +169,15 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
         className="w-full mb-8"
       >
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="layout">Layout Style</TabsTrigger>
-          <TabsTrigger value="quality">Quality Level</TabsTrigger>
+          <TabsTrigger value="layout">Layout Typology</TabsTrigger>
+          <TabsTrigger value="quality">Quality/Complexity</TabsTrigger>
         </TabsList>
 
         {/* Layout Selection Tab */}
         <TabsContent value="layout" className="mt-6">
-          <h3 className="text-lg font-medium text-gray-800 mb-4">Select Layout Style</h3>
+          <h3 className="text-lg font-medium text-gray-800 mb-4">Select Layout Typology</h3>
           <p className="text-gray-600 mb-6">
-            Choose a layout style that best suits your organization's working style and culture.
+            Choose a layout typology that best suits your organization's working style and culture.
           </p>
 
           <RadioGroup 
@@ -219,9 +219,9 @@ const JllOptionsStep: React.FC<JllOptionsStepProps> = ({
 
         {/* Quality Selection Tab */}
         <TabsContent value="quality" className="mt-6">
-          <h3 className="text-lg font-medium text-gray-800 mb-4">Select Quality Level</h3>
+          <h3 className="text-lg font-medium text-gray-800 mb-4">Select Quality/Complexity Level</h3>
           <p className="text-gray-600 mb-6">
-            Choose the quality level that aligns with your budget and brand requirements.
+            Choose the quality and complexity level that aligns with your budget and brand requirements.
           </p>
 
           <RadioGroup 
