@@ -233,11 +233,24 @@ function calculateJllCosts(
   
   console.log(`JLL calculation using region: ${jllRegion} for country: ${project.country}`);
   
-  // Get the breakdown percentages for the current region
-  const breakdownPercentages = jllCostsBreakdownPercentages[jllRegion] || jllCostsBreakdownPercentages.global;
+  // Get the breakdown percentages for the current region with type safety
+  const breakdownPercentages = 
+    jllRegion === 'APAC' ? jllCostsBreakdownPercentages.APAC :
+    jllRegion === 'EMEA' ? jllCostsBreakdownPercentages.EMEA :
+    jllRegion === 'LATAM' ? jllCostsBreakdownPercentages.LATAM :
+    jllRegion === 'NAM' ? jllCostsBreakdownPercentages.NAM :
+    jllCostsBreakdownPercentages.global;
   
-  // Use JLL's standard breakdown percentages for furniture
-  const ffePortion = breakdownPercentages['Furniture, Fixtures, Equipment']; // Use region-specific FF&E percentage
+  // Use JLL's standard breakdown percentages for furniture with error handling
+  let ffePortion = 0.13; // Default to global average (13%)
+  try {
+    // Safely access the FF&E portion with fallback
+    if (breakdownPercentages && typeof breakdownPercentages['Furniture, Fixtures, Equipment'] === 'number') {
+      ffePortion = breakdownPercentages['Furniture, Fixtures, Equipment'];
+    }
+  } catch (err) {
+    console.error('Error getting FF&E portion:', err);
+  }
   console.log(`Using FF&E portion for ${jllRegion}: ${ffePortion}`);
   
   // Calculate costs based on scope
@@ -263,12 +276,42 @@ function calculateJllCosts(
   costsBreakdown['FITOUT BASE COSTS'] = parseFloat((fitoutCost).toFixed(2));
   costsBreakdown['FURNITURE BASE COSTS'] = parseFloat((furnitureCost).toFixed(2));
   
-  // Add detailed breakdown for fitout using the region-specific percentages
+  // Add detailed breakdown for fitout using the region-specific percentages with error handling
   if (fitoutCost > 0) {
-    costsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutCost * breakdownPercentages['Builders Works']).toFixed(2));
-    costsBreakdown['M&E SERVICES'] = parseFloat((fitoutCost * breakdownPercentages['M&E Services']).toFixed(2));
-    costsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutCost * breakdownPercentages['Security, IT & AV works']).toFixed(2));
-    costsBreakdown['PROJECT MANAGEMENT'] = parseFloat((fitoutCost * breakdownPercentages['Professional Services']).toFixed(2));
+    try {
+      // Make sure we have all necessary keys and use fallbacks if not
+      const buildersWorksPct = breakdownPercentages && typeof breakdownPercentages['Builders Works'] === 'number' 
+        ? breakdownPercentages['Builders Works'] : 0.37; // Default to 37%
+      
+      const meServicesPct = breakdownPercentages && typeof breakdownPercentages['M&E Services'] === 'number'
+        ? breakdownPercentages['M&E Services'] : 0.29; // Default to 29%
+      
+      const securityAvPct = breakdownPercentages && typeof breakdownPercentages['Security, IT & AV works'] === 'number'
+        ? breakdownPercentages['Security, IT & AV works'] : 0.12; // Default to 12%
+      
+      const professionalServicesPct = breakdownPercentages && typeof breakdownPercentages['Professional Services'] === 'number'
+        ? breakdownPercentages['Professional Services'] : 0.08; // Default to 8%
+      
+      // Now safely use these values
+      costsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutCost * buildersWorksPct).toFixed(2));
+      costsBreakdown['M&E SERVICES'] = parseFloat((fitoutCost * meServicesPct).toFixed(2));
+      costsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutCost * securityAvPct).toFixed(2));
+      costsBreakdown['PROJECT MANAGEMENT'] = parseFloat((fitoutCost * professionalServicesPct).toFixed(2));
+      
+      console.log('JLL breakdown successfully added to costs:', {
+        buildersWorks: buildersWorksPct,
+        meServices: meServicesPct,
+        securityAv: securityAvPct,
+        professionalServices: professionalServicesPct
+      });
+    } catch (err) {
+      console.error('Error applying JLL breakdown percentages:', err);
+      // Fall back to global averages
+      costsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutCost * 0.37).toFixed(2));
+      costsBreakdown['M&E SERVICES'] = parseFloat((fitoutCost * 0.29).toFixed(2));
+      costsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutCost * 0.12).toFixed(2));
+      costsBreakdown['PROJECT MANAGEMENT'] = parseFloat((fitoutCost * 0.08).toFixed(2));
+    }
   }
   
   // Create default allocation based on JLL layout type
@@ -861,7 +904,35 @@ export const calculateBudget = async ({
     };
   } catch (error) {
     console.error('Error in budget calculation:', error);
-    throw error;
+    
+    // Log detailed information for debugging
+    console.error('Budget calculation failed with the following parameters:');
+    console.error('- Project:', JSON.stringify(project));
+    console.error('- Budget:', JSON.stringify({
+      scope: budget.scope,
+      specification: budget.specification,
+      layout: budget.layout,
+      primaryDataSource: budget.primaryDataSource,
+      jllLayout: budget.jllLayout,
+      jllQuality: budget.jllQuality
+    }));
+    
+    // Create a more user-friendly error message
+    let errorMessage = 'Could not calculate budget. ';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('cost data found')) {
+        errorMessage += 'No cost data available for the selected location.';
+      } else if (error.message.includes('required budget parameters')) {
+        errorMessage += 'Some required information is missing.';
+      } else {
+        errorMessage += error.message;
+      }
+    } else {
+      errorMessage += 'An unexpected error occurred.';
+    }
+    
+    throw new Error(errorMessage);
   }
 };
 
