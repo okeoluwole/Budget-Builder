@@ -1,9 +1,14 @@
-import { Project, Budget, BudgetCategory, FitoutCostData, SpaceAllocation, CurrencyRate, BudgetScope, FurnitureCostData } from '@shared/schema';
+import { Project, Budget, BudgetCategory, FitoutCostData, SpaceAllocation, CurrencyRate, BudgetScope, FurnitureCostData, JLLLayout, JLLQuality, DataSourceType } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 
 interface BudgetCalculationParams {
   project: Project;
-  budget: Partial<Budget> & { spaceAllocation?: SpaceAllocation };
+  budget: Partial<Budget> & { 
+    spaceAllocation?: SpaceAllocation;
+    primaryDataSource?: DataSourceType;
+    jllLayout?: JLLLayout;
+    jllQuality?: JLLQuality;
+  };
   budgetStructure: BudgetCategory[];
 }
 
@@ -48,9 +53,43 @@ const applyInflation = (value: number, inflationRate: number, years: number = 1)
   return value * factor;
 };
 
+// Get JLL rate based on layout and quality
+const getJllRateFactor = (layout: JLLLayout, quality: JLLQuality): number => {
+  // Base rate multipliers for each JLL layout and quality combination
+  const rateFactors = {
+    'Open & flexible': {
+      'Baseline': 0.9,
+      'Medium': 1.0,
+      'High': 1.3
+    },
+    'High spatial variety': {
+      'Baseline': 1.0,
+      'Medium': 1.2,
+      'High': 1.5
+    },
+    'Structured': {
+      'Baseline': 1.1,
+      'Medium': 1.3,
+      'High': 1.7
+    }
+  };
+
+  return rateFactors[layout][quality];
+};
+
+// JLL costs breakdown percentages - based on JLL global averages
+const jllCostsBreakdownPercentages = {
+  'Builders Works': 0.37, // 37%
+  'M&E Services': 0.29,   // 29%
+  'Furniture & Equipment': 0.13, // 13%
+  'Technology': 0.12,     // 12%
+  'Professional Services': 0.08  // 8%
+};
+
 // Cache for data to avoid repeated API calls
 let cachedFitoutCostsData: FitoutCostData[] | null = null;
 let cachedFurnitureCostsData: FurnitureCostData[] | null = null;
+let cachedJllCostsData: any[] | null = null;
 
 // We don't need currency rates cache as we use direct endpoint
 // let cachedCurrencyRates: CurrencyRate[] | null = null;
