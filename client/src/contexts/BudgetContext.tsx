@@ -10,6 +10,8 @@ interface BudgetState {
     costsBreakdown?: any;
     fitoutSpecification?: string;
     furnitureSpecification?: string;
+    primaryDataSource?: DataSourceType;
+    isComparisonEnabled?: boolean;
   };
   savedProject?: Project;
   savedBudget?: Budget;
@@ -23,6 +25,7 @@ type BudgetAction =
   | { type: 'UPDATE_LAYOUT'; payload: string }
   | { type: 'UPDATE_SPACE_ALLOCATION'; payload: SpaceAllocation }
   | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; fitoutCost?: number; furnitureCost?: number; costsBreakdown: any } }
+  | { type: 'UPDATE_DATA_SOURCE'; payload: { dataSource: DataSourceType; enableComparison: boolean } }
   | { type: 'SET_SAVED_PROJECT'; payload: Project }
   | { type: 'SET_SAVED_BUDGET'; payload: Budget }
   | { type: 'CLEAR_STATE' }
@@ -41,6 +44,7 @@ interface BudgetContextType {
   updateLayout: (layout: string) => void;
   updateSpaceAllocation: (spaceAllocation: SpaceAllocation) => void;
   updateBudgetResults: (totalCost: number, fitoutCost?: number, furnitureCost?: number, costsBreakdown?: any) => void;
+  updateDataSource: (dataSource: DataSourceType, enableComparison: boolean) => void;
   setSavedProject: (project: Project) => void;
   setSavedBudget: (budget: Budget) => void;
   loadBudget: (project: Project, budget: Budget) => void;
@@ -104,6 +108,15 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           fitoutCost: action.payload.fitoutCost,
           furnitureCost: action.payload.furnitureCost,
           costsBreakdown: action.payload.costsBreakdown
+        }
+      };
+    case 'UPDATE_DATA_SOURCE':
+      return {
+        ...state,
+        budget: {
+          ...(state.budget || {}),
+          primaryDataSource: action.payload.dataSource,
+          isComparisonEnabled: action.payload.enableComparison
         }
       };
     case 'SET_SAVED_PROJECT':
@@ -196,6 +209,13 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     });
   }, []);
 
+  const updateDataSource = useCallback((dataSource: DataSourceType, enableComparison: boolean) => {
+    dispatch({
+      type: 'UPDATE_DATA_SOURCE',
+      payload: { dataSource, enableComparison }
+    });
+  }, []);
+
   const setSavedProject = useCallback((project: Project) => {
     dispatch({ type: 'SET_SAVED_PROJECT', payload: project });
   }, []);
@@ -277,6 +297,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       updateLayout, 
       updateSpaceAllocation, 
       updateBudgetResults,
+      updateDataSource,
       setSavedProject,
       setSavedBudget,
       loadBudget,

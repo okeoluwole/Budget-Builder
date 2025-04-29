@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useBudget } from '@/contexts/BudgetContext';
+import { DataSourceType } from '@shared/schema';
 import ProjectSetupStep from './ProjectSetupStep';
 import DataSourceStep from './DataSourceStep';
 import ScopeSelectionStep from './ScopeSelectionStep';
@@ -14,11 +15,15 @@ type Step = 'project' | 'datasource' | 'scope' | 'specification' | 'layout' | 's
 
 const BudgetWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<Step>('project');
-  const { state, saveBudget } = useBudget();
+  const { state, saveBudget, updateDataSource } = useBudget();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [selectedDataSource, setSelectedDataSource] = useState<'CBRE' | 'JLL' | 'TT'>('CBRE');
-  const [enableComparison, setEnableComparison] = useState<boolean>(false);
+  const [selectedDataSource, setSelectedDataSource] = useState<DataSourceType>(
+    state.budget?.primaryDataSource || 'CBRE'
+  );
+  const [enableComparison, setEnableComparison] = useState<boolean>(
+    state.budget?.isComparisonEnabled || false
+  );
 
   const steps: { id: Step; title: string; description: string }[] = [
     { id: 'project', title: 'Project Setup', description: 'Basic project information' },
@@ -88,9 +93,15 @@ const BudgetWizard: React.FC = () => {
             onBack={goToPreviousStep} 
             onSaveAsDraft={handleSaveAsDraft}
             selectedDataSource={selectedDataSource}
-            onSelectDataSource={(dataSource) => setSelectedDataSource(dataSource)}
+            onSelectDataSource={(dataSource) => {
+              setSelectedDataSource(dataSource);
+              updateDataSource(dataSource, enableComparison);
+            }}
             enableComparison={enableComparison}
-            onToggleComparison={(enable) => setEnableComparison(enable)}
+            onToggleComparison={(enable) => {
+              setEnableComparison(enable);
+              updateDataSource(selectedDataSource, enable);
+            }}
           />
         );
       case 'scope':
