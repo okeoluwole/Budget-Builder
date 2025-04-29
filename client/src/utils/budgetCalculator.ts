@@ -69,35 +69,72 @@ const applyInflation = (value: number, inflationRate: number, years: number = 1)
 
 // Get JLL rate based on layout and quality
 const getJllRateFactor = (layout: JLLLayout, quality: JLLQuality): number => {
-  // Base rate multipliers for each JLL layout and quality combination
-  const rateFactors = {
+  // Global average costs matrix (in USD/sqm) from JLL 2025 guide
+  // Base values for each JLL layout and quality combination
+  const globalAverageCosts = {
     'Open & flexible': {
-      'Baseline': 0.9,
-      'Medium': 1.0,
-      'High': 1.3
+      'Baseline': 1700, // $1,700/sqm
+      'Medium': 1830,   // $1,830/sqm
+      'High': 2090      // $2,090/sqm
     },
     'High spatial variety': {
-      'Baseline': 1.0,
-      'Medium': 1.2,
-      'High': 1.5
+      'Baseline': 1830, // $1,830/sqm
+      'Medium': 1970,   // $1,970/sqm
+      'High': 2250      // $2,250/sqm
     },
     'Structured': {
-      'Baseline': 1.1,
-      'Medium': 1.3,
-      'High': 1.7
+      'Baseline': 1900, // $1,900/sqm
+      'Medium': 2050,   // $2,050/sqm
+      'High': 2360      // $2,360/sqm
     }
   };
 
-  return rateFactors[layout][quality];
+  // Reference USD/sqm value using Medium quality in the Open & flexible layout
+  const baselineValue = 1830; // Medium quality, Open & flexible
+  
+  // Return a factor relative to the baseline
+  return globalAverageCosts[layout][quality] / baselineValue;
 };
 
-// JLL costs breakdown percentages - based on JLL global averages
+// JLL costs breakdown percentages by region
 const jllCostsBreakdownPercentages = {
-  'Builders Works': 0.37, // 37%
-  'M&E Services': 0.29,   // 29%
-  'Furniture & Equipment': 0.13, // 13%
-  'Technology': 0.12,     // 12%
-  'Professional Services': 0.08  // 8%
+  // Global averages (default)
+  'global': {
+    'Builders Works': 0.37, // 37%
+    'M&E Services': 0.29,   // 29%
+    'Furniture, Fixtures, Equipment': 0.13, // 13%
+    'Security, IT & AV works': 0.12,     // 12%
+    'Professional Services': 0.08  // 8%
+  },
+  // Region-specific breakdowns
+  'APAC': {
+    'Builders Works': 0.34, // 34%
+    'M&E Services': 0.32,   // 32%
+    'Furniture, Fixtures, Equipment': 0.15, // 15%
+    'Security, IT & AV works': 0.12,     // 12%
+    'Professional Services': 0.07  // 7%
+  },
+  'EMEA': {
+    'Builders Works': 0.36, // 36%
+    'M&E Services': 0.30,   // 30%
+    'Furniture, Fixtures, Equipment': 0.13, // 13%
+    'Security, IT & AV works': 0.11,     // 11%
+    'Professional Services': 0.10  // 10%
+  },
+  'LATAM': {
+    'Builders Works': 0.38, // 38%
+    'M&E Services': 0.28,   // 28%
+    'Furniture, Fixtures, Equipment': 0.14, // 14%
+    'Security, IT & AV works': 0.12,     // 12%
+    'Professional Services': 0.08  // 8%
+  },
+  'NAM': {
+    'Builders Works': 0.39, // 39%
+    'M&E Services': 0.27,   // 27%
+    'Furniture, Fixtures, Equipment': 0.12, // 12%
+    'Security, IT & AV works': 0.13,     // 13%
+    'Professional Services': 0.09  // 9%
+  }
 };
 
 // Cache for data to avoid repeated API calls
@@ -181,6 +218,27 @@ export const calculateBudget = async ({
         throw new Error(`No base rate found for JLL calculation`);
       }
       
+      // Get the region from location data to apply region-specific JLL costs
+      const region = fitoutLocationData.region; // AMERICAS, EMEA, APAC
+      console.log(`JLL calculation using region: ${region}`);
+
+      // Map CBRE regions to JLL regions
+      let jllRegion = 'global'; // Default to global averages
+      if (region === 'AMERICAS') {
+        // CBRE's AMERICAS region maps to JLL's NAM (North America) or LATAM (Latin America)
+        // For simplicity, we'll use NAM for US/Canada and LATAM for other American countries
+        if (['United States', 'Canada'].includes(project.country)) {
+          jllRegion = 'NAM';
+        } else {
+          jllRegion = 'LATAM';
+        }
+      } else if (region === 'EMEA') {
+        jllRegion = 'EMEA';
+      } else if (region === 'APAC') {
+        jllRegion = 'APAC';
+      }
+      console.log(`Mapped to JLL region: ${jllRegion}`);
+
       // Apply JLL-specific factor to the base rate
       const jllRate = baseRate * jllFactor;
       console.log(`Base rate: ${baseRate}, JLL-adjusted rate: ${jllRate}`);
@@ -193,18 +251,26 @@ export const calculateBudget = async ({
         ? applyInflation(jllAreaCost, project.inflationRate)
         : jllAreaCost;
       
+      // Get JLL regional cost breakdown percentages
+      const breakdownPercentages = jllCostsBreakdownPercentages[jllRegion] || jllCostsBreakdownPercentages.global;
+      
+      // For JLL, we'll directly apply the furniture percentage from JLL's breakdown
+      const furniturePercentage = breakdownPercentages['Furniture, Fixtures, Equipment']; // 12-15% depending on region
+      
       // Based on scope, assign to fitout or furniture cost
       if (scope === 'Fitout' || scope === 'Both') {
-        fitoutCost = inflatedCost * 0.87; // 87% of total for fitout in JLL model
+        // For fitout, exclude furniture percentage (as it's calculated separately)
+        fitoutCost = inflatedCost * (1 - furniturePercentage);
       }
       
       if (scope === 'Furniture' || scope === 'Both') {
-        furnitureCost = inflatedCost * 0.13; // 13% for furniture in JLL model
+        // For furniture, apply only furniture percentage
+        furnitureCost = inflatedCost * furniturePercentage;
       }
       
       // If it's just furniture, we need a different calculation
       if (scope === 'Furniture') {
-        // Just use the furniture portion directly
+        // Just use the furniture portion directly (100% of cost is furniture)
         furnitureCost = inflatedCost;
       }
       
@@ -368,16 +434,16 @@ export const calculateBudget = async ({
         // Add the main fitout cost
         costsBreakdown['FITOUT COSTS'] = parseFloat(fitoutCost.toFixed(2));
         
-        // Add JLL-specific breakdown categories
-        costsBreakdown['BUILDERS WORKS'] = parseFloat((totalCost * jllCostsBreakdownPercentages['Builders Works']).toFixed(2));
-        costsBreakdown['M&E SERVICES'] = parseFloat((totalCost * jllCostsBreakdownPercentages['M&E Services']).toFixed(2));
-        costsBreakdown['TECHNOLOGY'] = parseFloat((totalCost * jllCostsBreakdownPercentages['Technology']).toFixed(2));
-        costsBreakdown['PROFESSIONAL SERVICES'] = parseFloat((totalCost * jllCostsBreakdownPercentages['Professional Services']).toFixed(2));
+        // Add JLL-specific breakdown categories using the correct region
+        costsBreakdown['BUILDERS WORKS'] = parseFloat((totalCost * breakdownPercentages['Builders Works']).toFixed(2));
+        costsBreakdown['M&E SERVICES'] = parseFloat((totalCost * breakdownPercentages['M&E Services']).toFixed(2));
+        costsBreakdown['SECURITY, IT & AV WORKS'] = parseFloat((totalCost * breakdownPercentages['Security, IT & AV works']).toFixed(2));
+        costsBreakdown['PROFESSIONAL SERVICES'] = parseFloat((totalCost * breakdownPercentages['Professional Services']).toFixed(2));
       }
       
       // Add furniture costs as appropriate
       if (scope === 'Furniture' || scope === 'Both') {
-        costsBreakdown['FURNITURE & EQUIPMENT'] = parseFloat(furnitureCost.toFixed(2));
+        costsBreakdown['FURNITURE, FIXTURES, EQUIPMENT'] = parseFloat(furnitureCost.toFixed(2));
       }
     } else {
       // Standard breakdown for other data sources
