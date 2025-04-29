@@ -112,5 +112,28 @@ export const SPACE_TYPES = {
     { name: "Breakout Areas", defaultPercentage: 20 },
     { name: "Support Space", defaultPercentage: 15 },
     { name: "Ancillary Space", defaultPercentage: 5 }
+  ],
+  
+  // JLL-specific layout space allocations
+  "Open & flexible": [
+    { name: "Open Workspace", defaultPercentage: 40 },
+    { name: "Flexible Collaboration", defaultPercentage: 25 },
+    { name: "Meeting Areas", defaultPercentage: 20 },
+    { name: "Social Spaces", defaultPercentage: 10 },
+    { name: "Support Spaces", defaultPercentage: 5 }
+  ],
+  "High spatial variety": [
+    { name: "Diverse Workspaces", defaultPercentage: 35 },
+    { name: "Collaboration Zones", defaultPercentage: 25 },
+    { name: "Meeting Rooms", defaultPercentage: 20 },
+    { name: "Social & Recreation", defaultPercentage: 15 },
+    { name: "Support Areas", defaultPercentage: 5 }
+  ],
+  "Structured": [
+    { name: "Dedicated Workstations", defaultPercentage: 45 },
+    { name: "Formal Meeting Spaces", defaultPercentage: 25 },
+    { name: "Collaboration Areas", defaultPercentage: 15 },
+    { name: "Break Areas", defaultPercentage: 10 },
+    { name: "Support Functions", defaultPercentage: 5 }
   ]
 };

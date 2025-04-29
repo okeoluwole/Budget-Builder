@@ -27,7 +27,19 @@ const SpaceAllocationStep: React.FC<SpaceAllocationStepProps> = ({ onNext, onBac
   const [loading, setLoading] = useState(false);
   const [totalPercentage, setTotalPercentage] = useState(0);
   
-  const layoutType = state.budget?.layout || '';
+  // Determine which layout type to use based on data source
+  let layoutType = '';
+  
+  if (state.budget?.primaryDataSource === 'JLL') {
+    // For JLL data source, use the jllLayout value
+    layoutType = state.budget?.jllLayout || 'Open & flexible';
+    console.log("Using JLL layout type:", layoutType);
+  } else {
+    // For other data sources, use the standard layout field
+    layoutType = state.budget?.layout || '';
+    console.log("Using standard layout type:", layoutType);
+  }
+  
   const totalArea = state.project?.totalArea || 0;
 
   // Fetch space types based on selected layout
@@ -180,7 +192,7 @@ const SpaceAllocationStep: React.FC<SpaceAllocationStepProps> = ({ onNext, onBac
         <>
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="text-md font-medium">Layout Type: <span className="text-primary">{layoutType} Based</span></h3>
+              <h3 className="text-md font-medium">Layout Type: <span className="text-primary">{layoutType}</span></h3>
               <p className="text-sm text-gray-500">Total Area: {totalArea.toLocaleString()} {state.project?.areaUnit}</p>
             </div>
             <div className={`text-md font-medium ${
@@ -272,7 +284,7 @@ const SpaceAllocationStep: React.FC<SpaceAllocationStepProps> = ({ onNext, onBac
           <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Back: Layout Determination
+          Back: {state.budget?.primaryDataSource === 'JLL' ? 'JLL Options' : 'Layout Determination'}
         </button>
         
         <div>
