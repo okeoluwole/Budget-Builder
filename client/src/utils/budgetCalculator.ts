@@ -209,8 +209,36 @@ function calculateJllCosts(
     ? applyInflation(rawAreaCost, project.inflationRate, 1)
     : rawAreaCost;
     
-  // Use JLL's standard breakdown percentages
-  const ffePortion = 0.14; // Furniture fixtures & equipment portion (14%)
+  // Determine appropriate JLL region based on country
+  let jllRegion = 'global'; // Default region
+  
+  if (['United States', 'Canada'].includes(project.country)) {
+    jllRegion = 'NAM';
+  } else if (['Brazil', 'Mexico', 'Argentina', 'Colombia', 'Chile', 'Peru'].includes(project.country)) {
+    jllRegion = 'LATAM';
+  } else if ([
+    'United Kingdom', 'France', 'Germany', 'Italy', 'Spain', 'Netherlands', 
+    'Belgium', 'Sweden', 'Switzerland', 'Ireland', 'Poland', 'Denmark', 
+    'Norway', 'Finland', 'Czech Republic', 'Austria', 'Portugal', 'Greece',
+    'Turkey', 'Saudi Arabia', 'United Arab Emirates', 'South Africa'
+  ].includes(project.country)) {
+    jllRegion = 'EMEA';
+  } else if ([
+    'China', 'Japan', 'India', 'Australia', 'Singapore', 'South Korea', 
+    'Hong Kong', 'Malaysia', 'Thailand', 'Indonesia', 'Philippines', 
+    'Vietnam', 'New Zealand', 'Taiwan'
+  ].includes(project.country)) {
+    jllRegion = 'APAC';
+  }
+  
+  console.log(`JLL calculation using region: ${jllRegion} for country: ${project.country}`);
+  
+  // Get the breakdown percentages for the current region
+  const breakdownPercentages = jllCostsBreakdownPercentages[jllRegion] || jllCostsBreakdownPercentages.global;
+  
+  // Use JLL's standard breakdown percentages for furniture
+  const ffePortion = breakdownPercentages['Furniture, Fixtures, Equipment']; // Use region-specific FF&E percentage
+  console.log(`Using FF&E portion for ${jllRegion}: ${ffePortion}`);
   
   // Calculate costs based on scope
   if (scope === 'Fitout' || scope === 'Both') {
@@ -235,12 +263,12 @@ function calculateJllCosts(
   costsBreakdown['FITOUT BASE COSTS'] = parseFloat((fitoutCost).toFixed(2));
   costsBreakdown['FURNITURE BASE COSTS'] = parseFloat((furnitureCost).toFixed(2));
   
-  // Add detailed breakdown for fitout
+  // Add detailed breakdown for fitout using the region-specific percentages
   if (fitoutCost > 0) {
-    costsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutCost * 0.43).toFixed(2));
-    costsBreakdown['M&E SERVICES'] = parseFloat((fitoutCost * 0.34).toFixed(2));
-    costsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutCost * 0.14).toFixed(2));
-    costsBreakdown['PROJECT MANAGEMENT'] = parseFloat((fitoutCost * 0.09).toFixed(2));
+    costsBreakdown['BUILDERS WORKS'] = parseFloat((fitoutCost * breakdownPercentages['Builders Works']).toFixed(2));
+    costsBreakdown['M&E SERVICES'] = parseFloat((fitoutCost * breakdownPercentages['M&E Services']).toFixed(2));
+    costsBreakdown['SECURITY, IT & AV'] = parseFloat((fitoutCost * breakdownPercentages['Security, IT & AV works']).toFixed(2));
+    costsBreakdown['PROJECT MANAGEMENT'] = parseFloat((fitoutCost * breakdownPercentages['Professional Services']).toFixed(2));
   }
   
   // Create default allocation based on JLL layout type
