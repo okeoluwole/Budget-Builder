@@ -311,25 +311,46 @@ function calculateJllCosts(
     console.log(`Using JLL region: ${jllRegion}`);
     
     // Get base rate with fallbacks
-    let baseRate: number;
+    let baseRate = 1950; // Default fallback value
     
-    try {
-      // Try to get rate from specific region
-      baseRate = jllRates[jllRegion][layout][quality];
-      console.log(`Found rate for ${jllRegion}/${layout}/${quality}: $${baseRate}/sqm`);
-    } catch (e) {
-      console.warn(`Rate not found for ${jllRegion}/${layout}/${quality}, using global rate`);
+    // Helper function to safely access nested properties
+    const safelyGetRate = (region: string, layoutType: string, qualityLevel: string): number => {
       try {
-        // Fall back to global region with same layout/quality
-        baseRate = jllRates.global[layout][quality];
-      } catch (e2) {
+        // Type guards for each level of access
+        const regionData = jllRates[region as keyof typeof jllRates];
+        if (!regionData) return 0;
+        
+        const layoutData = regionData[layoutType as keyof typeof regionData];
+        if (!layoutData) return 0;
+        
+        const rate = layoutData[qualityLevel as keyof typeof layoutData];
+        if (typeof rate !== 'number') return 0;
+        
+        return rate;
+      } catch (e) {
+        return 0; // Return 0 to indicate not found
+      }
+    };
+    
+    // Try to get rate from specific region
+    baseRate = safelyGetRate(jllRegion, layout, quality);
+    
+    if (baseRate > 0) {
+      console.log(`Found rate for ${jllRegion}/${layout}/${quality}: $${baseRate}/sqm`);
+    } else {
+      console.warn(`Rate not found for ${jllRegion}/${layout}/${quality}, using global rate`);
+      
+      // Try global with same layout/quality
+      baseRate = safelyGetRate('global', layout, quality);
+      
+      if (baseRate === 0) {
         console.warn(`Global rate not found for ${layout}/${quality}, using default Medium quality`);
-        // Fall back to global/layout/Medium
-        try {
-          baseRate = jllRates.global[layout]['Medium'];
-        } catch (e3) {
-          // Ultimate fallback - use a hardcoded value
-          console.warn('Using hardcoded fallback rate');
+        
+        // Try global with medium quality
+        baseRate = safelyGetRate('global', layout, 'Medium');
+        
+        if (baseRate === 0) {
+          console.warn('Using hardcoded fallback rate: $1950/sqm');
           baseRate = 1950; // Global average
         }
       }
@@ -545,22 +566,97 @@ export const calculateBudget = async ({
       
       console.log(`Using JLL layout: ${budget.jllLayout} and quality: ${budget.jllQuality}`);
       
-      // Calculate JLL costs
-      const jllResults = calculateJllCosts(project, budget.jllLayout, budget.jllQuality, scope);
+      // Calculate JLL costs with robust error handling
+      let jllResults: JllCalculationResult | null = null;
       
-      // Apply results
-      fitoutCost = jllResults.fitoutCost;
-      furnitureCost = jllResults.furnitureCost;
-      totalCost = jllResults.totalCost;
-      
-      // Copy breakdown
-      Object.entries(jllResults.costsBreakdown).forEach(([key, value]) => {
-        costsBreakdown[key] = value as number;
-      });
-      
-      // Use default JLL allocation if no space allocation provided
-      if (!budget.spaceAllocation && jllResults.defaultAllocation) {
-        budget.spaceAllocation = jllResults.defaultAllocation;
+      try {
+        console.log("JLL calculation arguments:", {
+          project,
+          jllLayout: budget.jllLayout, 
+          jllQuality: budget.jllQuality,
+          scope
+        });
+        
+        // Ensure scope is a proper string value
+        const jllScope = scope || 'Fitout';
+        console.log("Using JLL scope:", jllScope);
+        
+        jllResults = calculateJllCosts(project, budget.jllLayout, budget.jllQuality, jllScope);
+        console.log("JLL calculation successful:", jllResults);
+        
+        // Apply results
+        fitoutCost = jllResults.fitoutCost;
+        furnitureCost = jllResults.furnitureCost;
+        totalCost = jllResults.totalCost;
+        
+        // Copy breakdown from successful calculation
+        Object.entries(jllResults.costsBreakdown).forEach(([key, value]) => {
+          costsBreakdown[key] = value as number;
+        });
+        
+        // Use default JLL allocation if no space allocation provided
+        if (!budget.spaceAllocation && jllResults.defaultAllocation) {
+          budget.spaceAllocation = jllResults.defaultAllocation;
+        }
+      } catch (error) {
+        console.error("JLL calculation failed with error:", error);
+        
+        // Use fallback calculation for JLL
+        console.log("Using basic fallback calculation for JLL");
+        
+        // Basic fallback values based on region
+        let baseCost = 1950; // Default global average ($/sqm)
+        
+        // Simple region adjustment
+        if (project.country === 'United States') baseCost = 3070;
+        else if (project.country === 'United Kingdom') baseCost = 1970;
+        else if (project.country === 'Singapore') baseCost = 1460;
+        
+        // Simple layout/quality adjustment
+        if (budget.jllLayout === 'Structured') baseCost *= 1.05;
+        if (budget.jllQuality === 'High') baseCost *= 1.15;
+        if (budget.jllQuality === 'Baseline') baseCost *= 0.9;
+        
+        // Area conversion if needed
+        let area = project.totalArea;
+        if (project.areaUnit === 'sqft') {
+          area = project.totalArea * 0.092903; // Convert to sqm
+        }
+        
+        // Calculate total cost
+        const totalAmount = baseCost * area;
+        
+        // Calculate component costs based on scope
+        if (scope === 'Fitout') {
+          fitoutCost = totalAmount;
+          furnitureCost = 0;
+        } else if (scope === 'Furniture') {
+          fitoutCost = 0;
+          furnitureCost = totalAmount;
+        } else {
+          // Both - use standard JLL breakdown
+          fitoutCost = totalAmount * 0.87; // 87% fitout
+          furnitureCost = totalAmount * 0.13; // 13% furniture
+        }
+        
+        totalCost = fitoutCost + furnitureCost;
+        
+        // Add basic breakdown to results for the fallback case
+        costsBreakdown['JLL DATA SOURCE'] = 1;
+        costsBreakdown['TOTAL COST'] = Math.round(totalAmount);
+        costsBreakdown['FITOUT BASE COSTS'] = Math.round(fitoutCost);
+        costsBreakdown['FURNITURE BASE COSTS'] = Math.round(furnitureCost);
+        costsBreakdown['BUILDERS WORKS'] = Math.round(totalAmount * 0.37);
+        costsBreakdown['M&E SERVICES'] = Math.round(totalAmount * 0.29);
+        costsBreakdown['SECURITY, IT & AV'] = Math.round(totalAmount * 0.12);
+        costsBreakdown['PROJECT MANAGEMENT'] = Math.round(totalAmount * 0.08);
+        
+        // Add default space allocation
+        budget.spaceAllocation = {
+          'Open workspace': { percentage: 50, area: project.totalArea * 0.5 },
+          'Meeting areas': { percentage: 25, area: project.totalArea * 0.25 },
+          'Support spaces': { percentage: 25, area: project.totalArea * 0.25 }
+        };
       }
       
       console.log('====== JLL CALCULATION COMPLETE ======');
