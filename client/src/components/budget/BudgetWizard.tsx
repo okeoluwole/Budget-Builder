@@ -47,13 +47,12 @@ const BudgetWizard: React.FC = () => {
   // Update steps whenever data source changes
   useEffect(() => {
     if (selectedDataSource === 'JLL') {
-      // JLL uses its own options, so we define the complete step flow for JLL
+      // JLL uses its own options, and we skip the space allocation step per client request
       const jllSteps = initialSteps.filter(step => 
         step.id === 'project' || 
         step.id === 'datasource' || 
         step.id === 'scope' || 
         step.id === 'jllOptions' || 
-        step.id === 'space' || 
         step.id === 'results'
       );
       setSteps(jllSteps);
