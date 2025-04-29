@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
-import { Project, Budget, SpaceAllocation, InsertProject, InsertBudget } from '@shared/schema';
+import { Project, Budget, SpaceAllocation, InsertProject, InsertBudget, DataSourceType } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 
 // Define the state type

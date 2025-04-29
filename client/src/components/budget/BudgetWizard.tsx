@@ -10,7 +10,7 @@ import SpaceAllocationStep from './SpaceAllocationStep';
 import BudgetResultsStep from './BudgetResultsStep';
 import { useToast } from '@/hooks/use-toast';
 
-type Step = 'project' | 'scope' | 'specification' | 'layout' | 'space' | 'results';
+type Step = 'project' | 'datasource' | 'scope' | 'specification' | 'layout' | 'space' | 'results';
 
 const BudgetWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<Step>('project');
@@ -81,8 +81,20 @@ const BudgetWizard: React.FC = () => {
     switch (currentStep) {
       case 'project':
         return <ProjectSetupStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
+      case 'datasource':
+        return (
+          <DataSourceStep 
+            onNext={goToNextStep} 
+            onBack={goToPreviousStep} 
+            onSaveAsDraft={handleSaveAsDraft}
+            selectedDataSource={selectedDataSource}
+            onSelectDataSource={(dataSource) => setSelectedDataSource(dataSource)}
+            enableComparison={enableComparison}
+            onToggleComparison={(enable) => setEnableComparison(enable)}
+          />
+        );
       case 'scope':
-        return <ScopeSelectionStep onNext={goToNextStep} onSaveAsDraft={handleSaveAsDraft} />;
+        return <ScopeSelectionStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'specification':
         return <SpecificationStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'layout':
