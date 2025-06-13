@@ -83,15 +83,17 @@ const BudgetWizard: React.FC = () => {
       console.log('JLL selected - Using JLL steps:', jllSteps.map(s => s.id).join(' → '));
       setSteps(jllSteps);
     } else if (selectedDataSource === 'TT') {
-      // T&T uses consolidated location selection in project setup, then specification selection
+      // T&T uses project setup, scope, specification, layout, space allocation, then results
       const ttSteps = initialSteps.filter(step => 
         step.id === 'project' || 
         step.id === 'datasource' || 
         step.id === 'scope' || 
         step.id === 'specification' || 
+        step.id === 'layout' ||
+        step.id === 'space' ||
         step.id === 'results'
       );
-      console.log('T&T selected - Using consolidated T&T steps:', ttSteps.map(s => s.id).join(' → '));
+      console.log('T&T selected - Using T&T steps with layout:', ttSteps.map(s => s.id).join(' → '));
       setSteps(ttSteps);
     } else {
       // For other data sources, use standard steps without JLL or T&T specific options

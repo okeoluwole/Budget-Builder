@@ -306,7 +306,8 @@ export const calculateBudget = async ({
         const ttSpecLevel = budget.specification === 'Low' ? 'Low' : 
                            budget.specification === 'High' ? 'High' : 'Medium';
         
-        console.log(`Using T&T specification: ${ttSpecLevel}`);
+        console.log(`Project details: Country=${project.country}, City=${project.city}, Area=${project.totalArea}, Unit=${project.areaUnit}`);
+        console.log(`Budget specification: ${budget.specification} -> T&T spec: ${ttSpecLevel}`);
         
         // Calculate T&T costs using the T&T 2025 data
         const ttResults = calculateTT2025Budget(
@@ -314,7 +315,8 @@ export const calculateBudget = async ({
           project.city,
           ttSpecLevel as TT2025Specification,
           project.totalArea,
-          project.areaUnit as 'sqm' | 'sqft'
+          project.areaUnit as 'sqm' | 'sqft',
+          'Complete'
         );
         
         console.log("T&T calculation successful:", ttResults);
