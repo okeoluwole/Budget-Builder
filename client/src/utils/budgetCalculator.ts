@@ -309,11 +309,11 @@ export const calculateBudget = async ({
         
         // Calculate T&T costs using the T&T 2025 data
         const ttResults = calculateTT2025Budget(
-          project.city,
           project.country,
+          project.city,
+          ttSpecLevel as TT2025Specification,
           project.totalArea,
-          project.areaUnit,
-          ttSpecLevel
+          project.areaUnit as 'sqm' | 'sqft'
         );
         
         console.log("T&T calculation successful:", ttResults);
