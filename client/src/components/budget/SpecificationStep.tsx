@@ -150,7 +150,23 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
   };
 
   const handleNext = () => {
-    // Validate based on which sections are visible
+    // For T&T data source, use single specification selection
+    if (state.budget?.primaryDataSource === 'TT') {
+      if (!selectedFitoutSpec) {
+        toast({
+          title: "Specification selection required",
+          description: "Please select a specification level before continuing.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // For T&T, use the single specification for all components
+      updateSpecification(selectedFitoutSpec, selectedFitoutSpec, selectedFitoutSpec);
+      onNext();
+      return;
+    }
+
+    // Original CBRE/other data source validation
     if (state.budget?.scope === 'Fitout' && !selectedFitoutSpec) {
       toast({
         title: "Specification selection required",
@@ -290,8 +306,68 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
     );
   };
 
-  // Determine which sections to show based on the scope
+  // Render T&T specific specification selection
+  const renderTTSpecificationSection = () => {
+    return (
+      <div>
+        <div className="mb-6 p-4 bg-blue-50 rounded-md">
+          <p className="text-sm text-blue-700">
+            <strong>Turner & Townsend Specification:</strong> Select the quality level that applies to all project components (construction, furniture, AV, and professional services).
+          </p>
+        </div>
+        
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Project Specification Level</h3>
+        <p className="text-gray-600 mb-4">Choose the overall quality level for your {state.budget?.scope} project components.</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {specifications.map((spec) => (
+            <div
+              key={spec.name}
+              className={`border rounded-lg cursor-pointer transition-all ${
+                selectedFitoutSpec === spec.name
+                  ? 'border-primary bg-blue-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => handleSelectFitoutSpecification(spec.name)}
+            >
+              <div className="p-4">
+                <div className="flex items-center mb-2">
+                  <div className={`w-4 h-4 rounded-full border-2 mr-3 ${
+                    selectedFitoutSpec === spec.name
+                      ? 'border-primary bg-primary'
+                      : 'border-gray-300'
+                  }`}>
+                    {selectedFitoutSpec === spec.name && (
+                      <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                    )}
+                  </div>
+                  <h4 className={`text-lg font-semibold ${
+                    selectedFitoutSpec === spec.name ? 'text-primary' : 'text-gray-800'
+                  }`}>
+                    {spec.name}
+                  </h4>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">{spec.description}</p>
+                <div className="text-xs text-gray-500">
+                  <p><strong>Applies to:</strong> All selected components</p>
+                  <p><strong>Cost Factor:</strong> {spec.name === 'Low' ? '1.0x' : spec.name === 'Medium' ? '1.4x' : '1.8x'}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Determine which sections to show based on the data source and scope
   const renderSpecificationSections = () => {
+    // For T&T data source, show single specification selection
+    if (state.budget?.primaryDataSource === 'TT') {
+      return renderTTSpecificationSection();
+    }
+    
+    // For other data sources, use original logic
     if (state.budget?.scope === 'Fitout') {
       return renderSpecificationSection('Fitout');
     } else if (state.budget?.scope === 'Furniture') {
@@ -349,7 +425,7 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
             className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             onClick={handleNext}
           >
-            Next: Layout Determination
+            {state.budget?.primaryDataSource === 'TT' ? 'Next: Budget Results' : 'Next: Layout Determination'}
             <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>

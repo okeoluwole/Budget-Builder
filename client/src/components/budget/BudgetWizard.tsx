@@ -83,16 +83,15 @@ const BudgetWizard: React.FC = () => {
       console.log('JLL selected - Using JLL steps:', jllSteps.map(s => s.id).join(' → '));
       setSteps(jllSteps);
     } else if (selectedDataSource === 'TT') {
-      // T&T uses project setup, scope, specification, space allocation, then results (no layout step)
+      // T&T uses project setup, scope, specification, then results (no layout or space allocation)
       const ttSteps = initialSteps.filter(step => 
         step.id === 'project' || 
         step.id === 'datasource' || 
         step.id === 'scope' || 
         step.id === 'specification' || 
-        step.id === 'space' ||
         step.id === 'results'
       );
-      console.log('T&T selected - Using T&T steps (no layout):', ttSteps.map(s => s.id).join(' → '));
+      console.log('T&T selected - Using T&T steps (no layout/space):', ttSteps.map(s => s.id).join(' → '));
       setSteps(ttSteps);
     } else {
       // For other data sources, use standard steps without JLL or T&T specific options

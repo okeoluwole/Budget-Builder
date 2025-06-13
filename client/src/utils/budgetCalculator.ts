@@ -295,7 +295,12 @@ export const calculateBudget = async ({
     budget.layout = 'Standard Office'; // Default for T&T calculations
   }
   
-  // If using JLL or T&T data source, we don't require space allocation initially
+  // T&T doesn't use space allocation, so provide a default for calculation
+  if ((budget as any).primaryDataSource === 'TT' && !budget.spaceAllocation) {
+    budget.spaceAllocation = { 'Total Project Area': 100 }; // Default for T&T calculations
+  }
+  
+  // If using JLL data source, we don't require space allocation initially
   if (budget.primaryDataSource !== 'JLL' && (budget as any).primaryDataSource !== 'TT' && !budget.spaceAllocation) {
     throw new Error('Space allocation is required for CBRE and MMC data sources');
   }
