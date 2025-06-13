@@ -21,9 +21,9 @@ const TTBuildingTypeStep: React.FC<TTBuildingTypeStepProps> = ({
   if (!state.ttOptions?.city) {
     return (
       <div className="p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Select Building Type</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Select Specification Level</h2>
         <p className="text-red-600 mb-6">
-          Please select a city first before choosing a building type.
+          Please select a city first before choosing a specification level.
         </p>
         <button
           type="button"

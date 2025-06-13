@@ -110,6 +110,27 @@ const BudgetWizard: React.FC = () => {
 
   const goToNextStep = () => {
     const currentIndex = steps.findIndex(step => step.id === currentStep);
+    
+    // Special logic for T&T data source - skip city selection if no cities available
+    if (currentStep === 'ttCountry' && selectedDataSource === 'TT') {
+      const selectedCountry = state.ttOptions?.country;
+      if (selectedCountry) {
+        // Import T&T data to check city availability
+        import('@/utils/turnerTownsendData').then((module) => {
+          const citiesCount = module.default.getCitiesInCountry(selectedCountry).length;
+          if (citiesCount === 0) {
+            // Skip city selection, go directly to building type
+            setCurrentStep('ttBuildingType');
+          } else {
+            // Normal progression to city selection
+            setCurrentStep('ttCity');
+          }
+        });
+        return;
+      }
+    }
+    
+    // Standard step progression
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1].id);
     }

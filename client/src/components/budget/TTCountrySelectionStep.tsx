@@ -42,12 +42,14 @@ const TTCountrySelectionStep: React.FC<TTCountrySelectionStepProps> = ({
   const countries = TurnerTownsendDataModule.getCountriesInRegion(state.ttOptions.region as TTRegion);
   
   const handleCountryChange = (country: string) => {
+    const citiesCount = getCountryCitiesCount(country);
+    
     updateTTOptions({
       ...state.ttOptions,
       country,
-      // Clear dependent fields
-      city: '',
-      buildingType: ''
+      // Clear dependent fields or set defaults
+      city: citiesCount === 0 ? 'Regional Average' : undefined,
+      buildingType: undefined
     });
   };
   

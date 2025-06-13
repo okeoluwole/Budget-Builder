@@ -1,0 +1,115 @@
+# Priority Instructions for Replit: T&T 2025 Improvements
+
+## 1. Data Source Cleanup (Critical)
+
+**Remove ALL references to T&T ICMS 2024:**
+- Update data source card to only reference "Turner & Townsend Global Office Fit-Out Cost Guide 2025"
+- Remove any ICMS-related text, descriptions, or building type categories
+- Update the step 7 text that currently says "Turner & Townsend ICMS 2024 provides cost data for different categories of office buildings"
+
+**Replace with T&T 2025 Office Fit-Out specific content:**
+- Focus on office fit-out specifications (Low/Medium/High)
+- Use T&T 2025's cost components (Construction, Furniture, AV, Professional Fees)
+- Reference the 50 cities covered in the T&T 2025 guide
+
+## 2. Flow Logic Improvement (Critical)
+
+**Fix the "0 cities available" blocking issue:**
+
+**Current Problem:** Countries like Nigeria, Kenya, Rwanda show "0 cities available" and block progression
+
+**Solution:** 
+- **If country has 0 cities available** → Skip city selection step entirely
+- **Proceed directly to next step** (building type/specification)
+- **Use country-level default** or regional average for calculations
+- **Add informational message**: "Using regional average costs for [Country Name]"
+
+**Implementation Logic:**
+```
+If selected_country.cities.length === 0:
+  - Skip step 6 (city selection)
+  - Go directly to step 7 (building type/specification)
+  - Use regional/country default costs
+  - Show user message about using regional averages
+```
+
+## 3. Navigation Design Overhaul (High Priority)
+
+**Replace the current step indicator with professional breadcrumb navigation:**
+
+### Current Issues:
+- Basic circular progress indicators
+- Skewed/misaligned step labels
+- Cluttered appearance with too many steps visible
+- Unprofessional appearance for business tool
+
+### New Navigation Design:
+
+**Replace with clean breadcrumb-style step navigation:**
+
+```
+Create New Budget Estimate
+Complete all steps to generate your fit-out budget estimation
+
+Data Source > Project Setup > Location > Scope > Specification > Results
+     ✓            ✓           ✓        ✓        Current        Next
+
+Select Specification Level
+Choose the quality level that best matches your project requirements
+```
+
+**Key Navigation Improvements:**
+1. **Breadcrumb Navigation** - Shows logical flow and dependencies
+2. **Clickable Previous Steps** - Users can easily go back to change selections
+3. **Clear Completion Status** - Checkmarks for completed steps
+4. **Current Step Highlight** - Visually distinct current step
+5. **Professional Appearance** - Matches enterprise software expectations
+
+### Specific Design Implementation:
+
+**Header Section:**
+```
+Create New Budget Estimate
+Complete all steps to generate your fit-out budget estimation
+
+Data Source > Project Setup > Location > Scope > Specification > Results
+     ✓            ✓           ✓        ✓        ●              
+
+Select Specification Level
+Choose the quality level that best matches your project requirements
+```
+
+**Navigation Benefits:**
+- **Context Awareness** - Users see where they are in the process
+- **Easy Backtracking** - Click any previous step to modify
+- **Progress Clarity** - Clear completion status without percentages
+- **Professional Look** - Appropriate for budget estimation tools
+- **Space Efficient** - More room for main content
+
+**Card Design Improvements:**
+- **Larger selection cards** with better visual hierarchy
+- **Clear selection states** (selected, hover, default)
+- **Better spacing** between elements
+- **Modern card shadows** and rounded corners
+- **Improved typography** for descriptions
+
+## 4. T&T 2025 Specific Content Updates
+
+**Update Step Labels to Match T&T 2025:**
+- Step 7: "Select Specification Level" (not "Building Type")
+- Use T&T's Low/Medium/High terminology
+- Reference office fit-out specifications, not building categories
+
+**Update Descriptions:**
+- Replace building type language with specification level language
+- Reference T&T 2025 methodology specifically
+- Update cost disclaimers to reflect office fit-out focus
+
+## Implementation Priority:
+
+1. **Fix flow logic** (eliminate 0 cities blocking)
+2. **Clean up T&T references** (remove ICMS content)
+3. **Implement breadcrumb navigation** (replace circular step indicators)
+4. **Update T&T 2025 content** (office fit-out focus)
+
+This approach maintains the logical step-by-step flow that budget tools require while providing a much more professional, navigable interface that allows users to easily move between steps and understand the estimation process.
