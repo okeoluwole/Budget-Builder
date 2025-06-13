@@ -131,7 +131,7 @@ const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onBack, onS
     });
 
     // If T&T is selected as data source, update T&T options
-    if (state.selectedDataSource === 'TT') {
+    if (state.budget?.primaryDataSource === 'TT') {
       updateTTOptions({
         region: selectedTTRegion as TTRegion,
         country: selectedTTCountry,

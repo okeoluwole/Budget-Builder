@@ -82,26 +82,20 @@ const BudgetWizard: React.FC = () => {
       console.log('JLL selected - Using JLL steps:', jllSteps.map(s => s.id).join(' → '));
       setSteps(jllSteps);
     } else if (selectedDataSource === 'TT') {
-      // T&T uses its own region-country-city-building selection flow
+      // T&T uses consolidated location selection in project setup, then building type selection
       const ttSteps = initialSteps.filter(step => 
         step.id === 'project' || 
         step.id === 'datasource' || 
         step.id === 'scope' || 
-        step.id === 'ttRegion' || 
-        step.id === 'ttCountry' || 
-        step.id === 'ttCity' || 
         step.id === 'ttBuildingType' || 
         step.id === 'results'
       );
-      console.log('T&T selected - Using T&T steps:', ttSteps.map(s => s.id).join(' → '));
+      console.log('T&T selected - Using consolidated T&T steps:', ttSteps.map(s => s.id).join(' → '));
       setSteps(ttSteps);
     } else {
       // For other data sources, use standard steps without JLL options
       const standardSteps = initialSteps.filter(step => 
         step.id !== 'jllOptions' && 
-        step.id !== 'ttRegion' && 
-        step.id !== 'ttCountry' && 
-        step.id !== 'ttCity' && 
         step.id !== 'ttBuildingType'
       );
       console.log('Standard data source - Using steps:', standardSteps.map(s => s.id).join(' → '));
@@ -112,24 +106,7 @@ const BudgetWizard: React.FC = () => {
   const goToNextStep = () => {
     const currentIndex = steps.findIndex(step => step.id === currentStep);
     
-    // Special logic for T&T data source - skip city selection if no cities available
-    if (currentStep === 'ttCountry' && selectedDataSource === 'TT') {
-      const selectedCountry = state.ttOptions?.country;
-      if (selectedCountry) {
-        // Import T&T data to check city availability
-        import('@/utils/turnerTownsendData').then((module) => {
-          const citiesCount = module.default.getCitiesInCountry(selectedCountry).length;
-          if (citiesCount === 0) {
-            // Skip city selection, go directly to building type
-            setCurrentStep('ttBuildingType');
-          } else {
-            // Normal progression to city selection
-            setCurrentStep('ttCity');
-          }
-        });
-        return;
-      }
-    }
+
     
     // Standard step progression
     if (currentIndex < steps.length - 1) {
