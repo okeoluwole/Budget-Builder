@@ -94,10 +94,13 @@ const BudgetWizard: React.FC = () => {
       console.log('T&T selected - Using consolidated T&T steps:', ttSteps.map(s => s.id).join(' → '));
       setSteps(ttSteps);
     } else {
-      // For other data sources, use standard steps without JLL options
+      // For other data sources, use standard steps without JLL or T&T specific options
       const standardSteps = initialSteps.filter(step => 
         step.id !== 'jllOptions' && 
-        step.id !== 'ttBuildingType'
+        step.id !== 'ttBuildingType' &&
+        step.id !== 'ttRegion' &&
+        step.id !== 'ttCountry' &&
+        step.id !== 'ttCity'
       );
       console.log('Standard data source - Using steps:', standardSteps.map(s => s.id).join(' → '));
       setSteps(standardSteps);

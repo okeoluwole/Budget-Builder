@@ -49,7 +49,7 @@ export const budgets = pgTable("budgets", {
   scope: text("scope").default("Fitout").notNull(), // Fitout, Furniture, Both
   specification: text("specification").notNull(), // Bronze, Silver, Gold
   layout: text("layout").notNull(), // Activity, Team, Event
-  primaryDataSource: text("primary_data_source").default("CBRE").notNull(), // CBRE, JLL, TT, MMC
+  primaryDataSource: text("primary_data_source").$type<DataSourceType>().default("CBRE").notNull(), // CBRE, JLL, TT, MMC
   dataSource: text("data_source"), // For backward compatibility
   jllLayout: text("jll_layout"), // Open & flexible, High spatial variety, Structured
   jllQuality: text("jll_quality"), // Baseline, Medium, High
