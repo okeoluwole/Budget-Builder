@@ -290,6 +290,11 @@ export const calculateBudget = async ({
     throw new Error('Layout is required for non-T&T data sources');
   }
   
+  // For T&T, set a default layout since the calculation still expects it but doesn't use it
+  if ((budget as any).primaryDataSource === 'TT' && !budget.layout) {
+    budget.layout = 'Standard Office'; // Default for T&T calculations
+  }
+  
   // If using JLL or T&T data source, we don't require space allocation initially
   if (budget.primaryDataSource !== 'JLL' && (budget as any).primaryDataSource !== 'TT' && !budget.spaceAllocation) {
     throw new Error('Space allocation is required for CBRE and MMC data sources');
@@ -362,12 +367,10 @@ export const calculateBudget = async ({
         rawUnitCost,
         adjustedUnitCost,
         areaUnit: project.areaUnit,
-        localCurrencyCode: project.localCurrency,
-        localCurrencyRate: project.exchangeRate,
-        localCurrencyTotalCost: project.exchangeRate ? totalCost * project.exchangeRate : undefined,
-        localCurrencyCostsBreakdown: project.exchangeRate ? 
-          Object.fromEntries(Object.entries(costsBreakdown).map(([key, value]) => [key, value * project.exchangeRate!])) : 
-          undefined,
+        localCurrencyCode: project.currency,
+        localCurrencyRate: undefined,
+        localCurrencyTotalCost: undefined,
+        localCurrencyCostsBreakdown: undefined,
         datasetInfo: {
           name: 'Turner & Townsend 2025 Global Office Fit-Out Cost Guide',
           sheet: 'T&T 2025 Data',
