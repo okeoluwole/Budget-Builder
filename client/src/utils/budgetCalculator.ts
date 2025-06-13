@@ -311,7 +311,7 @@ export const calculateBudget = async ({
       console.log(`Using JLL layout: ${budget.jllLayout} and quality: ${budget.jllQuality}`);
       
       // Calculate JLL costs with robust error handling
-      let jllResults: JllCalculationResult | null = null;
+      let jllResults: LegacyJllCalculationResult | null = null;
       
       try {
         console.log("JLL calculation arguments:", {
@@ -423,7 +423,7 @@ export const calculateBudget = async ({
         project.city,
         specificationLevel as TT2025Specification,
         project.totalArea,
-        project.areaUnit,
+        (project.areaUnit === 'sqm' ? 'sqm' : 'sqft') as 'sqm' | 'sqft',
         tt2025Scope
       );
       
@@ -609,7 +609,7 @@ export const calculateBudget = async ({
     
     // In all cases, adjusted unit cost is the same as raw unit cost
     // There's no additional adjustment being applied
-    const adjustedUnitCost = rawUnitCost;
+    adjustedUnitCost = rawUnitCost;
     
     // Handle cost breakdown differently depending on data source
     if (budget.primaryDataSource && budget.primaryDataSource === 'JLL') {
