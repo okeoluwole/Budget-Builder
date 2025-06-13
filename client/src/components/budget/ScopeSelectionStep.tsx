@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useToast } from '@/hooks/use-toast';
 import { BudgetScope } from '@shared/schema';
+import { Construction, Armchair, Monitor, UserCheck, Package } from 'lucide-react';
 
 interface ScopeSelectionStepProps {
   onNext: () => void;
@@ -32,16 +33,76 @@ const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack,
     onNext();
   };
 
-  const scopeOptions = [
+  // Define scope options based on data source
+  const getTTScopeOptions = () => [
+    {
+      value: 'Construction',
+      title: 'Construction Only',
+      description: 'Core construction elements and permanently installed components only.',
+      icon: <Construction className="h-8 w-8 text-blue-500" />,
+      benefits: [
+        'Partitions, walls, floors and ceilings',
+        'Basic mechanical and electrical works',
+        'Lighting and HVAC systems',
+        'Excludes furniture and AV equipment'
+      ]
+    },
+    {
+      value: 'LooseFurniture',
+      title: 'Loose Furniture Only',
+      description: 'Standalone furniture, fixtures and equipment only.',
+      icon: <Armchair className="h-8 w-8 text-orange-500" />,
+      benefits: [
+        'Desks, chairs and workstations',
+        'Meeting room furniture',
+        'Storage and filing systems',
+        'Soft seating and lounge items'
+      ]
+    },
+    {
+      value: 'AudioVisual',
+      title: 'Audio-Visual Only',
+      description: 'Technology and AV systems only.',
+      icon: <Monitor className="h-8 w-8 text-purple-500" />,
+      benefits: [
+        'Display screens and monitors',
+        'Audio conferencing systems',
+        'Video conferencing equipment',
+        'Control systems and cabling'
+      ]
+    },
+    {
+      value: 'ProfessionalFees',
+      title: 'Professional Fees Only',
+      description: 'Project management and professional services only.',
+      icon: <UserCheck className="h-8 w-8 text-indigo-500" />,
+      benefits: [
+        'Design and project management',
+        'Cost consulting services',
+        'Technical specifications',
+        'Contract administration'
+      ]
+    },
+    {
+      value: 'Complete',
+      title: 'Complete Package',
+      description: 'Comprehensive budget including all T&T cost components.',
+      icon: <Package className="h-8 w-8 text-green-500" />,
+      benefits: [
+        'All construction elements',
+        'All furniture and fixtures',
+        'All audio-visual systems',
+        'All professional fees'
+      ]
+    }
+  ];
+
+  const getCBREScopeOptions = () => [
     {
       value: 'Fitout',
       title: 'Fitout Only',
       description: 'Construction elements and permanently installed components only.',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-        </svg>
-      ),
+      icon: <Construction className="h-8 w-8 text-blue-500" />,
       benefits: [
         'Focus exclusively on construction elements',
         'Includes partitions, walls, floors and ceilings',
@@ -53,11 +114,7 @@ const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack,
       value: 'Furniture',
       title: 'Furniture Only',
       description: 'Standalone furniture, fixtures and equipment only.',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-orange-500" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
-        </svg>
-      ),
+      icon: <Armchair className="h-8 w-8 text-orange-500" />,
       benefits: [
         'Focus exclusively on movable items',
         'Includes desks, chairs and workstations',
@@ -69,11 +126,7 @@ const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack,
       value: 'Both',
       title: 'Complete Package',
       description: 'Comprehensive budget including both fitout construction and furniture components.',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V9.236a1 1 0 00-1.447-.894l-4 2a1 1 0 00-.553.894V17zM15.211 6.276a1 1 0 000-1.788l-4.764-2.382a1 1 0 00-.894 0L4.789 4.488a1 1 0 000 1.788l4.764 2.382a1 1 0 00.894 0l4.764-2.382zM4.447 8.342A1 1 0 003 9.236V15a1 1 0 00.553.894l4 2A1 1 0 009 17v-5.764a1 1 0 00-.553-.894l-4-2z" />
-        </svg>
-      ),
+      icon: <Package className="h-8 w-8 text-green-500" />,
       benefits: [
         'Comprehensive total project cost',
         'Includes both construction and movable items',
@@ -82,6 +135,10 @@ const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack,
       ]
     }
   ];
+
+  // Get scope options based on selected data source
+  const dataSource = state.budget?.primaryDataSource;
+  const scopeOptions = dataSource === 'TT' ? getTTScopeOptions() : getCBREScopeOptions();
 
   return (
     <div className="p-6">

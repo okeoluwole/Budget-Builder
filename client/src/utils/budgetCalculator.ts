@@ -319,6 +319,23 @@ export const calculateBudget = async ({
         console.log(`Project details: Country=${project.country}, City=${project.city}, Area=${project.totalArea}, Unit=${project.areaUnit}`);
         console.log(`Budget specification: ${budget.specification} -> T&T spec: ${ttSpecLevel}`);
         
+        // Determine T&T scope based on user selection
+        let ttScope: 'Construction' | 'LooseFurniture' | 'AudioVisual' | 'ProfessionalFees' | 'Complete';
+        
+        if (budget.scope === 'Construction') {
+          ttScope = 'Construction';
+        } else if (budget.scope === 'LooseFurniture') {
+          ttScope = 'LooseFurniture'; 
+        } else if (budget.scope === 'AudioVisual') {
+          ttScope = 'AudioVisual';
+        } else if (budget.scope === 'ProfessionalFees') {
+          ttScope = 'ProfessionalFees';
+        } else {
+          ttScope = 'Complete'; // Default for Complete or legacy scopes
+        }
+        
+        console.log(`Using T&T scope: ${ttScope} (from user selection: ${budget.scope})`);
+        
         // Calculate T&T costs using the T&T 2025 data
         const ttResults = calculateTT2025Budget(
           project.country,
@@ -326,7 +343,7 @@ export const calculateBudget = async ({
           ttSpecLevel as TT2025Specification,
           project.totalArea,
           project.areaUnit as 'sqm' | 'sqft',
-          'Complete'
+          ttScope
         );
         
         console.log("T&T calculation successful:", ttResults);
@@ -335,18 +352,39 @@ export const calculateBudget = async ({
           throw new Error(ttResults.error || 'T&T calculation failed');
         }
         
-        // Apply T&T results using the breakdown structure
-        fitoutCost = ttResults.breakdown.construction + ttResults.breakdown.audioVisual;
-        furnitureCost = ttResults.breakdown.looseFurniture;
-        totalCost = ttResults.totalCost;
-        
-        // Create breakdown following T&T methodology
-        costsBreakdown = {
-          'Construction': ttResults.breakdown.construction,
-          'Loose Furniture': ttResults.breakdown.looseFurniture,
-          'Audio-Visual': ttResults.breakdown.audioVisual,
-          'Professional Fees': ttResults.breakdown.professionalFees
-        };
+        // Apply T&T results based on selected scope
+        if (ttScope === 'Construction') {
+          fitoutCost = ttResults.breakdown.construction;
+          furnitureCost = 0;
+          totalCost = ttResults.breakdown.construction;
+          costsBreakdown = { 'Construction': ttResults.breakdown.construction };
+        } else if (ttScope === 'LooseFurniture') {
+          fitoutCost = 0;
+          furnitureCost = ttResults.breakdown.looseFurniture;
+          totalCost = ttResults.breakdown.looseFurniture;
+          costsBreakdown = { 'Loose Furniture': ttResults.breakdown.looseFurniture };
+        } else if (ttScope === 'AudioVisual') {
+          fitoutCost = ttResults.breakdown.audioVisual;
+          furnitureCost = 0;
+          totalCost = ttResults.breakdown.audioVisual;
+          costsBreakdown = { 'Audio-Visual': ttResults.breakdown.audioVisual };
+        } else if (ttScope === 'ProfessionalFees') {
+          fitoutCost = 0;
+          furnitureCost = 0;
+          totalCost = ttResults.breakdown.professionalFees;
+          costsBreakdown = { 'Professional Fees': ttResults.breakdown.professionalFees };
+        } else {
+          // Complete package
+          fitoutCost = ttResults.breakdown.construction + ttResults.breakdown.audioVisual;
+          furnitureCost = ttResults.breakdown.looseFurniture;
+          totalCost = ttResults.totalCost;
+          costsBreakdown = {
+            'Construction': ttResults.breakdown.construction,
+            'Loose Furniture': ttResults.breakdown.looseFurniture,
+            'Audio-Visual': ttResults.breakdown.audioVisual,
+            'Professional Fees': ttResults.breakdown.professionalFees
+          };
+        }
         
         rawUnitCost = ttResults.costPerSqm;
         adjustedUnitCost = ttResults.costPerSqm;
