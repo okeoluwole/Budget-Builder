@@ -453,7 +453,7 @@ export const calculateBudget = async ({
       }
       
       console.log('====== JLL CALCULATION COMPLETE ======');
-    } else if (budget.primaryDataSource === 'TT' || (budget as any).primaryDataSource === 'TT') {
+    } else if (budget.primaryDataSource && budget.primaryDataSource.toString() === 'TT') {
       // Turner & Townsend 2025 Global Office Fit-Out Cost Guide calculation
       console.log('====== STARTING T&T 2025 CALCULATION ======');
       
