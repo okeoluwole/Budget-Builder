@@ -471,7 +471,7 @@ export function calculateTT2025Budget(
   specification: TT2025Specification,
   area: number,
   areaUnit: 'sqm' | 'sqft' = 'sqm',
-  scope: 'Construction' | 'Furniture' | 'AV' | 'Professional Fees' | 'Complete' = 'Complete'
+  scope: 'Construction' | 'LooseFurniture' | 'AudioVisual' | 'ProfessionalFees' | 'Complete' = 'Complete'
 ): {
   success: boolean;
   totalCost: number;
@@ -516,13 +516,13 @@ export function calculateTT2025Budget(
       case 'Construction':
         breakdown.construction = costPerSqm.construction * areaInSqm;
         break;
-      case 'Furniture':
+      case 'LooseFurniture':
         breakdown.looseFurniture = costPerSqm.looseFurniture * areaInSqm;
         break;
-      case 'AV':
+      case 'AudioVisual':
         breakdown.audioVisual = costPerSqm.audioVisual * areaInSqm;
         break;
-      case 'Professional Fees':
+      case 'ProfessionalFees':
         breakdown.professionalFees = costPerSqm.professionalFees * areaInSqm;
         break;
       case 'Complete':
