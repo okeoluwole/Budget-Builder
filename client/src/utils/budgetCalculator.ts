@@ -297,7 +297,7 @@ export const calculateBudget = async ({
     console.log('Using data source:', budget.primaryDataSource || 'CBRE'); // Log selected data source
     
     // Handle T&T data source calculation
-    if (budget.primaryDataSource && budget.primaryDataSource === 'TT') {
+    if (budget.primaryDataSource === 'TT') {
       console.log('====== T&T CALCULATION START ======');
       
       try {
