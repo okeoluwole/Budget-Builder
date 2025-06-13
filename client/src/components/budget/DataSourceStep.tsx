@@ -115,37 +115,58 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
         <strong>This is the first and most important step.</strong> Choose which cost guide you want to use for your budget estimate. Your selection will determine the methodology, data points, and workflow for subsequent steps. Each source offers different strengths and regional coverage.
       </p>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {dataSources.map((source) => (
           <div
             key={source.id}
-            className={`border rounded-lg overflow-hidden hover:shadow-md cursor-pointer transition-shadow ${
-              selectedDataSource === source.name ? 'border-primary shadow-md' : 'border-gray-200'
+            className={`relative border-2 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${
+              selectedDataSource === source.name 
+                ? 'border-primary bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-4 ring-blue-100' 
+                : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
             onClick={() => onSelectDataSource(source.name)}
           >
-            <div className={`p-4 ${selectedDataSource === source.name ? 'bg-blue-50' : 'bg-white'}`}>
-              <div className="flex items-center mb-4">
-                <div className="mr-3">
+            {/* Selection Indicator */}
+            {selectedDataSource === source.name && (
+              <div className="absolute top-4 right-4 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+            
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start mb-4">
+                <div className="mr-4 flex-shrink-0">
                   {source.logo}
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{source.displayName}</h3>
-                  <p className="text-sm text-gray-500">{source.version} - {source.releaseDate}</p>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">{source.displayName}</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {source.version}
+                    </span>
+                    <span className="text-sm text-gray-500">{source.releaseDate}</span>
+                  </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mb-4">{source.description}</p>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Country Coverage:</h4>
-                <div className="flex flex-wrap gap-1">
-                  {source.countries.slice(0, 5).map((country, idx) => (
-                    <span key={idx} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+              
+              {/* Description */}
+              <p className="text-gray-700 mb-6 leading-relaxed">{source.description}</p>
+              
+              {/* Country Coverage */}
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3">Global Coverage</h4>
+                <div className="flex flex-wrap gap-2">
+                  {source.countries.slice(0, 4).map((country, idx) => (
+                    <span key={idx} className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
                       {country}
                     </span>
                   ))}
-                  {source.countries.length > 5 && (
-                    <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-                      +{source.countries.length - 5} more
+                  {source.countries.length > 4 && (
+                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
+                      +{source.countries.length - 4} countries
                     </span>
                   )}
                 </div>
@@ -226,7 +247,7 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
       <div className="mt-8 flex justify-between">
         <button
           type="button"
-          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex items-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
           onClick={onBack}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -235,10 +256,10 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
           Cancel
         </button>
         
-        <div>
+        <div className="flex gap-3">
           <button
             type="button"
-            className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
             onClick={onSaveAsDraft}
           >
             Save as Draft
@@ -246,11 +267,11 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
           
           <button
             type="button"
-            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            className="px-8 py-3 text-sm font-semibold text-white bg-primary rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all duration-200 flex items-center"
             onClick={handleNext}
           >
             Next: Project Setup
-            <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>

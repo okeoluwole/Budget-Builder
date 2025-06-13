@@ -150,43 +150,80 @@ const JLLCalculator = {
     return options;
   },
   
-  // Main calculation function
+  // Main calculation function with enhanced error handling
   calculate: function(project: Project, layoutString?: string, qualityString?: string, scopeString: string = 'Fitout'): JLLCalculationResult {
-    console.log("JLL Standalone Calculator - Starting calculation");
-    console.log("Project data:", project);
+    console.log("=== JLL CALCULATION START ===");
+    console.log("Project data:", JSON.stringify(project, null, 2));
     console.log("Raw options:", { layoutString, qualityString, scopeString });
     
+    // Validate essential project data
+    if (!project) {
+      throw new Error("Project data is required for JLL calculation");
+    }
+    
+    if (!project.totalArea || project.totalArea <= 0) {
+      throw new Error("Valid total area is required for JLL calculation");
+    }
+    
+    if (!project.country) {
+      console.warn("No country specified, using global rates");
+    }
+    
     try {
-      // Normalize inputs
+      // Normalize inputs with enhanced validation
       const options = this.normalizeOptions(layoutString, qualityString, scopeString);
       console.log("Normalized options:", options);
+      
+      // Validate normalized options
+      if (!options.layoutType || !options.qualityLevel) {
+        console.error("Failed to normalize layout or quality options");
+        throw new Error("Invalid layout or quality options provided");
+      }
       
       // Determine region
       const region = this.determineRegion(project.country);
       console.log("Using JLL region:", region);
       
-      // Get appropriate cost data
-      const regionData = this.costData[region as keyof typeof this.costData] || this.costData.global;
-      const layoutData = regionData[options.layoutType as keyof typeof regionData] || regionData.high_spatial;
-      const baseCost = layoutData[options.qualityLevel as keyof typeof layoutData] || layoutData.medium || 1970;
+      // Get appropriate cost data with validation
+      const regionData = this.costData[region as keyof typeof this.costData];
+      if (!regionData) {
+        console.warn(`No region data found for ${region}, falling back to global`);
+      }
       
-      console.log(`Base cost per sqm for ${region}/${options.layoutType}/${options.qualityLevel}: $${baseCost}`);
+      const effectiveRegionData = regionData || this.costData.global;
+      const layoutData = effectiveRegionData[options.layoutType as keyof typeof effectiveRegionData];
+      if (!layoutData) {
+        console.warn(`No layout data found for ${options.layoutType}, falling back to high_spatial`);
+      }
       
-      // Convert area to square meters if needed
+      const effectiveLayoutData = layoutData || effectiveRegionData.high_spatial;
+      const baseCost = effectiveLayoutData[options.qualityLevel as keyof typeof effectiveLayoutData];
+      if (!baseCost) {
+        console.warn(`No quality data found for ${options.qualityLevel}, falling back to medium`);
+      }
+      
+      const effectiveBaseCost = baseCost || effectiveLayoutData.medium || 1970;
+      
+      console.log(`Base cost per sqm: ${region}/${options.layoutType}/${options.qualityLevel} = $${effectiveBaseCost}`);
+      
+      // Validate and convert area
       let areaInSqm = project.totalArea;
       if (project.areaUnit === 'sqft') {
         areaInSqm = project.totalArea * 0.092903;
         console.log(`Converting ${project.totalArea} sqft to ${areaInSqm.toFixed(2)} sqm`);
       }
       
+      if (areaInSqm <= 0) {
+        throw new Error("Calculated area must be positive");
+      }
+      
       // Calculate raw cost
-      const rawCost = baseCost * areaInSqm;
-      console.log(`Raw cost: ${baseCost} × ${areaInSqm.toFixed(2)} = $${rawCost.toFixed(2)}`);
+      const rawCost = effectiveBaseCost * areaInSqm;
+      console.log(`Raw cost calculation: ${effectiveBaseCost} × ${areaInSqm.toFixed(2)} = $${rawCost.toFixed(2)}`);
       
       // Apply inflation if specified
-      const inflatedCost = project.inflationRate 
-        ? rawCost * (1 + project.inflationRate / 100)
-        : rawCost;
+      const inflationMultiplier = project.inflationRate ? (1 + project.inflationRate / 100) : 1;
+      const inflatedCost = rawCost * inflationMultiplier;
       
       console.log(`Cost after inflation (${project.inflationRate || 0}%): $${inflatedCost.toFixed(2)}`);
       
@@ -203,21 +240,33 @@ const JLLCalculator = {
       let fitoutCost = 0;
       let furnitureCost = 0;
       
-      // Calculate costs based on scope
+      // Calculate costs based on scope with validation
+      console.log(`Calculating costs for scope: ${options.scope}`);
+      
       if (options.scope === 'Fitout') {
         fitoutCost = inflatedCost;
         furnitureCost = 0;
       } else if (options.scope === 'Furniture') {
         fitoutCost = 0;
         furnitureCost = inflatedCost;
-      } else {
+      } else if (options.scope === 'Both') {
         // Both - use the standard breakdown
         fitoutCost = inflatedCost * (1 - breakdownPcts.furniture);
         furnitureCost = inflatedCost * breakdownPcts.furniture;
+      } else {
+        console.warn(`Unknown scope '${options.scope}', defaulting to Fitout`);
+        fitoutCost = inflatedCost;
+        furnitureCost = 0;
       }
       
       // Total cost is the sum
       const totalBudget = fitoutCost + furnitureCost;
+      console.log(`Cost breakdown: Fitout=$${fitoutCost.toFixed(2)}, Furniture=$${furnitureCost.toFixed(2)}, Total=$${totalBudget.toFixed(2)}`);
+      
+      // Validate final calculations
+      if (totalBudget <= 0 || !isFinite(totalBudget)) {
+        throw new Error("Invalid total budget calculated");
+      }
       
       // Prepare space allocation template based on layout type
       let defaultAllocation: any = {};
