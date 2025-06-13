@@ -6,6 +6,7 @@ import { useBudget } from '@/contexts/BudgetContext';
 import { apiRequest } from '@/lib/queryClient';
 import { COUNTRIES, CITIES, CURRENCIES } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
+import TurnerTownsendDataModule, { TTRegion } from '@/utils/turnerTownsendData';
 
 interface ProjectSetupStepProps {
   onNext: () => void;
@@ -29,11 +30,19 @@ const projectFormSchema = z.object({
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
 const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onBack, onSaveAsDraft }) => {
-  const { state, updateProject } = useBudget();
+  const { state, updateProject, updateTTOptions } = useBudget();
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const { toast } = useToast();
   const [locations, setLocations] = useState<{ [country: string]: string[] }>({});
   const [loading, setLoading] = useState(false);
+  
+  // T&T specific state
+  const [ttRegions] = useState<TTRegion[]>(['Europe', 'North America', 'South America', 'Asia', 'Australia and New Zealand', 'Africa', 'Middle East', 'UK']);
+  const [ttCountries, setTTCountries] = useState<string[]>([]);
+  const [ttCities, setTTCities] = useState<string[]>([]);
+  const [selectedTTRegion, setSelectedTTRegion] = useState<TTRegion | ''>('');
+  const [selectedTTCountry, setSelectedTTCountry] = useState('');
+  const [selectedTTCity, setSelectedTTCity] = useState('');
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
@@ -85,6 +94,29 @@ const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onBack, onS
     }
   }, [form.watch('country'), locations]);
 
+  // T&T region change handler
+  const handleTTRegionChange = (region: TTRegion) => {
+    setSelectedTTRegion(region);
+    const countries = TurnerTownsendDataModule.getCountriesInRegion(region);
+    setTTCountries(countries);
+    setSelectedTTCountry('');
+    setSelectedTTCity('');
+    setTTCities([]);
+  };
+
+  // T&T country change handler
+  const handleTTCountryChange = (country: string) => {
+    setSelectedTTCountry(country);
+    const cities = TurnerTownsendDataModule.getCitiesInCountry(country);
+    setTTCities(cities);
+    setSelectedTTCity(cities.length === 0 ? 'Regional Average' : '');
+  };
+
+  // T&T city change handler
+  const handleTTCityChange = (city: string) => {
+    setSelectedTTCity(city);
+  };
+
   const onSubmit = (data: ProjectFormValues) => {
     updateProject({
       name: data.projectName,
@@ -97,6 +129,16 @@ const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onBack, onS
       currency: data.currency,
       inflationRate: data.inflationRate
     });
+
+    // If T&T is selected as data source, update T&T options
+    if (state.selectedDataSource === 'TT') {
+      updateTTOptions({
+        region: selectedTTRegion as TTRegion,
+        country: selectedTTCountry,
+        city: selectedTTCity || 'Regional Average',
+        buildingType: undefined
+      });
+    }
     
     onNext();
   };

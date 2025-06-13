@@ -1,0 +1,77 @@
+You're absolutely right! This is a fundamental UX flaw. Users shouldn't have to select their location twice. Here's the fix:
+
+# Critical Instructions for Replit: Consolidate Location Selection
+
+## Problem Identified:
+- **Step 2 (Project Setup)**: User selects Country and City
+- **Step 4 (T&T Region)**: User selects region again  
+- **Step 5 (T&T Country)**: User selects country again
+- **Result**: Redundant, confusing user experience
+
+## Solution: Integrate T&T Location Selection into Project Setup
+
+### **Remove Steps 4 & 5 Entirely**
+- Delete "T&T Region" step
+- Delete "T&T Country" step  
+- Delete "T&T City" step
+
+### **Enhanced Project Setup (Step 2) for T&T Data Source**
+
+**When T&T is selected as data source, replace the current Country/City fields with:**
+
+```
+Location Selection (T&T Office Fit-Out Guide Coverage)
+
+Region *
+[Dropdown: EMEA | Americas | APAC]
+
+Country *  
+[Dropdown: Filtered by selected region]
+
+City
+[Dropdown: Filtered by selected country, "Regional Average" if no cities available]
+```
+
+### **Specific Implementation:**
+
+**Step 1: Region Selection**
+```
+Region Dropdown Options:
+- EMEA (Europe, Middle East & Africa) - 25 cities
+- Americas (North & South America) - 16 cities  
+- APAC (Asia Pacific) - 9 cities
+```
+
+**Step 2: Country Selection (filtered by region)**
+```
+If EMEA selected: Show UK, France, Germany, UAE, South Africa, etc.
+If Americas selected: Show USA, Canada, Brazil, Mexico, etc.
+If APAC selected: Show Singapore, Japan, Australia, Hong Kong, etc.
+```
+
+**Step 3: City Selection (filtered by country)**
+```
+If cities available: Show dropdown with cities
+If no cities available: Show "Regional Average" option
+Auto-proceed without blocking
+```
+
+### **Updated Breadcrumb Navigation:**
+```
+Data Source > Project Setup > Scope Selection > Specification > Results
+     ✓            ●               Next          Next         Next
+```
+
+**Remove these steps entirely:**
+- ~~T&T Region~~
+- ~~T&T Country~~ 
+- ~~T&T City~~
+
+### **Implementation Benefits:**
+- **Eliminates redundancy** - Location selected once
+- **Logical flow** - All project details in one step
+- **Consistent with CBRE** - Same UX pattern
+- **Faster completion** - Fewer steps overall
+- **Less confusion** - Clear, single location selection
+
+This consolidation will create a much more intuitive flow that matches user expectations and eliminates the frustrating repetition of location selection.
