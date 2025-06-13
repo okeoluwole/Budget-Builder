@@ -294,10 +294,11 @@ export const calculateBudget = async ({
     // Get the scope from the budget
     const scope = budget.scope || 'Fitout';
     console.log(`Calculating budget for scope: ${scope}`);
+    console.log('Budget object:', JSON.stringify(budget, null, 2)); // Debug budget object
     console.log('Using data source:', budget.primaryDataSource || 'CBRE'); // Log selected data source
     
     // Handle T&T data source calculation
-    if (budget.primaryDataSource === 'TT') {
+    if ((budget as any).primaryDataSource === 'TT') {
       console.log('====== T&T CALCULATION START ======');
       
       try {
@@ -457,9 +458,11 @@ export const calculateBudget = async ({
       // Turner & Townsend 2025 Global Office Fit-Out Cost Guide calculation
       console.log('====== STARTING T&T 2025 CALCULATION ======');
       
-      // Map specification levels to T&T format
+      // Map specification levels to T&T format (T&T uses Low/Medium/High directly)
       const specificationLevel = budget.specification === 'Bronze' ? 'Low' : 
-                                budget.specification === 'Silver' ? 'Medium' : 'High';
+                                budget.specification === 'Silver' ? 'Medium' : 
+                                budget.specification === 'Gold' ? 'High' :
+                                budget.specification; // Use direct value if already Low/Medium/High
       
       // Determine scope for T&T calculation
       const tt2025Scope = scope === 'Fitout' ? 'Construction' :
