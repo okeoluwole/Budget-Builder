@@ -1,0 +1,198 @@
+# Instructions for Replit: Temporary Data Borrowing for CBRE Missing Components
+
+## Implementation Strategy: Use T&T Data for Missing CBRE Components
+
+### **Current Situation:**
+- CBRE has: Construction, Furniture data ✓
+- CBRE missing: Audio-Visual, Professional Fees ✗
+- T&T has: All four components ✓
+
+### **Temporary Solution:** Data Borrowing with Clear Attribution
+
+## 1. Data Borrowing Logic
+
+### **CBRE Calculation with T&T Supplements:**
+
+```javascript
+function calculateCBREBudget(projectData) {
+  const cbreData = getCBRECosts(projectData.location, projectData.specification);
+  const ttData = getTTCosts(projectData.location, projectData.specification);
+  
+  return {
+    construction: cbreData.construction * projectData.area,
+    furniture: cbreData.furniture * projectData.area,
+    audioVisual: ttData.audioVisual * projectData.area, // Borrowed from T&T
+    professionalFees: ttData.professionalFees * projectData.area, // Borrowed from T&T
+    
+    // Metadata for transparency
+    dataSources: {
+      construction: "CBRE",
+      furniture: "CBRE", 
+      audioVisual: "T&T (borrowed)",
+      professionalFees: "T&T (borrowed)"
+    }
+  };
+}
+```
+
+## 2. Clear Data Source Attribution
+
+### **Results Table with Source Indicators:**
+
+```
+CBRE Budget Estimate (with T&T supplements)
+Location: [City] | Specification: [Level] | Area: [XXX] sqm
+
+Component               Cost         Rate/sqm     Data Source
+─────────────────────────────────────────────────────────────
+Construction            $XXX,XXX     $XXX/sqm     CBRE Guide ✓
+Furniture & Fixtures    $XXX,XXX     $XXX/sqm     CBRE Guide ✓
+Audio-Visual            $XXX,XXX     $XXX/sqm     T&T Guide* 
+Professional Fees       $XXX,XXX     $XXX/sqm     T&T Guide*
+─────────────────────────────────────────────────────────────
+TOTAL PROJECT           $XXX,XXX     $XXX/sqm     Mixed Sources
+
+* Temporarily using T&T data pending CBRE data availability
+```
+
+## 3. Multi-Source Comparison Adjustments
+
+### **Modified Comparison Logic:**
+
+```javascript
+function generateComparativeBudget(projectData) {
+  const ttBudget = calculateTTBudget(projectData);
+  const cbreBudget = calculateCBREWithTTSupplements(projectData);
+  
+  return {
+    tt: ttBudget,
+    cbre: cbreBudget,
+    comparison: generateAdjustedVarianceAnalysis(ttBudget, cbreBudget),
+    dataIntegrity: assessDataMixing(cbreBudget.dataSources)
+  };
+}
+```
+
+### **Adjusted Comparison Table:**
+
+```
+Multi-Source Budget Comparison Analysis
+Project: [Name] | Location: [City] | Specification: [Level]
+
+                           T&T Guide        CBRE Guide*      Variance      % Diff
+─────────────────────────────────────────────────────────────────────────────────
+Construction & Fitout      $XXX,XXX         $XXX,XXX         $±XX,XXX      ±XX%
+Furniture & Fixtures       $XXX,XXX         $XXX,XXX         $±XX,XXX      ±XX%  
+Technology & AV            $XXX,XXX         $XXX,XXX**       $0           0%**
+Professional Services      $XXX,XXX         $XXX,XXX**       $0           0%**
+─────────────────────────────────────────────────────────────────────────────────
+TOTAL PROJECT COST         $XXX,XXX         $XXX,XXX         $±XX,XXX      ±XX%
+
+* CBRE estimate uses mixed data sources
+** Same data source used - no variance expected
+
+Data Sources:
+✓ T&T: All components from Turner & Townsend 2025 Guide
+✓ CBRE: Construction & Furniture from CBRE Guide + AV & Professional from T&T
+```
+
+## 4. User Notifications
+
+### **Clear Messaging About Data Mixing:**
+
+```
+⚠️ Data Source Notice
+
+CBRE calculations currently use supplemented data:
+• Construction & Furniture: CBRE Global Fit-Out Cost Guide
+• Audio-Visual & Professional Fees: Turner & Townsend Guide (temporary)
+
+This ensures complete budget estimates while CBRE data collection is ongoing.
+Comparison analysis focuses on components with native CBRE data.
+```
+
+### **Scope Selection Updates:**
+
+```
+Budget Scope Selection (CBRE - Supplemented)
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 🏗️ Construction & Fitout                    [CBRE Data] ✓      │
+│ Core building works, partitions, flooring, ceilings            │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 🪑 Furniture & Fixtures                     [CBRE Data] ✓      │
+│ Desks, chairs, workstations, meeting room furniture            │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 📺 Audio-Visual Systems                     [T&T Data] *       │
+│ AV systems, displays, conferencing equipment                   │
+│ * Using T&T data pending CBRE data availability               │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 👔 Professional Services                    [T&T Data] *       │
+│ Design, project management, consulting services                │
+│ * Using T&T data pending CBRE data availability               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 5. Easy Data Replacement System
+
+### **Future CBRE Data Integration:**
+
+```javascript
+// Easy replacement when CBRE data becomes available
+const CBRE_DATA_SOURCES = {
+  audioVisual: {
+    available: false,
+    fallback: 'turner-townsend',
+    dataPath: 'cbre.audioVisual' // Ready for future data
+  },
+  professionalFees: {
+    available: false, 
+    fallback: 'turner-townsend',
+    dataPath: 'cbre.professionalFees' // Ready for future data
+  }
+};
+
+function getCBREComponent(component, location, spec) {
+  const config = CBRE_DATA_SOURCES[component];
+  
+  if (config.available) {
+    return getCBREData(config.dataPath, location, spec);
+  } else {
+    return getTTData(component, location, spec); // Temporary fallback
+  }
+}
+```
+
+## 6. Export Documentation
+
+### **Report Footnotes:**
+```
+Budget Estimation Report
+
+Data Sources & Methodology:
+• Construction costs: CBRE Global Fit-Out Cost Guide 2024/25
+• Furniture costs: CBRE Global Fit-Out Cost Guide 2024/25  
+• Audio-Visual costs: Turner & Townsend Global Office Fit-Out Cost Guide 2025*
+• Professional fees: Turner & Townsend Global Office Fit-Out Cost Guide 2025*
+
+* Temporarily supplemented pending CBRE data completion
+
+This approach maintains budget accuracy while clearly documenting data provenance.
+Full CBRE dataset integration planned for future updates.
+```
+
+## Benefits of This Approach:
+
+1. **Enables complete CBRE calculations** immediately
+2. **Maintains transparency** about data sources  
+3. **Allows meaningful comparisons** on available components
+4. **Easy future integration** when CBRE data is complete
+5. **Professional documentation** of methodology
+
+This temporary solution keeps the application functional while being completely transparent about data sourcing.

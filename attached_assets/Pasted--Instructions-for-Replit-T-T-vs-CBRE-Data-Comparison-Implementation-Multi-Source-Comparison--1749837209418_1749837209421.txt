@@ -1,0 +1,254 @@
+# Instructions for Replit: T&T vs CBRE Data Comparison Implementation
+
+## Multi-Source Comparison Strategy
+
+### **Challenge:** 
+T&T and CBRE use different cost structures and methodologies, requiring intelligent mapping for meaningful comparison.
+
+### **Solution:** Component Mapping with Methodology Transparency
+
+## 1. Component Mapping Matrix
+
+### **Core Cost Component Alignment:**
+
+```javascript
+const componentMapping = {
+  construction: {
+    tt: "Construction",
+    cbre: "Construction/Fitout", 
+    description: "Core building works, partitions, flooring, ceilings"
+  },
+  furniture: {
+    tt: "Loose Furniture",
+    cbre: "Furniture",
+    description: "Desks, chairs, storage, meeting room furniture"
+  },
+  technology: {
+    tt: "Audio-Visual", 
+    cbre: "Technology",
+    description: "AV systems, displays, conferencing equipment"
+  },
+  professional: {
+    tt: "Professional Fees",
+    cbre: "Professional Fees", 
+    description: "Design, project management, consulting services"
+  }
+};
+```
+
+## 2. Multi-Source Selection Interface
+
+### **Enhanced Data Source Selection:**
+
+```
+Select Cost Data Sources
+
+☐ CBRE Global Fit-Out Cost Guide  
+☐ Turner & Townsend Global Office Fit-Out Cost Guide
+☑️ Compare Both Sources (T&T vs CBRE)
+
+When "Compare Both Sources" is selected:
+→ Enable unified project setup
+→ Show component mapping explanation  
+→ Generate comparative analysis
+```
+
+### **Unified Scope Selection for Comparison:**
+
+```
+Budget Scope Selection (Multi-Source Comparison)
+Select components to compare between T&T and CBRE methodologies.
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 🏗️ Construction & Fitout                                        │
+│ T&T: Construction | CBRE: Construction/Fitout                   │
+│ Core building works, partitions, walls, flooring, ceilings     │
+│ ☑️ Include in comparison                                        │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 🪑 Furniture & Fixtures                                         │
+│ T&T: Loose Furniture | CBRE: Furniture                         │
+│ Desks, chairs, workstations, meeting room furniture            │
+│ ☑️ Include in comparison                                        │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 📺 Technology & Audio-Visual                                    │
+│ T&T: Audio-Visual | CBRE: Technology                           │
+│ AV systems, displays, conferencing, control systems            │
+│ ☑️ Include in comparison                                        │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 👔 Professional Services                                        │
+│ T&T: Professional Fees | CBRE: Professional Fees              │
+│ Design, project management, consulting services                │
+│ ☑️ Include in comparison                                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 3. Location Intersection Logic
+
+### **Smart Location Matching:**
+
+```javascript
+function getComparableLocations() {
+  const ttLocations = getTTAvailableLocations();
+  const cbreLocations = getCBREAvailableLocations();
+  
+  // Find cities available in both datasets
+  const commonCities = ttLocations.filter(ttLoc => 
+    cbreLocations.some(cbreLoc => 
+      ttLoc.city === cbreLoc.city && ttLoc.country === cbreLoc.country
+    )
+  );
+  
+  // If no common cities, use regional averages
+  if (commonCities.length === 0) {
+    return getRegionalAverages(ttLocations, cbreLocations);
+  }
+  
+  return commonCities;
+}
+```
+
+### **Location Selection Interface:**
+```
+Location Selection (Multi-Source Comparison)
+📍 Showing locations available in both T&T and CBRE datasets
+
+Available for Comparison:
+✓ London, United Kingdom
+✓ New York City, USA  
+✓ Singapore, Singapore
+✓ Sydney, Australia
+✓ Hong Kong, China
++ 12 more cities
+
+Note: Regional averages will be used for locations not available in both datasets.
+```
+
+## 4. Specification Level Alignment
+
+### **Specification Mapping:**
+
+```javascript
+const specificationAlignment = {
+  low: {
+    tt: "Low Specification",
+    cbre: "Low Specification", 
+    description: "Basic finishes, standard materials, functional focus"
+  },
+  medium: {
+    tt: "Medium Specification", 
+    cbre: "Medium Specification",
+    description: "Enhanced finishes, quality materials, some custom features"
+  },
+  high: {
+    tt: "High Specification",
+    cbre: "High Specification", 
+    description: "Premium finishes, high-quality materials, extensive customization"
+  }
+};
+```
+
+## 5. Comparative Calculation Engine
+
+### **Dual Calculation Process:**
+
+```javascript
+function generateComparativeBudget(projectData) {
+  const mappedComponents = mapSelectedComponents(projectData.scope);
+  
+  const ttBudget = calculateTTBudget({
+    location: projectData.location,
+    specification: projectData.specification,
+    components: mappedComponents.tt,
+    area: projectData.area
+  });
+  
+  const cbreBudget = calculateCBREBudget({
+    location: projectData.location,
+    specification: projectData.specification,
+    components: mappedComponents.cbre,
+    area: projectData.area
+  });
+  
+  return {
+    tt: ttBudget,
+    cbre: cbreBudget,
+    comparison: generateVarianceAnalysis(ttBudget, cbreBudget),
+    methodology: getMethodologyDifferences()
+  };
+}
+```
+
+## 6. Results Presentation Format
+
+### **Comparative Budget Table:**
+
+```
+Multi-Source Budget Comparison Analysis
+Project: [Project Name] | Location: [City, Country] | Specification: [Level]
+Area: [X,XXX] sqm | Currency: USD
+
+                           T&T Guide        CBRE Guide       Variance      % Diff
+─────────────────────────────────────────────────────────────────────────────────
+Construction & Fitout      $XXX,XXX         $XXX,XXX         $±XX,XXX      ±XX%
+Furniture & Fixtures       $XXX,XXX         $XXX,XXX         $±XX,XXX      ±XX%  
+Technology & AV            $XXX,XXX         $XXX,XXX         $±XX,XXX      ±XX%
+Professional Services      $XXX,XXX         $XXX,XXX         $±XX,XXX      ±XX%
+─────────────────────────────────────────────────────────────────────────────────
+TOTAL PROJECT COST         $XXX,XXX         $XXX,XXX         $±XX,XXX      ±XX%
+
+Cost per sqm               $XXX/sqm         $XXX/sqm         $±XX/sqm      ±XX%
+Cost per sqft              $XXX/sqft        $XXX/sqft        $±XX/sqft     ±XX%
+
+Methodology Notes:
+• T&T costs based on Turner & Townsend Global Office Fit-Out Cost Guide 2025
+• CBRE costs based on CBRE Global Fit-Out Cost Guide 2024/25  
+• Component mapping applied for like-for-like comparison
+• Variance may reflect different surveying methodologies and data collection periods
+```
+
+## 7. Variance Analysis & Insights
+
+### **Automated Analysis:**
+
+```javascript
+function generateInsights(ttBudget, cbreBudget) {
+  const totalVariance = Math.abs(ttBudget.total - cbreBudget.total);
+  const percentageVariance = (totalVariance / Math.min(ttBudget.total, cbreBudget.total)) * 100;
+  
+  return {
+    summary: `${percentageVariance.toFixed(1)}% variance between sources`,
+    highestVariance: findHighestVarianceComponent(ttBudget, cbreBudget),
+    recommendation: generateRecommendation(percentageVariance),
+    reliability: assessDataReliability(ttBudget.location, cbreBudget.location)
+  };
+}
+```
+
+### **Insights Panel:**
+```
+📊 Comparison Insights
+
+Overall Variance: 12.3% difference between T&T and CBRE estimates
+Highest Variance: Technology component (18% difference)
+Lower Estimate: T&T Guide ($2.1M total)
+Higher Estimate: CBRE Guide ($2.4M total)
+
+💡 Recommendations:
+• Both estimates fall within acceptable industry range (±15%)
+• Consider average of both estimates for budget planning
+• Technology costs show highest variation - validate requirements
+• Professional fees aligned well between sources (3% variance)
+
+⚠️ Important Notes:
+• Different data collection periods may affect comparison
+• Regional market conditions vary between survey methodologies  
+• Consider local market validation for final budgeting
+```
+
+This approach provides meaningful comparison while being transparent about methodological differences and limitations.
