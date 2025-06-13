@@ -14,6 +14,7 @@ import TTRegionSelectionStep from './TTRegionSelectionStep';
 import TTCountrySelectionStep from './TTCountrySelectionStep';
 import TTCitySelectionStep from './TTCitySelectionStep';
 import TTBuildingTypeStep from './TTBuildingTypeStep';
+import BreadcrumbNavigation from './BreadcrumbNavigation';
 import { useToast } from '@/hooks/use-toast';
 import { TTRegion, TTBuildingType } from '@/utils/turnerTownsendData';
 
@@ -279,78 +280,35 @@ const BudgetWizard: React.FC = () => {
     }
   };
 
+  const currentStepInfo = steps.find(step => step.id === currentStep);
+  const breadcrumbSteps = steps.map((step, index) => {
+    const currentIndex = steps.findIndex(s => s.id === currentStep);
+    return {
+      id: step.id,
+      title: step.title,
+      completed: currentIndex > index,
+      current: step.id === currentStep,
+      clickable: currentIndex > index // Only allow navigation to completed steps
+    };
+  });
+
+  const handleBreadcrumbClick = (stepId: string) => {
+    const targetStep = steps.find(step => step.id === stepId);
+    if (targetStep) {
+      setCurrentStep(stepId as Step);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Create New Budget Estimate</h1>
-        <p className="text-gray-600 mt-1">Complete all steps to generate your fit-out budget estimation</p>
-      </div>
-      
-      {/* Enhanced Wizard Progress */}
-      <div className="mb-8">
-        {/* Progress Summary */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
-            <span>Step {steps.findIndex(s => s.id === currentStep) + 1} of {steps.length}</span>
-            <span>{Math.round(((steps.findIndex(s => s.id === currentStep) + 1) / steps.length) * 100)}% Complete</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${((steps.findIndex(s => s.id === currentStep) + 1) / steps.length) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Step Indicators */}
-        <div className="flex items-center justify-between">
-          {steps.map((step, index) => {
-            const currentIndex = steps.findIndex(s => s.id === currentStep);
-            const isActive = step.id === currentStep;
-            const isCompleted = currentIndex > index;
-            
-            return (
-              <div key={step.id} className="flex-1 relative">
-                <div className="flex items-center">
-                  <div 
-                    className={`z-10 flex items-center justify-center w-12 h-12 rounded-full font-medium text-sm transition-all duration-300 ${
-                      isCompleted
-                        ? 'bg-green-500 text-white shadow-lg'
-                        : isActive 
-                        ? 'bg-primary text-white ring-4 ring-blue-100 shadow-lg scale-110' 
-                        : 'bg-gray-300 text-gray-600 hover:bg-gray-400'
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      index + 1
-                    )}
-                  </div>
-                  <div className="hidden lg:block ml-4 flex-1">
-                    <p className={`text-sm font-semibold transition-colors duration-200 ${
-                      isActive ? 'text-primary' : isCompleted ? 'text-green-600' : 'text-gray-600'
-                    }`}>
-                      {step.title}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1 leading-tight">{step.description}</p>
-                  </div>
-                </div>
-                {index < steps.length - 1 && (
-                  <div 
-                    className={`absolute top-6 left-12 w-full h-1 transition-all duration-500 ${
-                      isCompleted ? 'bg-green-500' : 'bg-gray-300'
-                    }`} 
-                    style={{ zIndex: 1 }}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <BreadcrumbNavigation 
+        steps={breadcrumbSteps}
+        onStepClick={handleBreadcrumbClick}
+        title="Create New Budget Estimate"
+        subtitle="Complete all steps to generate your fit-out budget estimation"
+        currentStepTitle={currentStepInfo?.title || ''}
+        currentStepDescription={currentStepInfo?.description || ''}
+      />
       
       {/* Current Step Content */}
       <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden">

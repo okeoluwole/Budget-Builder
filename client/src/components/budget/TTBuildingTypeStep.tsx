@@ -70,10 +70,10 @@ const TTBuildingTypeStep: React.FC<TTBuildingTypeStepProps> = ({
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Select Building Type</h2>
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Select Specification Level</h2>
       <p className="text-gray-600 mb-6">
-        The Turner & Townsend ICMS 2024 provides cost data for different categories of office buildings.
-        Select the type that most closely matches your project requirements.
+        The Turner & Townsend 2025 Global Office Fit-Out Cost Guide provides cost data for different specification levels.
+        Select the level that most closely matches your project requirements.
       </p>
 
       <div className="flex flex-wrap gap-2 mb-6">
