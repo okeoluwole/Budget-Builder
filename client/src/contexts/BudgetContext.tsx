@@ -25,6 +25,12 @@ interface BudgetState {
     comparisonSources?: DataSourceType[];
     jllLayout?: JLLLayout;
     jllQuality?: JLLQuality;
+    ttComponentSpecs?: {
+      construction?: string;
+      looseFurniture?: string;
+      audioVisual?: string;
+      professionalFees?: string;
+    };
   };
   savedProject?: Project;
   savedBudget?: Budget;
@@ -36,6 +42,7 @@ type BudgetAction =
   | { type: 'UPDATE_PROJECT'; payload: Partial<InsertProject> }
   | { type: 'UPDATE_SCOPE'; payload: string }
   | { type: 'UPDATE_SPECIFICATION'; payload: { specification: string; fitoutSpecification?: string | null; furnitureSpecification?: string | null } }
+  | { type: 'UPDATE_TT_COMPONENT_SPECS'; payload: { construction?: string; looseFurniture?: string; audioVisual?: string; professionalFees?: string } }
   | { type: 'UPDATE_LAYOUT'; payload: string }
   | { type: 'UPDATE_SPACE_ALLOCATION'; payload: SpaceAllocation }
   | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; fitoutCost?: number; furnitureCost?: number; costsBreakdown: any } }
@@ -63,6 +70,7 @@ interface BudgetContextType {
   updateDataSource: (dataSource: DataSourceType, enableComparison: boolean, comparisonSources?: DataSourceType[]) => void;
   updateJllOptions: (jllLayout: JLLLayout, jllQuality: JLLQuality) => void;
   updateTTOptions: (options: Partial<TTOptions>) => void;
+  updateTTComponentSpecs: (specs: { construction?: string; looseFurniture?: string; audioVisual?: string; professionalFees?: string }) => void;
   setSavedProject: (project: Project) => void;
   setSavedBudget: (budget: Budget) => void;
   loadBudget: (project: Project, budget: Budget) => void;

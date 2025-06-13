@@ -53,6 +53,7 @@ export const budgets = pgTable("budgets", {
   dataSource: text("data_source"), // For backward compatibility
   jllLayout: text("jll_layout"), // Open & flexible, High spatial variety, Structured
   jllQuality: text("jll_quality"), // Baseline, Medium, High
+  ttComponentSpecs: json("tt_component_specs"), // T&T component-specific specifications
   spaceAllocation: json("space_allocation").notNull(),
   totalCost: real("total_cost"),
   fitoutCost: real("fitout_cost"),

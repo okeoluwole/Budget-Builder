@@ -26,6 +26,14 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
     state.budget?.furnitureSpecification || state.budget?.specification || ''
   );
 
+  // Track T&T component-specific specifications
+  const [ttSpecifications, setTTSpecifications] = useState({
+    construction: state.budget?.specification || '',
+    looseFurniture: state.budget?.specification || '',
+    audioVisual: state.budget?.specification || '',
+    professionalFees: state.budget?.specification || ''
+  });
+
   // Determine if we need to show both specification sections
   const showBothSections = state.budget?.scope === 'Both';
 
@@ -150,18 +158,41 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
   };
 
   const handleNext = () => {
-    // For T&T data source, use single specification selection
+    // For T&T data source, validate component-specific specifications
     if (state.budget?.primaryDataSource === 'TT') {
-      if (!selectedFitoutSpec) {
+      // Get relevant components based on scope
+      const requiredComponents = [];
+      if (state.budget?.scope === 'Construction') {
+        requiredComponents.push('construction');
+      } else if (state.budget?.scope === 'LooseFurniture') {
+        requiredComponents.push('looseFurniture');
+      } else if (state.budget?.scope === 'AudioVisual') {
+        requiredComponents.push('audioVisual');
+      } else if (state.budget?.scope === 'ProfessionalFees') {
+        requiredComponents.push('professionalFees');
+      } else {
+        // Complete package requires all components
+        requiredComponents.push('construction', 'looseFurniture', 'audioVisual', 'professionalFees');
+      }
+
+      // Validate that all required components have specifications
+      const missingSpecs = requiredComponents.filter(comp => !ttSpecifications[comp as keyof typeof ttSpecifications]);
+      if (missingSpecs.length > 0) {
         toast({
           title: "Specification selection required",
-          description: "Please select a specification level before continuing.",
+          description: `Please select specifications for all components: ${missingSpecs.join(', ')}.`,
           variant: "destructive",
         });
         return;
       }
-      // For T&T, use the single specification for all components
-      updateSpecification(selectedFitoutSpec, selectedFitoutSpec, selectedFitoutSpec);
+
+      // Store T&T component specifications in the budget context
+      // For backward compatibility, use construction spec as main specification
+      const mainSpec = ttSpecifications.construction || Object.values(ttSpecifications).find(s => s) || '';
+      updateSpecification(mainSpec, mainSpec, mainSpec);
+      
+      // Store component-specific specs in budget context (we'll need to extend this)
+      // For now, proceed with the main specification
       onNext();
       return;
     }
@@ -306,52 +337,104 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
     );
   };
 
-  // Render T&T specific specification selection
+  // Handle T&T component specification changes
+  const handleTTSpecificationChange = (component: keyof typeof ttSpecifications, spec: string) => {
+    setTTSpecifications(prev => ({
+      ...prev,
+      [component]: spec
+    }));
+  };
+
+  // Render T&T component-specific specification selection
   const renderTTSpecificationSection = () => {
+    const componentsConfig = [
+      {
+        key: 'construction' as const,
+        title: 'Construction',
+        description: 'Partitions, walls, floors, ceilings, mechanical, electrical',
+        icon: '🏗️'
+      },
+      {
+        key: 'looseFurniture' as const,
+        title: 'Loose Furniture',
+        description: 'Desks, chairs, workstations, storage, soft seating',
+        icon: '🪑'
+      },
+      {
+        key: 'audioVisual' as const,
+        title: 'Audio-Visual',
+        description: 'Display screens, conferencing systems, AV equipment',
+        icon: '📺'
+      },
+      {
+        key: 'professionalFees' as const,
+        title: 'Professional Fees',
+        description: 'Design, project management, cost consulting',
+        icon: '👔'
+      }
+    ];
+
+    // Filter components based on selected scope
+    const relevantComponents = componentsConfig.filter(comp => {
+      if (state.budget?.scope === 'Construction') return comp.key === 'construction';
+      if (state.budget?.scope === 'LooseFurniture') return comp.key === 'looseFurniture';
+      if (state.budget?.scope === 'AudioVisual') return comp.key === 'audioVisual';
+      if (state.budget?.scope === 'ProfessionalFees') return comp.key === 'professionalFees';
+      return true; // Show all for Complete package
+    });
+
     return (
       <div>
         <div className="mb-6 p-4 bg-blue-50 rounded-md">
           <p className="text-sm text-blue-700">
-            <strong>Turner & Townsend Specification:</strong> Select the quality level that applies to all project components (construction, furniture, AV, and professional services).
+            <strong>Turner & Townsend Specification:</strong> Select quality levels for each component in your {state.budget?.scope} scope.
           </p>
         </div>
         
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Project Specification Level</h3>
-        <p className="text-gray-600 mb-4">Choose the overall quality level for your {state.budget?.scope} project components.</p>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Component Specification Levels</h3>
+        <p className="text-gray-600 mb-6">Choose the quality level for each project component independently.</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {specifications.map((spec) => (
-            <div
-              key={spec.name}
-              className={`border rounded-lg cursor-pointer transition-all ${
-                selectedFitoutSpec === spec.name
-                  ? 'border-primary bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => handleSelectFitoutSpecification(spec.name)}
-            >
-              <div className="p-4">
-                <div className="flex items-center mb-2">
-                  <div className={`w-4 h-4 rounded-full border-2 mr-3 ${
-                    selectedFitoutSpec === spec.name
-                      ? 'border-primary bg-primary'
-                      : 'border-gray-300'
-                  }`}>
-                    {selectedFitoutSpec === spec.name && (
-                      <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                    )}
+        <div className="space-y-6">
+          {relevantComponents.map((component) => (
+            <div key={component.key} className="border rounded-lg p-4">
+              <div className="flex items-center mb-3">
+                <span className="text-2xl mr-3">{component.icon}</span>
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800">{component.title}</h4>
+                  <p className="text-sm text-gray-600">{component.description}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {specifications.map((spec) => (
+                  <div
+                    key={spec.name}
+                    className={`border rounded-md p-3 cursor-pointer transition-all ${
+                      ttSpecifications[component.key] === spec.name
+                        ? 'border-primary bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => handleTTSpecificationChange(component.key, spec.name)}
+                  >
+                    <div className="flex items-center mb-2">
+                      <div className={`w-3 h-3 rounded-full border-2 mr-2 ${
+                        ttSpecifications[component.key] === spec.name
+                          ? 'border-primary bg-primary'
+                          : 'border-gray-300'
+                      }`}>
+                        {ttSpecifications[component.key] === spec.name && (
+                          <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                        )}
+                      </div>
+                      <span className={`text-sm font-medium ${
+                        ttSpecifications[component.key] === spec.name ? 'text-primary' : 'text-gray-800'
+                      }`}>
+                        {spec.name}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600">{spec.description}</p>
                   </div>
-                  <h4 className={`text-lg font-semibold ${
-                    selectedFitoutSpec === spec.name ? 'text-primary' : 'text-gray-800'
-                  }`}>
-                    {spec.name}
-                  </h4>
-                </div>
-                <p className="text-sm text-gray-600 mb-3">{spec.description}</p>
-                <div className="text-xs text-gray-500">
-                  <p><strong>Applies to:</strong> All selected components</p>
-                  <p><strong>Cost Factor:</strong> {spec.name === 'Low' ? '1.0x' : spec.name === 'Medium' ? '1.4x' : '1.8x'}</p>
-                </div>
+                ))}
               </div>
             </div>
           ))}
