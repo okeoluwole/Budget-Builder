@@ -265,46 +265,64 @@ const BudgetWizard: React.FC = () => {
         <p className="text-gray-600 mt-1">Complete all steps to generate your fit-out budget estimation</p>
       </div>
       
-      {/* Wizard Progress */}
+      {/* Enhanced Wizard Progress */}
       <div className="mb-8">
+        {/* Progress Summary */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
+            <span>Step {steps.findIndex(s => s.id === currentStep) + 1} of {steps.length}</span>
+            <span>{Math.round(((steps.findIndex(s => s.id === currentStep) + 1) / steps.length) * 100)}% Complete</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${((steps.findIndex(s => s.id === currentStep) + 1) / steps.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Step Indicators */}
         <div className="flex items-center justify-between">
           {steps.map((step, index) => {
+            const currentIndex = steps.findIndex(s => s.id === currentStep);
             const isActive = step.id === currentStep;
-            const isCompleted = steps.findIndex(s => s.id === currentStep) > index;
+            const isCompleted = currentIndex > index;
             
             return (
               <div key={step.id} className="flex-1 relative">
                 <div className="flex items-center">
                   <div 
-                    className={`z-10 flex items-center justify-center w-10 h-10 rounded-full font-medium ${
-                      isActive || isCompleted 
-                        ? 'bg-primary text-white' 
-                        : 'bg-gray-300 text-gray-600'
+                    className={`z-10 flex items-center justify-center w-12 h-12 rounded-full font-medium text-sm transition-all duration-300 ${
+                      isCompleted
+                        ? 'bg-green-500 text-white shadow-lg'
+                        : isActive 
+                        ? 'bg-primary text-white ring-4 ring-blue-100 shadow-lg scale-110' 
+                        : 'bg-gray-300 text-gray-600 hover:bg-gray-400'
                     }`}
                   >
-                    {index + 1}
+                    {isCompleted ? (
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      index + 1
+                    )}
                   </div>
-                  <div className="hidden md:block ml-3">
-                    <p className={`text-sm font-medium ${
-                      isActive || isCompleted ? 'text-primary' : 'text-gray-600'
+                  <div className="hidden lg:block ml-4 flex-1">
+                    <p className={`text-sm font-semibold transition-colors duration-200 ${
+                      isActive ? 'text-primary' : isCompleted ? 'text-green-600' : 'text-gray-600'
                     }`}>
                       {step.title}
                     </p>
-                    <p className="text-xs text-gray-500">{step.description}</p>
+                    <p className="text-xs text-gray-500 mt-1 leading-tight">{step.description}</p>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
                   <div 
-                    className={`absolute top-5 left-0 w-full h-0.5 ${
-                      isCompleted ? 'bg-primary' : 'bg-gray-300'
+                    className={`absolute top-6 left-12 w-full h-1 transition-all duration-500 ${
+                      isCompleted ? 'bg-green-500' : 'bg-gray-300'
                     }`} 
-                  />
-                )}
-                {index === steps.length - 1 && (
-                  <div 
-                    className={`absolute top-5 left-0 w-1/2 h-0.5 ${
-                      isCompleted ? 'bg-primary' : 'bg-gray-300'
-                    }`} 
+                    style={{ zIndex: 1 }}
                   />
                 )}
               </div>
@@ -314,8 +332,10 @@ const BudgetWizard: React.FC = () => {
       </div>
       
       {/* Current Step Content */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        {renderStepContent()}
+      <div className="bg-white shadow-lg rounded-xl border border-gray-100 overflow-hidden">
+        <div className="p-8">
+          {renderStepContent()}
+        </div>
       </div>
     </div>
   );

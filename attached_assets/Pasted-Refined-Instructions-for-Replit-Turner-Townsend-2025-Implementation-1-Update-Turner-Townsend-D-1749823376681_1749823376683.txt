@@ -1,0 +1,123 @@
+Refined Instructions for Replit: Turner & Townsend 2025 Implementation
+1. Update Turner & Townsend Data Source Option
+Replace the current "Turner & Townsend ICMS" option with the new T&T Office Fit-Out Guide:
+Current T&T Option to Replace:
+
+Name: "Turner & Townsend ICMS"
+Date: "2024 Q1 - February 2024"
+Description: "International Construction Market Survey with detailed labor, material, and equipment costs..."
+
+New T&T Option:
+
+Name: "Turner & Townsend Global Office Fit-Out Cost Guide"
+Date: "2025 - April 2025"
+Description: "Comprehensive office fit-out cost data covering 50 cities globally with detailed functional and elemental breakdowns. Features low, medium, and high specifications with spotlight data for 16 major cities. Best for office fit-out projects."
+Country Coverage: Update to reflect T&T's 50-city coverage including: United States, United Kingdom, Singapore, Australia, Hong Kong, Germany, France, Japan, Canada, India, UAE, Brazil, Mexico +38 more
+
+2. Modernize Interface While Preserving Functionality
+Keep the Data Source Selection - this is working well and provides good user choice.
+Modernize Steps 2-7 with the card-based approach:
+Replace Linear Steps with Interactive Dashboard
+After Data Source Selection, implement:
+Single-Page Dashboard Layout with these sections:
+
+Project Information Card
+
+Project name, description, timeline
+Collapsible, can be completed in any order
+
+
+Location Selection Card
+
+Visual map or grid of T&T's 50 cities
+Real-time cost indicator preview
+Regional grouping (EMEA, Americas, APAC)
+
+
+Space & Scope Card
+
+Area input (with sq ft/sq m toggle)
+Scope selection (Construction, Furniture, AV, Professional Fees)
+Visual space allocation tools
+
+
+Specification Level Card
+
+T&T's Low/Medium/High with visual previews
+Cost impact indicators
+Specification descriptions from T&T guide
+
+
+Live Budget Results Panel
+
+Always visible sidebar/bottom panel
+Real-time calculations
+T&T's four-component breakdown
+Export options
+
+
+
+3. T&T 2025 Data Integration Specifics
+Implement T&T Cost Structure:
+Construction Costs (varies by city/spec)
++ Loose Furniture (varies by city/spec)  
++ Audio-Visual (varies by city/spec)
++ Professional Fees (percentage of above)
+= Total Project Cost
+Use T&T's Regional Structure:
+
+EMEA: 25 cities (London, Paris, Munich, Dubai, etc.)
+Americas: 16 cities (New York, San Francisco, Toronto, São Paulo, etc.)
+APAC: 9 cities (Singapore, Tokyo, Hong Kong, Sydney, etc.)
+
+Implement Spotlight City Enhanced Data:
+For T&T's 16 spotlight cities, provide detailed breakdowns by:
+
+Business/Welcome lounge
+Staff breakout/Dining areas
+Collaboration spaces
+Quiet rooms
+Meeting rooms
+Boardrooms
+Executive suites
+And other functional zones
+
+4. Preserve Existing Dashboard Features
+Keep the main dashboard with:
+
+Total Projects counter
+Completed Budgets tracking
+Draft Budgets management
+Recent Projects list
+Recent Budget Estimates
+
+Enhance with T&T Integration:
+
+Show which T&T specification level was used
+Display regional cost comparisons
+Track projects by T&T city data
+
+5. Implementation Priority Order
+
+Update T&T Data Source Card - Replace ICMS with Office Fit-Out Guide
+Extract T&T 2025 Data - Parse all 50 cities, 3 spec levels, 4 cost components
+Modernize Steps 2-7 - Convert to interactive dashboard
+Implement T&T Calculations - Four-component cost structure
+Add Spotlight City Features - Enhanced breakdowns for 16 cities
+Visual Enhancements - Charts, maps, real-time updates
+
+6. Specific UI Improvements
+Remove numbered step circles - Replace with:
+
+Progress indicators that don't enforce sequence
+Completion status for each card
+Visual feedback for required vs. optional fields
+
+Add Visual Elements:
+
+City cost heat maps
+Specification level comparison charts
+Real-time cost impact visualization
+T&T methodology tooltips
+
+This approach maintains the solid foundation you've built while modernizing the user experience and properly integrating the Turner & Townsend 2025 office fit-out data.
