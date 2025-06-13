@@ -181,53 +181,116 @@ const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onBack, onS
             />
           </div>
           
-          {/* Country */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="location-country">
-              Country <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="location-country"
-              {...form.register('country')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-              disabled={loading}
-            >
-              <option value="">Select a country</option>
-              {Object.keys(locations).length > 0 ? (
-                Object.keys(locations).map(country => (
-                  <option key={country} value={country}>{country}</option>
-                ))
-              ) : (
-                COUNTRIES.map(country => (
-                  <option key={country} value={country}>{country}</option>
-                ))
-              )}
-            </select>
-            {form.formState.errors.country && (
-              <p className="mt-1 text-sm text-red-500">{form.formState.errors.country.message}</p>
-            )}
-          </div>
-          
-          {/* City */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="location-city">
-              City <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="location-city"
-              {...form.register('city')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-              disabled={!form.watch('country') || loading}
-            >
-              <option value="">{form.watch('country') ? 'Select a city' : 'First select a country'}</option>
-              {availableCities.map(city => (
-                <option key={city} value={city}>{city}</option>
-              ))}
-            </select>
-            {form.formState.errors.city && (
-              <p className="mt-1 text-sm text-red-500">{form.formState.errors.city.message}</p>
-            )}
-          </div>
+          {/* Conditional Location Selection based on Data Source */}
+          {state.budget?.primaryDataSource === 'TT' ? (
+            <>
+              {/* T&T Region Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  T&T Region <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedTTRegion}
+                  onChange={(e) => handleTTRegionChange(e.target.value as TTRegion)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="">Select a region</option>
+                  {ttRegions.map(region => (
+                    <option key={region} value={region}>{region}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* T&T Country Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  T&T Country <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedTTCountry}
+                  onChange={(e) => handleTTCountryChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  disabled={!selectedTTRegion}
+                >
+                  <option value="">{selectedTTRegion ? 'Select a country' : 'First select a region'}</option>
+                  {ttCountries.map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* T&T City Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  T&T City
+                </label>
+                <select
+                  value={selectedTTCity}
+                  onChange={(e) => handleTTCityChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  disabled={!selectedTTCountry}
+                >
+                  <option value="">{selectedTTCountry ? (ttCities.length === 0 ? 'Regional Average' : 'Select a city') : 'First select a country'}</option>
+                  {ttCities.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                  {ttCities.length === 0 && selectedTTCountry && (
+                    <option value="Regional Average">Regional Average</option>
+                  )}
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Standard Country Selection for CBRE/Other Sources */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="location-country">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="location-country"
+                  {...form.register('country')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  disabled={loading}
+                >
+                  <option value="">Select a country</option>
+                  {Object.keys(locations).length > 0 ? (
+                    Object.keys(locations).map(country => (
+                      <option key={country} value={country}>{country}</option>
+                    ))
+                  ) : (
+                    COUNTRIES.map(country => (
+                      <option key={country} value={country}>{country}</option>
+                    ))
+                  )}
+                </select>
+                {form.formState.errors.country && (
+                  <p className="mt-1 text-sm text-red-500">{form.formState.errors.country.message}</p>
+                )}
+              </div>
+              
+              {/* Standard City Selection for CBRE/Other Sources */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="location-city">
+                  City <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="location-city"
+                  {...form.register('city')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  disabled={!form.watch('country') || loading}
+                >
+                  <option value="">{form.watch('country') ? 'Select a city' : 'First select a country'}</option>
+                  {availableCities.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+                {form.formState.errors.city && (
+                  <p className="mt-1 text-sm text-red-500">{form.formState.errors.city.message}</p>
+                )}
+              </div>
+            </>
+          )}
           
           {/* Total Area */}
           <div>

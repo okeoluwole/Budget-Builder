@@ -1,0 +1,215 @@
+# Comprehensive Instructions for Replit: Complete CBRE & T&T Implementation + Multi-Source Comparison
+
+## Phase 1: CBRE Flow Validation & Completion
+
+### **1.1 CBRE Data Source Path Testing**
+
+**Full End-to-End CBRE Flow:**
+```
+Step 1: Data Source → Select "CBRE Global Fit-Out Cost Guide"
+Step 2: Project Setup → Location selection with CBRE regions/countries/cities
+Step 3: Scope Selection → Choose budget scope components
+Step 4: Specification → Low/Medium/High selection  
+Step 5: Layout → Activity/Team/Event space selection
+Step 6: Space Allocation → Define space usage breakdown
+Step 7: Budget Results → Generate comprehensive CBRE-based budget
+```
+
+**CBRE Calculation Engine Verification:**
+- **Validate CBRE cost matrices**: Ensure all location × specification × layout combinations work
+- **Test scope calculations**: Construction, Furniture, Technology, Professional Fees
+- **Verify space allocation math**: Percentage-based calculations for different space types
+- **Check currency conversions**: USD, GBP, EUR calculations
+- **Validate totals**: Ensure all components sum correctly
+
+### **1.2 CBRE Data Structure Requirements**
+
+**Ensure CBRE data includes:**
+- All global cities with complete cost data
+- Three specification levels (Low/Medium/High) with accurate cost differentials
+- Three layout types (Activity/Team/Event) with appropriate cost variations
+- Four cost components with correct percentages and calculations
+- Regional adjustment factors and currency conversion rates
+
+## Phase 2: T&T Flow Development & Completion
+
+### **2.1 T&T Data Source Path Implementation**
+
+**Complete T&T Flow (Streamlined):**
+```
+Step 1: Data Source → Select "Turner & Townsend Global Office Fit-Out Cost Guide"
+Step 2: Project Setup → T&T location selection (Region > Country > City)
+Step 3: Scope Selection → Choose T&T scope components
+Step 4: Specification → Low/Medium/High selection (T&T methodology)
+Step 5: Budget Results → Generate T&T-based budget
+```
+
+**T&T Specific Implementation:**
+- **Extract T&T 2025 data**: Parse cost data from 50 cities across EMEA/Americas/APAC
+- **Implement T&T cost structure**: Construction, Loose Furniture, Audio-Visual, Professional Fees
+- **Build T&T calculation engine**: Use T&T's per-sqm and per-sqft cost data
+- **Handle spotlight cities**: Enhanced data for 16 major cities with detailed breakdowns
+- **Regional defaults**: For countries without specific city data
+
+### **2.2 T&T Data Extraction & Structuring**
+
+**Priority T&T Data Requirements:**
+```javascript
+// T&T Data Structure
+{
+  regions: {
+    "EMEA": {
+      countries: {
+        "United Kingdom": {
+          cities: ["London", "Birmingham", "Manchester", "Edinburgh"],
+          costs: {
+            "London": {
+              low: { construction: X, furniture: Y, av: Z, professional: W },
+              medium: { construction: X, furniture: Y, av: Z, professional: W },
+              high: { construction: X, furniture: Y, av: Z, professional: W }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**T&T Calculation Logic:**
+- Base cost per sqm/sqft from T&T tables
+- Specification multipliers (Low/Medium/High)
+- Four-component breakdown with T&T percentages
+- Regional adjustment factors where applicable
+
+## Phase 3: Multi-Source Comparison Implementation
+
+### **3.1 Enable Multi-Source Selection**
+
+**Add Multi-Source Option in Data Source Selection:**
+```
+☐ CBRE Global Fit-Out Cost Guide (Recommended)
+☐ JLL Global Office Fit-Out Guide  
+☐ Turner & Townsend Global Office Fit-Out Cost Guide
+☑️ Enable multi-source comparison
+
+[When checked: "Compare costs using multiple data sources for comprehensive analysis"]
+```
+
+**Multi-Source Flow Logic:**
+```
+If multi-source enabled:
+  1. Show unified location selection (intersection of available locations)
+  2. Collect project requirements once
+  3. Apply requirements to both CBRE and T&T calculation engines
+  4. Generate comparative results table
+```
+
+### **3.2 Unified Location Selection for Comparison**
+
+**Implementation Strategy:**
+- **Find common locations**: Cities available in both CBRE and T&T datasets
+- **Standardize specifications**: Map CBRE Low/Medium/High to T&T equivalent levels
+- **Align scope components**: Match similar cost categories between sources
+- **Handle differences**: Clear notation where methodologies differ
+
+### **3.3 Comparative Calculation Engine**
+
+**Dual Calculation Process:**
+```javascript
+function generateComparativeBudget(projectData) {
+  const cbreResults = calculateCBREBudget(projectData);
+  const ttResults = calculateTTBudget(projectData);
+  
+  return {
+    cbre: cbreResults,
+    tt: ttResults,
+    comparison: generateComparison(cbreResults, ttResults),
+    analysis: generateVarianceAnalysis(cbreResults, ttResults)
+  };
+}
+```
+
+## Phase 4: Enhanced Budget Results with Comparison Analysis
+
+### **4.1 Comparative Budget Table Design**
+
+**Multi-Source Results Layout:**
+```
+Project Budget Comparison Analysis
+
+                    CBRE Guide      T&T Guide       Variance    % Difference
+Construction        $XXX,XXX        $XXX,XXX        $±XX,XXX    ±XX%
+Furniture           $XXX,XXX        $XXX,XXX        $±XX,XXX    ±XX%
+Technology/AV       $XXX,XXX        $XXX,XXX        $±XX,XXX    ±XX%
+Professional Fees   $XXX,XXX        $XXX,XXX        $±XX,XXX    ±XX%
+─────────────────────────────────────────────────────────────────────
+TOTAL PROJECT       $XXX,XXX        $XXX,XXX        $±XX,XXX    ±XX%
+
+Cost per sqm:       $XXX/sqm        $XXX/sqm        $±XX      ±XX%
+Cost per sqft:      $XXX/sqft       $XXX/sqft       $±XX      ±XX%
+```
+
+### **4.2 Variance Analysis Features**
+
+**Analysis Components:**
+- **Percentage variance** between CBRE and T&T estimates
+- **Component-level differences** (which categories vary most)
+- **Methodology explanations** (why differences exist)
+- **Confidence indicators** (data quality and coverage)
+- **Recommendation engine** (which estimate to use and why)
+
+### **4.3 Export and Reporting**
+
+**Enhanced Export Options:**
+- **Comparative PDF report** with both estimates
+- **Excel export** with separate sheets for each source
+- **Executive summary** highlighting key differences
+- **Detailed breakdown** showing calculation methodologies
+
+## Phase 5: Testing & Quality Assurance
+
+### **5.1 Comprehensive Testing Protocol**
+
+**Test Matrix:**
+```
+✓ CBRE solo flow (end-to-end)
+✓ T&T solo flow (end-to-end)  
+✓ Multi-source comparison flow
+✓ All calculation engines
+✓ Currency conversions
+✓ Regional variations
+✓ Specification levels
+✓ Export functionality
+✓ Error handling
+✓ Edge cases (missing data, zero cities)
+```
+
+### **5.2 Error Handling & Validation**
+
+**Critical Validations:**
+- **Data completeness**: All required cost data present
+- **Calculation accuracy**: Math validation for all formulas
+- **Cross-source alignment**: Comparable results format
+- **User input validation**: Prevent invalid entries
+- **Graceful degradation**: Handle missing data appropriately
+
+### **5.3 Performance Requirements**
+
+**Optimization Targets:**
+- **Fast calculations**: Results within 2-3 seconds
+- **Smooth navigation**: No lag between steps
+- **Responsive design**: Works on mobile and desktop
+- **Data caching**: Avoid repeated API calls
+
+## Implementation Priority Order:
+
+1. **Complete T&T data extraction and structuring**
+2. **Verify CBRE calculations work flawlessly**
+3. **Build T&T calculation engine**
+4. **Implement multi-source comparison logic**
+5. **Create comparative results interface**
+6. **Comprehensive testing and bug fixes**
+7. **Performance optimization and final polish**
+
+This comprehensive approach ensures both data sources work independently and together, providing users with professional-grade budget estimation and comparison capabilities.

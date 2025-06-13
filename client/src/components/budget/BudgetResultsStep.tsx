@@ -30,6 +30,10 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
   const [localCurrencyRate, setLocalCurrencyRate] = useState<number | null>(null);
   const [localCurrencyTotalCost, setLocalCurrencyTotalCost] = useState<number | null>(null);
   const [localCurrencyCostsBreakdown, setLocalCurrencyCostsBreakdown] = useState<{[key: string]: number} | null>(null);
+  
+  // Multi-source comparison state
+  const [comparisonResults, setComparisonResults] = useState<{[source: string]: any} | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Fetch currency rates for the project country
   useEffect(() => {

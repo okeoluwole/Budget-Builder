@@ -296,8 +296,57 @@ export const calculateBudget = async ({
     console.log(`Calculating budget for scope: ${scope}`);
     console.log('Using data source:', budget.primaryDataSource || 'CBRE'); // Log selected data source
     
+    // Handle T&T data source calculation
+    if (budget.primaryDataSource && budget.primaryDataSource === 'TT') {
+      console.log('====== T&T CALCULATION START ======');
+      
+      try {
+        // Get T&T specification level mapping
+        const ttSpecLevel = budget.specification === 'Low' ? 'Low' : 
+                           budget.specification === 'High' ? 'High' : 'Medium';
+        
+        console.log(`Using T&T specification: ${ttSpecLevel}`);
+        
+        // Calculate T&T costs using the T&T 2025 data
+        const ttResults = calculateTT2025Budget(
+          project.city,
+          project.country,
+          project.totalArea,
+          project.areaUnit,
+          ttSpecLevel
+        );
+        
+        console.log("T&T calculation successful:", ttResults);
+        
+        if (!ttResults.success) {
+          throw new Error(ttResults.error || 'T&T calculation failed');
+        }
+        
+        // Apply T&T results using the breakdown structure
+        fitoutCost = ttResults.breakdown.construction + ttResults.breakdown.audioVisual;
+        furnitureCost = ttResults.breakdown.looseFurniture;
+        totalCost = ttResults.totalCost;
+        
+        // Create breakdown following T&T methodology
+        costsBreakdown = {
+          'Construction': ttResults.breakdown.construction,
+          'Loose Furniture': ttResults.breakdown.looseFurniture,
+          'Audio-Visual': ttResults.breakdown.audioVisual,
+          'Professional Fees': ttResults.breakdown.professionalFees
+        };
+        
+        rawUnitCost = ttResults.costPerSqm;
+        adjustedUnitCost = ttResults.costPerSqm;
+        
+      } catch (error) {
+        console.error("T&T calculation failed with error:", error);
+        throw new Error(`T&T calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
+      console.log('====== T&T CALCULATION END ======');
+    }
     // Handle JLL data source calculation
-    if (budget.primaryDataSource && budget.primaryDataSource === 'JLL') {
+    else if (budget.primaryDataSource && budget.primaryDataSource === 'JLL') {
       console.log('====== JLL CALCULATION START ======');
       
       // Ensure we have JLL layout and quality options
