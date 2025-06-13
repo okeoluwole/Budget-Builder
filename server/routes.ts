@@ -348,20 +348,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Countries and cities from database
+  // Countries and cities from database and T&T 2025 data
   app.get('/api/locations', async (req, res) => {
     try {
-      // Get all fitout cost records from the database
+      // Get all fitout cost records from the database (CBRE data)
       const records = await db.select().from(fitoutCosts);
       
-      if (records.length === 0) {
-        return res.status(404).json({ message: 'No location data found in database' });
-      }
-      
-      // Extract unique countries and their cities
+      // Extract unique countries and their cities from CBRE data
       const locations: { [country: string]: string[] } = {};
       
       records.forEach(item => {
+        if (!locations[item.country]) {
+          locations[item.country] = [];
+        }
+        if (!locations[item.country].includes(item.city)) {
+          locations[item.country].push(item.city);
+        }
+      });
+      
+      // Add T&T 2025 locations (import the data)
+      const { TT2025_COST_DATA } = await import('../client/src/utils/tt2025Data');
+      
+      TT2025_COST_DATA.forEach(item => {
         if (!locations[item.country]) {
           locations[item.country] = [];
         }
