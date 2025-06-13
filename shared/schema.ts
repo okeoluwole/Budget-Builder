@@ -49,7 +49,8 @@ export const budgets = pgTable("budgets", {
   scope: text("scope").default("Fitout").notNull(), // Fitout, Furniture, Both
   specification: text("specification").notNull(), // Bronze, Silver, Gold
   layout: text("layout").notNull(), // Activity, Team, Event
-  primaryDataSource: text("primary_data_source").default("CBRE").notNull(), // CBRE, JLL, TT
+  primaryDataSource: text("primary_data_source").default("CBRE").notNull(), // CBRE, JLL, TT, MMC
+  dataSource: text("data_source"), // For backward compatibility
   jllLayout: text("jll_layout"), // Open & flexible, High spatial variety, Structured
   jllQuality: text("jll_quality"), // Baseline, Medium, High
   spaceAllocation: json("space_allocation").notNull(),
@@ -80,6 +81,7 @@ export type Budget = typeof budgets.$inferSelect;
 
 // Data Source Types
 export type DataSourceType = 'CBRE' | 'JLL' | 'TT' | 'MMC';
+export type PrimaryDataSourceType = 'CBRE' | 'JLL' | 'TT' | 'MMC';
 export type JLLLayout = 'Open & flexible' | 'High spatial variety' | 'Structured';
 export type JLLQuality = 'Baseline' | 'Medium' | 'High';
 
