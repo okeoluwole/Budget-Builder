@@ -138,8 +138,8 @@ const jllCostsBreakdownPercentages = {
   }
 };
 
-// Helper function for JLL calculations
-interface JllCalculationResult {
+// Helper function for JLL calculations (legacy interface)
+interface LegacyJllCalculationResult {
   fitoutCost: number;
   furnitureCost: number;
   totalCost: number;
@@ -243,12 +243,22 @@ function calculateJllCosts(
   layout: JLLLayout,
   quality: JLLQuality,
   scope: string = 'Fitout'
-): JllCalculationResult {
+): LegacyJllCalculationResult {
   console.log("===== USING STANDALONE JLL CALCULATOR =====");
   console.log("Input:", { project, layout, quality, scope });
   
-  // Use the standalone calculator
-  return JLLCalculator.calculate(project, layout, quality, scope);
+  // Use the standalone calculator and map to legacy interface
+  const result = JLLCalculator.calculate(project, layout, quality, scope);
+  
+  return {
+    fitoutCost: result.fitoutCost,
+    furnitureCost: result.furnitureCost,
+    totalCost: result.totalBudget,
+    rawUnitCost: result.rawUnitCost,
+    adjustedUnitCost: result.adjustedUnitCost,
+    costsBreakdown: result.costsBreakdown,
+    defaultAllocation: result.defaultAllocation
+  };
 }
 
 // Cache for data to avoid repeated API calls
