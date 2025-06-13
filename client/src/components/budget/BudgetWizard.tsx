@@ -30,7 +30,8 @@ type Step =
   | 'ttRegion'
   | 'ttCountry'
   | 'ttCity'
-  | 'ttBuildingType';
+  | 'ttBuildingType'
+  | 'ttSpecification';
 
 const BudgetWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<Step>('datasource');
@@ -58,7 +59,7 @@ const BudgetWizard: React.FC = () => {
     { id: 'ttRegion', title: 'T&T Region', description: 'Select global region' },
     { id: 'ttCountry', title: 'T&T Country', description: 'Select country' },
     { id: 'ttCity', title: 'T&T City', description: 'Select city' },
-    { id: 'ttBuildingType', title: 'T&T Building Type', description: 'Select building type' },
+
     { id: 'space', title: 'Space Allocation', description: 'Define space usage' },
     { id: 'results', title: 'Budget Results', description: 'Review and export' },
   ];
@@ -82,12 +83,12 @@ const BudgetWizard: React.FC = () => {
       console.log('JLL selected - Using JLL steps:', jllSteps.map(s => s.id).join(' → '));
       setSteps(jllSteps);
     } else if (selectedDataSource === 'TT') {
-      // T&T uses consolidated location selection in project setup, then building type selection
+      // T&T uses consolidated location selection in project setup, then specification selection
       const ttSteps = initialSteps.filter(step => 
         step.id === 'project' || 
         step.id === 'datasource' || 
         step.id === 'scope' || 
-        step.id === 'ttBuildingType' || 
+        step.id === 'specification' || 
         step.id === 'results'
       );
       console.log('T&T selected - Using consolidated T&T steps:', ttSteps.map(s => s.id).join(' → '));
@@ -240,14 +241,7 @@ const BudgetWizard: React.FC = () => {
             onSaveAsDraft={handleSaveAsDraft}
           />
         );
-      case 'ttBuildingType':
-        return (
-          <TTBuildingTypeStep 
-            onNext={goToNextStep} 
-            onBack={goToPreviousStep} 
-            onSaveAsDraft={handleSaveAsDraft}
-          />
-        );
+
       case 'space':
         return <SpaceAllocationStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'results':
