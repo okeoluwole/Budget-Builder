@@ -35,7 +35,9 @@ const LayoutStep: React.FC<LayoutStepProps> = ({ onNext, onBack, onSaveAsDraft }
     const fetchLayoutTemplates = async () => {
       try {
         setLoading(true);
-        const res = await apiRequest('GET', '/api/layout-templates', undefined);
+        // Pass data source parameter to get correct layout templates
+        const dataSource = state.budget?.primaryDataSource || 'CBRE';
+        const res = await apiRequest('GET', `/api/layout-templates?dataSource=${dataSource}`, undefined);
         const data = await res.json();
         setLayouts(data);
       } catch (error) {

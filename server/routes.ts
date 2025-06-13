@@ -527,7 +527,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get layout templates
   app.get('/api/layout-templates', async (req, res) => {
     try {
-      // Get all layout template records from the database
+      const dataSource = req.query.dataSource as string;
+      
+      // For T&T data source, return T&T-specific layout templates
+      if (dataSource === 'TT') {
+        const ttLayouts = [
+          {
+            name: 'Standard Office',
+            description: 'Traditional office layout with private offices and open workspace',
+            benefits: ['Clear hierarchy', 'Privacy for focused work', 'Meeting spaces'],
+            spaceTypes: {
+              'Private Offices': { percentage: 40, area: 0 },
+              'Open Workspace': { percentage: 35, area: 0 },
+              'Meeting Rooms': { percentage: 15, area: 0 },
+              'Support Areas': { percentage: 10, area: 0 }
+            }
+          },
+          {
+            name: 'Open Plan',
+            description: 'Modern open plan office with collaboration zones',
+            benefits: ['Maximum collaboration', 'Flexible workspace', 'Cost effective'],
+            spaceTypes: {
+              'Open Workspace': { percentage: 60, area: 0 },
+              'Collaboration Areas': { percentage: 20, area: 0 },
+              'Meeting Rooms': { percentage: 15, area: 0 },
+              'Support Areas': { percentage: 5, area: 0 }
+            }
+          },
+          {
+            name: 'Hybrid Workspace',
+            description: 'Flexible hybrid workspace supporting various work styles',
+            benefits: ['Activity-based working', 'Flexible arrangements', 'Future-ready'],
+            spaceTypes: {
+              'Open Workspace': { percentage: 45, area: 0 },
+              'Private Focus Areas': { percentage: 20, area: 0 },
+              'Collaboration Areas': { percentage: 20, area: 0 },
+              'Meeting Rooms': { percentage: 10, area: 0 },
+              'Support Areas': { percentage: 5, area: 0 }
+            }
+          }
+        ];
+        return res.json(ttLayouts);
+      }
+      
+      // Get all layout template records from the database for other data sources
       const records = await db.select().from(layoutTemplates);
       
       if (records.length === 0) {

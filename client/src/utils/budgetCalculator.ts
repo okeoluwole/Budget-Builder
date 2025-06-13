@@ -280,14 +280,19 @@ export const calculateBudget = async ({
   let adjustedUnitCost = 0;
   let costsBreakdown: { [key: string]: number } = {};
   
-  // Check required parameters, but make space allocation optional for JLL data source
-  if (!project || !budget || !budget.specification || !budget.layout) {
+  // Check required parameters based on data source
+  if (!project || !budget || !budget.specification) {
     throw new Error('Missing required budget parameters');
   }
   
-  // If using JLL data source, we don't require space allocation
-  if (budget.primaryDataSource !== 'JLL' && !budget.spaceAllocation) {
-    throw new Error('Space allocation is required for non-JLL data sources');
+  // T&T doesn't require layout parameter (it uses specification only)
+  if ((budget as any).primaryDataSource !== 'TT' && !budget.layout) {
+    throw new Error('Layout is required for non-T&T data sources');
+  }
+  
+  // If using JLL or T&T data source, we don't require space allocation initially
+  if (budget.primaryDataSource !== 'JLL' && (budget as any).primaryDataSource !== 'TT' && !budget.spaceAllocation) {
+    throw new Error('Space allocation is required for CBRE and MMC data sources');
   }
 
   try {
@@ -347,6 +352,29 @@ export const calculateBudget = async ({
       }
       
       console.log('====== T&T CALCULATION END ======');
+      
+      // Return T&T results immediately, don't continue to other data sources
+      return {
+        totalCost,
+        fitoutCost,
+        furnitureCost,
+        costsBreakdown,
+        rawUnitCost,
+        adjustedUnitCost,
+        areaUnit: project.areaUnit,
+        localCurrencyCode: project.localCurrency,
+        localCurrencyRate: project.exchangeRate,
+        localCurrencyTotalCost: project.exchangeRate ? totalCost * project.exchangeRate : undefined,
+        localCurrencyCostsBreakdown: project.exchangeRate ? 
+          Object.fromEntries(Object.entries(costsBreakdown).map(([key, value]) => [key, value * project.exchangeRate!])) : 
+          undefined,
+        datasetInfo: {
+          name: 'Turner & Townsend 2025 Global Office Fit-Out Cost Guide',
+          sheet: 'T&T 2025 Data',
+          region: 'Global',
+          benchmark: `${budget.specification} Specification`
+        }
+      };
     }
     // Handle JLL data source calculation
     else if (budget.primaryDataSource && budget.primaryDataSource === 'JLL') {
