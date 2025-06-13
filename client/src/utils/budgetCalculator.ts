@@ -1,5 +1,6 @@
 import { Project, Budget, BudgetCategory, FitoutCostData, SpaceAllocation, CurrencyRate, BudgetScope, FurnitureCostData, JLLLayout, JLLQuality, DataSourceType } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import { calculateTT2025Budget, TT2025Specification } from './tt2025Data';
 
 interface BudgetCalculationParams {
   project: Project;
@@ -393,8 +394,73 @@ export const calculateBudget = async ({
       }
       
       console.log('====== JLL CALCULATION COMPLETE ======');
+    } else if (budget.primaryDataSource === 'TT') {
+      // Turner & Townsend 2025 Global Office Fit-Out Cost Guide calculation
+      console.log('====== STARTING T&T 2025 CALCULATION ======');
+      
+      // Map specification levels to T&T format
+      const specificationLevel = budget.specification === 'Bronze' ? 'Low' : 
+                                budget.specification === 'Silver' ? 'Medium' : 'High';
+      
+      // Determine scope for T&T calculation
+      const tt2025Scope = scope === 'Fitout' ? 'Construction' :
+                          scope === 'Furniture' ? 'Furniture' :
+                          'Complete'; // For 'Both'
+      
+      // Calculate using T&T 2025 data
+      const tt2025Result = calculateTT2025Budget(
+        project.country,
+        project.city,
+        specificationLevel as TT2025Specification,
+        project.totalArea,
+        project.areaUnit,
+        tt2025Scope
+      );
+      
+      if (!tt2025Result.success) {
+        throw new Error(tt2025Result.error || 'T&T 2025 calculation failed');
+      }
+      
+      // Apply inflation if specified
+      const inflationMultiplier = project.inflationRate ? (1 + project.inflationRate / 100) : 1;
+      
+      totalCost = tt2025Result.totalCost * inflationMultiplier;
+      fitoutCost = tt2025Result.breakdown.construction * inflationMultiplier;
+      furnitureCost = tt2025Result.breakdown.looseFurniture * inflationMultiplier;
+      
+      // Set raw and adjusted unit costs
+      rawUnitCost = tt2025Result.costPerSqm;
+      adjustedUnitCost = rawUnitCost * inflationMultiplier;
+      
+      // Create detailed cost breakdown using T&T categories
+      costsBreakdown = {
+        'T&T 2025 DATA SOURCE': 1,
+        'TOTAL COST': Math.round(totalCost),
+        'CONSTRUCTION': Math.round(tt2025Result.breakdown.construction * inflationMultiplier),
+        'LOOSE FURNITURE': Math.round(tt2025Result.breakdown.looseFurniture * inflationMultiplier),
+        'AUDIO-VISUAL': Math.round(tt2025Result.breakdown.audioVisual * inflationMultiplier),
+        'PROFESSIONAL FEES': Math.round(tt2025Result.breakdown.professionalFees * inflationMultiplier)
+      };
+      
+      // Add space allocation if not provided
+      if (!budget.spaceAllocation) {
+        budget.spaceAllocation = {
+          'Open workspace': { percentage: 55, area: project.totalArea * 0.55 },
+          'Meeting rooms': { percentage: 20, area: project.totalArea * 0.20 },
+          'Collaboration areas': { percentage: 15, area: project.totalArea * 0.15 },
+          'Support spaces': { percentage: 10, area: project.totalArea * 0.10 }
+        };
+      }
+      
+      // Add space allocation costs to breakdown
+      const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, budget.spaceAllocation);
+      Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {
+        costsBreakdown[`SPACE: ${spaceName}`] = parseFloat(cost.toFixed(2));
+      });
+      
+      console.log('====== T&T 2025 CALCULATION COMPLETE ======');
     } else {
-      // Standard calculation for other data sources
+      // Standard calculation for other data sources (CBRE, MMC)
     
       // Calculate fitout costs if scope is 'Fitout' or 'Both'
       if (scope === 'Fitout' || scope === 'Both') {

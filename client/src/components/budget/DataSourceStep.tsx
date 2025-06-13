@@ -70,12 +70,12 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
     {
       id: 'tt',
       name: 'TT',
-      displayName: 'Turner & Townsend ICMS',
-      description: 'International Construction Market Survey with detailed labor, material, and equipment costs. Includes location indices, contractor margins, and regional market outlooks. Best for complex projects.',
+      displayName: 'Turner & Townsend Global Office Fit-Out Cost Guide',
+      description: 'Comprehensive office fit-out cost data covering 50 cities globally with detailed functional and elemental breakdowns. Features low, medium, and high specifications with spotlight data for 16 major cities. Best for office fit-out projects.',
       logo: <FaChartLine className="w-8 h-8 text-gray-700" />,
-      version: '2024 Q1',
-      releaseDate: 'February 2024',
-      countries: ['United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore', 'UAE', '+42 more'],
+      version: '2025',
+      releaseDate: 'April 2025',
+      countries: ['United States', 'United Kingdom', 'Singapore', 'Australia', 'Hong Kong', 'Germany', 'France', 'Japan', 'Canada', 'India', 'UAE', 'Brazil', 'Mexico', '+37 more'],
       isDefault: false
     },
     {
