@@ -297,7 +297,7 @@ export const calculateBudget = async ({
   
   // T&T doesn't use space allocation, so provide a default for calculation
   if ((budget as any).primaryDataSource === 'TT' && !budget.spaceAllocation) {
-    budget.spaceAllocation = { 'Total Project Area': 100 }; // Default for T&T calculations
+    budget.spaceAllocation = { 'Total Project Area': { percentage: 100, area: budget.totalArea || 1000 } }; // Default for T&T calculations
   }
   
   // If using JLL data source, we don't require space allocation initially

@@ -13,7 +13,7 @@ interface SpecificationStepProps {
 }
 
 const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, onSaveAsDraft }) => {
-  const { state, updateSpecification } = useBudget();
+  const { state, updateSpecification, updateTTComponentSpecs } = useBudget();
   const [specifications, setSpecifications] = useState<SpecificationData[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -191,8 +191,9 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
       const mainSpec = ttSpecifications.construction || Object.values(ttSpecifications).find(s => s) || '';
       updateSpecification(mainSpec, mainSpec, mainSpec);
       
-      // Store component-specific specs in budget context (we'll need to extend this)
-      // For now, proceed with the main specification
+      // Store component-specific specs in budget context
+      updateTTComponentSpecs(ttSpecifications);
+      
       onNext();
       return;
     }

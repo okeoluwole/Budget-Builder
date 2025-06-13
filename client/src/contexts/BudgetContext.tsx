@@ -109,6 +109,14 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           furnitureSpecification: action.payload.furnitureSpecification || null
         }
       };
+    case 'UPDATE_TT_COMPONENT_SPECS':
+      return {
+        ...state,
+        budget: {
+          ...(state.budget || {}),
+          ttComponentSpecs: action.payload
+        }
+      };
     case 'UPDATE_LAYOUT':
       return {
         ...state,
@@ -282,6 +290,13 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     });
   }, []);
 
+  const updateTTComponentSpecs = useCallback((specs: { construction?: string; looseFurniture?: string; audioVisual?: string; professionalFees?: string }) => {
+    dispatch({
+      type: 'UPDATE_TT_COMPONENT_SPECS',
+      payload: specs
+    });
+  }, []);
+
   const setSavedProject = useCallback((project: Project) => {
     dispatch({ type: 'SET_SAVED_PROJECT', payload: project });
   }, []);
@@ -434,6 +449,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       updateDataSource,
       updateJllOptions,
       updateTTOptions,
+      updateTTComponentSpecs,
       setSavedProject,
       setSavedBudget,
       loadBudget,
