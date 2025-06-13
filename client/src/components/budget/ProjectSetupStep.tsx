@@ -18,8 +18,8 @@ interface ProjectSetupStepProps {
 const projectFormSchema = z.object({
   projectName: z.string().min(1, 'Project name is required'),
   projectReference: z.string().optional(),
-  country: z.string().min(1, 'Country is required'),
-  city: z.string().min(1, 'City is required'),
+  country: z.string().optional(), // Made optional since T&T uses its own location fields
+  city: z.string().optional(), // Made optional since T&T uses its own location fields
   totalArea: z.coerce.number().positive('Area must be positive'),
   areaUnit: z.enum(['sqm', 'sqft']),
   startDate: z.string().optional(),
@@ -118,25 +118,56 @@ const ProjectSetupStep: React.FC<ProjectSetupStepProps> = ({ onNext, onBack, onS
   };
 
   const onSubmit = (data: ProjectFormValues) => {
-    updateProject({
-      name: data.projectName,
-      reference: data.projectReference,
-      country: data.country,
-      city: data.city,
-      totalArea: data.totalArea,
-      areaUnit: data.areaUnit,
-      startDate: data.startDate,
-      currency: data.currency,
-      inflationRate: data.inflationRate
-    });
-
-    // If T&T is selected as data source, update T&T options
+    // For T&T data source, validate T&T-specific fields and use them for country/city
     if (state.budget?.primaryDataSource === 'TT') {
+      if (!selectedTTRegion || !selectedTTCountry) {
+        toast({
+          title: "Missing T&T Location",
+          description: "Please select both T&T region and country to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      updateProject({
+        name: data.projectName,
+        reference: data.projectReference,
+        country: selectedTTCountry,
+        city: selectedTTCity || 'Regional Average',
+        totalArea: data.totalArea,
+        areaUnit: data.areaUnit,
+        startDate: data.startDate,
+        currency: data.currency,
+        inflationRate: data.inflationRate
+      });
+
       updateTTOptions({
         region: selectedTTRegion as TTRegion,
         country: selectedTTCountry,
         city: selectedTTCity || 'Regional Average',
         buildingType: undefined
+      });
+    } else {
+      // For other data sources, validate standard country/city fields
+      if (!data.country || !data.city) {
+        toast({
+          title: "Missing Location",
+          description: "Please select both country and city to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      updateProject({
+        name: data.projectName,
+        reference: data.projectReference,
+        country: data.country,
+        city: data.city,
+        totalArea: data.totalArea,
+        areaUnit: data.areaUnit,
+        startDate: data.startDate,
+        currency: data.currency,
+        inflationRate: data.inflationRate
       });
     }
     
