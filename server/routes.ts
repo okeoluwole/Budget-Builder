@@ -397,7 +397,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Specifications from database
   app.get('/api/specifications', async (req, res) => {
     try {
-      // Get all specification records from the database
+      const dataSource = req.query.dataSource as string;
+      
+      // For T&T data source, return Low/Medium/High specifications
+      if (dataSource === 'TT') {
+        const ttSpecs: SpecificationData[] = [
+          {
+            name: 'Low' as any,
+            description: 'Standard office fit-out with basic finishes and fixtures',
+            walls: 'Painted walls with minimal branding',
+            partitions: {
+              type: 'Single glazed',
+              acousticRating: '38dB Rw',
+              costFactor: 1.0
+            },
+            flooring: 'Standard carpet tiles',
+            ceiling: 'Standard suspended ceiling',
+            furniture: {
+              desks: 'Fixed desks',
+              chairs: 'Basic task chairs',
+              storage: 'Basic storage solutions'
+            },
+            technology: {
+              av: 'Basic AV with audio conferencing',
+              security: 'Standard security features'
+            },
+            fittings: 'Basic fittings and finishes',
+            recommendedFor: 'Standard office spaces with budget constraints'
+          },
+          {
+            name: 'Medium' as any,
+            description: 'Enhanced office fit-out with quality finishes and improved functionality',
+            walls: 'Feature walls with special finishes',
+            partitions: {
+              type: 'Double glazed',
+              acousticRating: '45dB Rw',
+              costFactor: 1.4
+            },
+            flooring: 'Upgraded options, timber/LVT in specific areas',
+            ceiling: 'Feature ceiling elements',
+            furniture: {
+              desks: 'Mix of static and height-adjustable desks',
+              chairs: 'Mid-tier ergonomic chairs',
+              storage: 'Enhanced storage solutions'
+            },
+            technology: {
+              av: 'Enhanced AV throughout with video conferencing',
+              security: 'Enhanced security features'
+            },
+            fittings: 'Higher quality fittings and finishes',
+            recommendedFor: 'Enhanced office environments requiring more customization'
+          },
+          {
+            name: 'High' as any,
+            description: 'Premium office fit-out with high-end finishes and advanced technology',
+            walls: 'Feature wall concepts throughout, extensive branding',
+            partitions: {
+              type: 'Double glazed with high performance',
+              acousticRating: '50dB Rw',
+              costFactor: 1.8
+            },
+            flooring: 'High-specification (ceramic, porcelain)',
+            ceiling: 'Comprehensive feature ceiling concepts',
+            furniture: {
+              desks: 'Height-adjustable desks throughout',
+              chairs: 'Premium ergonomic chairs',
+              storage: 'Premium storage solutions'
+            },
+            technology: {
+              av: 'Premium AV systems with advanced video conferencing',
+              security: 'Advanced security systems'
+            },
+            fittings: 'Premium fittings and finishes throughout',
+            recommendedFor: 'High-end office environments with premium requirements'
+          }
+        ];
+        return res.json(ttSpecs);
+      }
+      
+      // Get all specification records from the database for other data sources
       const records = await db.select().from(specifications);
       
       if (records.length === 0) {

@@ -36,7 +36,9 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
         // Clear any existing specifications before loading new ones
         setSpecifications([]);
         
-        const res = await apiRequest('GET', '/api/specifications', undefined);
+        // Pass data source parameter to get correct specifications
+        const dataSource = state.budget?.primaryDataSource || 'CBRE';
+        const res = await apiRequest('GET', `/api/specifications?dataSource=${dataSource}`, undefined);
         const data = await res.json();
         
         // Check if we got valid data and deduplicate by name
