@@ -562,14 +562,15 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      const projectName = state.project?.name || 'Budget Report';
-      const dataSource = state.budget?.primaryDataSource === 'TT' ? 'Turner & Townsend' : 'CBRE';
+      const projectName = state.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Budget_Report';
+      const dataSource = state.budget?.primaryDataSource === 'TT' ? 'Turner_Townsend' : 'CBRE';
       const totalAmount = formatCurrency(totalCost || 0, 'USD');
       const area = state.project?.totalArea || 1;
+      const currentDate = new Date().toISOString().split('T')[0];
       
-      // Calculate component costs for export
+      // Calculate actual component costs based on results
       const componentCosts = state.budget?.primaryDataSource === 'TT' ? [
         { name: 'Construction', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
         { name: 'Loose Furniture', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
@@ -582,93 +583,53 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
       ];
       
-      // Create comprehensive HTML content for PDF export
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>${projectName} - Executive Summary</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-            .total-budget { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 30px; border-radius: 12px; margin: 20px 0; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
-            .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #f9f9f9; }
-            .component-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            .component-table th, .component-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .component-table th { background-color: #f2f2f2; font-weight: bold; }
-            .total-row { background-color: #e8f4f8; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${projectName} - Budget Executive Summary</h1>
-            <p>Data Source: ${dataSource} Global Fit-Out Cost Guide</p>
-            <p>Generated: ${new Date().toLocaleDateString()}</p>
-          </div>
-          
-          <div class="total-budget">
-            <h2>Total Budget Estimate</h2>
-            <h1>${totalAmount}</h1>
-            <p>${state.project?.totalArea?.toLocaleString()} ${state.project?.areaUnit} @ ${formatCurrency((totalCost || 0) / (state.project?.totalArea || 1), 'USD')}/${state.project?.areaUnit}</p>
-          </div>
-          
-          <div class="grid">
-            <div class="card">
-              <h3>Project Details</h3>
-              <p><strong>Project Name:</strong> ${state.project?.name}</p>
-              <p><strong>Location:</strong> ${state.project?.city}, ${state.project?.country}</p>
-              <p><strong>Total Area:</strong> ${state.project?.totalArea?.toLocaleString()} ${state.project?.areaUnit}</p>
-              <p><strong>Currency:</strong> USD</p>
-              <p><strong>Inflation Rate:</strong> ${state.project?.inflationRate || 0}%</p>
-            </div>
-            
-            <div class="card">
-              <h3>Budget Configuration</h3>
-              <p><strong>Data Source:</strong> ${dataSource}</p>
-              <p><strong>Budget Scope:</strong> ${state.budget?.scope === 'Complete' ? 'Complete Package' : state.budget?.scope}</p>
-              <p><strong>Specification:</strong> ${state.budget?.specification || 'Medium Level'}</p>
-              <p><strong>Components:</strong> ${componentCosts.length} types</p>
-            </div>
-          </div>
-          
-          <table class="component-table">
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Amount (USD)</th>
-                <th>Rate/${state.project?.areaUnit}</th>
-                <th>Percentage</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${componentCosts.map(item => `
-                <tr>
-                  <td>${item.name}</td>
-                  <td>${formatCurrency(item.amount, 'USD')}</td>
-                  <td>${formatCurrency(item.rate, 'USD')}</td>
-                  <td>${item.percentage}%</td>
-                </tr>
-              `).join('')}
-              <tr class="total-row">
-                <td><strong>TOTAL BUDGET</strong></td>
-                <td><strong>${totalAmount}</strong></td>
-                <td><strong>${formatCurrency((totalCost || 0) / area, 'USD')}</strong></td>
-                <td><strong>100%</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </body>
-        </html>
-      `;
+      // Enhanced CSV format for Excel export
+      const csvContent = [
+        [`${projectName} - Budget Report`],
+        [`Generated: ${new Date().toLocaleDateString()}`],
+        [`Data Source: ${dataSource.replace('_', ' ')} Global Fit-Out Cost Guide`],
+        [],
+        ['PROJECT DETAILS'],
+        ['Project Name', state.project?.name || ''],
+        ['Location', `${state.project?.city}, ${state.project?.country}`],
+        ['Total Area', `${state.project?.totalArea?.toLocaleString()} ${state.project?.areaUnit}`],
+        ['Currency', 'USD'],
+        ['Inflation Rate', `${state.project?.inflationRate || 0}%`],
+        [],
+        ['BUDGET CONFIGURATION'],
+        ['Data Source', dataSource.replace('_', ' ')],
+        ['Budget Scope', state.budget?.scope === 'Complete' ? 'Complete Package' : state.budget?.scope || 'Complete Package'],
+        ['Specification Level', state.budget?.specification || 'Medium Level'],
+        [],
+        ['COST BREAKDOWN'],
+        ['Category', 'Amount (USD)', `Rate per ${state.project?.areaUnit}`, 'Percentage'],
+        ...componentCosts.map(item => [
+          item.name,
+          item.amount.toFixed(2),
+          item.rate.toFixed(2),
+          `${item.percentage}%`
+        ]),
+        [],
+        ['TOTAL BUDGET', (totalCost || 0).toFixed(2), ((totalCost || 0) / area).toFixed(2), '100%'],
+        [],
+        ['SUMMARY'],
+        ['Total Project Cost', totalAmount],
+        [`Cost per ${state.project?.areaUnit}`, formatCurrency((totalCost || 0) / area, 'USD')],
+        ['Number of Components', componentCosts.length.toString()]
+      ];
       
-      // Create blob and download
-      const blob = new Blob([htmlContent], { type: 'text/html' });
+      // Convert to CSV string
+      const csvString = csvContent.map(row => 
+        row.map(cell => `"${cell?.toString().replace(/"/g, '""') || ''}"`).join(',')
+      ).join('\n');
+      
+      // Create and trigger download
+      const blob = new Blob(['\ufeff' + csvString], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `${projectName}_budget_report_${new Date().toISOString().split('T')[0]}.html`;
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${projectName}_budget_report_${currentDate}.csv`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -676,13 +637,13 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
       
       toast({
         title: "Export complete",
-        description: "Budget exported successfully in PDF format",
+        description: "Budget report downloaded successfully to your computer",
       });
     } catch (error) {
       console.error('Export error:', error);
       toast({
         title: "Export failed",
-        description: "There was an error exporting the budget. Please try again.",
+        description: "Error exporting budget report. Please try again.",
         variant: "destructive",
       });
     }
@@ -801,6 +762,18 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                                 return `Mixed: ${uniqueSpecs.join(', ')}`;
                               } else {
                                 return 'Medium Level';
+                              }
+                            })()
+                          ) : state.budget?.primaryDataSource === 'CBRE' && state.budget?.scope === 'Both' ? (
+                            (() => {
+                              // For CBRE "Both" scope, show fitout and furniture specs separately
+                              const fitoutSpec = state.budget?.fitoutSpecification || 'Medium';
+                              const furnitureSpec = state.budget?.furnitureSpecification || 'Medium';
+                              
+                              if (fitoutSpec === furnitureSpec) {
+                                return `${fitoutSpec} (Both Components)`;
+                              } else {
+                                return `Fitout: ${fitoutSpec}, Furniture: ${furnitureSpec}`;
                               }
                             })()
                           ) : (
