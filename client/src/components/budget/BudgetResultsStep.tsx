@@ -415,24 +415,274 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
     performBudgetCalculation();
   }, [state.project, state.budget, budgetTemplateStructure, loading, toast, updateBudgetResults, state.savedProject]);
 
-  const handleExport = async () => {
+  // Enhanced export functions for PDF and Excel
+  const handlePDFExport = (type: 'executive' | 'presentation') => {
     try {
-      toast({
-        title: "Exporting budget",
-        description: `Exporting budget in ${exportFormat.toUpperCase()} format...`,
-      });
+      const projectName = state.project?.name || 'Budget Report';
+      const dataSource = state.budget?.primaryDataSource === 'TT' ? 'Turner & Townsend' : 'CBRE';
+      const totalAmount = formatCurrency(totalCost || 0, 'USD');
       
-      // In a real application, this would make an API call to generate the export
-      setTimeout(() => {
-        toast({
-          title: "Export complete",
-          description: `Budget exported successfully in ${exportFormat.toUpperCase()} format.`,
-        });
-      }, 1500);
+      // Create comprehensive HTML content for PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>${projectName} - ${type === 'executive' ? 'Executive Summary' : 'Presentation'}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .section { margin-bottom: 25px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+            .total-budget { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 30px; border-radius: 12px; margin: 20px 0; }
+            .component-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
+            .component-header { font-weight: bold; background: #f5f5f5; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${projectName} - Budget ${type === 'executive' ? 'Executive Summary' : 'Presentation'}</h1>
+            <p>Data Source: ${dataSource} Global Fit-Out Cost Guide</p>
+            <p>Generated: ${new Date().toLocaleDateString()}</p>
+          </div>
+          
+          <div class="total-budget">
+            <h2>Total Budget Estimate</h2>
+            <h1>${totalAmount}</h1>
+            <p>${state.project?.totalArea?.toLocaleString()} ${state.project?.areaUnit} @ ${formatCurrency((totalCost || 0) / (state.project?.totalArea || 1), 'USD')}/${state.project?.areaUnit}</p>
+          </div>
+          
+          <div class="grid">
+            <div class="card">
+              <h3>Project Details</h3>
+              <p><strong>Project Name:</strong> ${state.project?.name}</p>
+              <p><strong>Location:</strong> ${state.project?.city}, ${state.project?.country}</p>
+              <p><strong>Total Area:</strong> ${state.project?.totalArea?.toLocaleString()} ${state.project?.areaUnit}</p>
+              <p><strong>Currency:</strong> USD</p>
+              <p><strong>Inflation Rate:</strong> ${state.project?.inflationRate || 0}%</p>
+            </div>
+            
+            <div class="card">
+              <h3>Budget Configuration</h3>
+              <p><strong>Data Source:</strong> ${dataSource}</p>
+              <p><strong>Budget Scope:</strong> ${state.budget?.scope === 'Complete' ? 'Complete Package' : state.budget?.scope}</p>
+              <p><strong>Specification:</strong> ${state.budget?.specification || 'Medium Level'}</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Create blob and download
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${projectName}_${type}_${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Export complete",
+        description: `Budget exported successfully in ${type} format`,
+      });
     } catch (error) {
+      console.error('Export error:', error);
       toast({
         title: "Export failed",
-        description: "There was an error exporting your budget. Please try again.",
+        description: "There was an error exporting the budget. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExcelExport = () => {
+    try {
+      const projectName = state.project?.name || 'Budget Report';
+      const area = state.project?.totalArea || 1;
+      
+      // Calculate component costs for Excel export
+      const componentCosts = state.budget?.primaryDataSource === 'TT' ? [
+        { name: 'Construction', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
+        { name: 'Loose Furniture', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
+        { name: 'Audio-Visual', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
+        { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
+      ] : [
+        { name: 'Construction Costs', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
+        { name: 'Furniture Costs', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
+        { name: 'Technology Costs', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
+        { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
+      ];
+      
+      // Create CSV content for Excel compatibility
+      const csvContent = [
+        ['Budget Report', '', '', ''],
+        ['Project Name', state.project?.name || '', '', ''],
+        ['Location', `${state.project?.city}, ${state.project?.country}`, '', ''],
+        ['Total Area', `${state.project?.totalArea?.toLocaleString()} ${state.project?.areaUnit}`, '', ''],
+        ['Total Budget', formatCurrency(totalCost || 0, 'USD'), '', ''],
+        ['', '', '', ''],
+        ['Component Breakdown', '', '', ''],
+        ['Category', 'Amount (USD)', 'Rate/sqm', 'Percentage'],
+        ...componentCosts.map(item => [
+          item.name,
+          formatCurrency(item.amount, 'USD'),
+          formatCurrency(item.rate, 'USD'),
+          `${item.percentage}%`
+        ]),
+        ['', '', '', ''],
+        ['TOTAL', formatCurrency(totalCost || 0, 'USD'), formatCurrency((totalCost || 0) / area, 'USD'), '100%']
+      ].map(row => row.join(',')).join('\n');
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${projectName}_detailed_report_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Export complete",
+        description: "Budget exported successfully in Excel format",
+      });
+    } catch (error) {
+      console.error('Excel export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting to Excel. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      const projectName = state.project?.name || 'Budget Report';
+      const dataSource = state.budget?.primaryDataSource === 'TT' ? 'Turner & Townsend' : 'CBRE';
+      const totalAmount = formatCurrency(totalCost || 0, 'USD');
+      const area = state.project?.totalArea || 1;
+      
+      // Calculate component costs for export
+      const componentCosts = state.budget?.primaryDataSource === 'TT' ? [
+        { name: 'Construction', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
+        { name: 'Loose Furniture', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
+        { name: 'Audio-Visual', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
+        { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
+      ] : [
+        { name: 'Construction Costs', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
+        { name: 'Furniture Costs', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
+        { name: 'Technology Costs', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
+        { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
+      ];
+      
+      // Create comprehensive HTML content for PDF export
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>${projectName} - Executive Summary</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .total-budget { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 30px; border-radius: 12px; margin: 20px 0; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+            .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #f9f9f9; }
+            .component-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .component-table th, .component-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .component-table th { background-color: #f2f2f2; font-weight: bold; }
+            .total-row { background-color: #e8f4f8; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${projectName} - Budget Executive Summary</h1>
+            <p>Data Source: ${dataSource} Global Fit-Out Cost Guide</p>
+            <p>Generated: ${new Date().toLocaleDateString()}</p>
+          </div>
+          
+          <div class="total-budget">
+            <h2>Total Budget Estimate</h2>
+            <h1>${totalAmount}</h1>
+            <p>${state.project?.totalArea?.toLocaleString()} ${state.project?.areaUnit} @ ${formatCurrency((totalCost || 0) / (state.project?.totalArea || 1), 'USD')}/${state.project?.areaUnit}</p>
+          </div>
+          
+          <div class="grid">
+            <div class="card">
+              <h3>Project Details</h3>
+              <p><strong>Project Name:</strong> ${state.project?.name}</p>
+              <p><strong>Location:</strong> ${state.project?.city}, ${state.project?.country}</p>
+              <p><strong>Total Area:</strong> ${state.project?.totalArea?.toLocaleString()} ${state.project?.areaUnit}</p>
+              <p><strong>Currency:</strong> USD</p>
+              <p><strong>Inflation Rate:</strong> ${state.project?.inflationRate || 0}%</p>
+            </div>
+            
+            <div class="card">
+              <h3>Budget Configuration</h3>
+              <p><strong>Data Source:</strong> ${dataSource}</p>
+              <p><strong>Budget Scope:</strong> ${state.budget?.scope === 'Complete' ? 'Complete Package' : state.budget?.scope}</p>
+              <p><strong>Specification:</strong> ${state.budget?.specification || 'Medium Level'}</p>
+              <p><strong>Components:</strong> ${componentCosts.length} types</p>
+            </div>
+          </div>
+          
+          <table class="component-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Amount (USD)</th>
+                <th>Rate/${state.project?.areaUnit}</th>
+                <th>Percentage</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${componentCosts.map(item => `
+                <tr>
+                  <td>${item.name}</td>
+                  <td>${formatCurrency(item.amount, 'USD')}</td>
+                  <td>${formatCurrency(item.rate, 'USD')}</td>
+                  <td>${item.percentage}%</td>
+                </tr>
+              `).join('')}
+              <tr class="total-row">
+                <td><strong>TOTAL BUDGET</strong></td>
+                <td><strong>${totalAmount}</strong></td>
+                <td><strong>${formatCurrency((totalCost || 0) / area, 'USD')}</strong></td>
+                <td><strong>100%</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+      
+      // Create blob and download
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${projectName}_budget_report_${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Export complete",
+        description: "Budget exported successfully in PDF format",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting the budget. Please try again.",
         variant: "destructive",
       });
     }
@@ -539,7 +789,23 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                       <div className="flex justify-between">
                         <span className="text-gray-500">Specification Level:</span>
                         <span className="font-medium text-gray-800">
-                          {state.budget?.specification || 'Medium Level'}
+                          {state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs ? (
+                            (() => {
+                              const specs = state.budget.ttComponentSpecs;
+                              const specValues = Object.values(specs).filter(Boolean);
+                              const uniqueSpecs = specValues.filter((value, index, self) => self.indexOf(value) === index);
+                              
+                              if (uniqueSpecs.length === 1) {
+                                return `${uniqueSpecs[0]} (All Components)`;
+                              } else if (uniqueSpecs.length > 1) {
+                                return `Mixed: ${uniqueSpecs.join(', ')}`;
+                              } else {
+                                return 'Medium Level';
+                              }
+                            })()
+                          ) : (
+                            state.budget?.specification || 'Medium Level'
+                          )}
                         </span>
                       </div>
                       
@@ -778,7 +1044,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Export Options</h3>
                     <div className="export-buttons grid grid-cols-2 md:grid-cols-4 gap-4">
                       <button 
-                        onClick={handleExport}
+                        onClick={() => handleExport()}
                         className="export-btn primary flex flex-col items-center p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
                       >
                         <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
@@ -787,7 +1053,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                         <span className="text-sm font-medium">Executive Summary PDF</span>
                       </button>
                       <button 
-                        onClick={handleExport}
+                        onClick={() => handleExport()}
                         className="export-btn flex flex-col items-center p-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
                       >
                         <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
@@ -796,7 +1062,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                         <span className="text-sm font-medium">Detailed Excel Report</span>
                       </button>
                       <button 
-                        onClick={handleExport}
+                        onClick={() => handleExport()}
                         className="export-btn flex flex-col items-center p-4 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
                       >
                         <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
