@@ -1240,12 +1240,7 @@ export const estimateBudget = async (
 // Multi-source budget calculation with CBRE data borrowing from T&T
 export async function calculateMultiSourceBudget(
   project: Project,
-  budget: Partial<Budget> & { 
-    spaceAllocation?: SpaceAllocation;
-    primaryDataSource?: DataSourceType;
-    ttComponentSpecs?: Record<string, string>;
-    isComparisonEnabled?: boolean;
-  },
+  budget: any,
   budgetStructure: BudgetCategory[]
 ): Promise<MultiSourceBudget> {
   
@@ -1326,7 +1321,16 @@ async function calculateCBREWithTTSupplements(
   // Calculate CBRE native components (Construction & Furniture)
   if (mappedComponents.cbre.includes('Construction')) {
     try {
-      const cbreResult = await calculateBudget({ project, budget: { ...budget, primaryDataSource: 'CBRE' }, budgetStructure });
+      const cbreResult = await calculateBudget({ 
+        project, 
+        budget: { 
+          ...budget, 
+          primaryDataSource: 'CBRE' as DataSourceType,
+          jllLayout: undefined,
+          jllQuality: undefined
+        } as any, 
+        budgetStructure 
+      });
       const constructionCost = cbreResult.fitoutCost || 0;
       const constructionRate = constructionCost / area;
       
@@ -1344,7 +1348,16 @@ async function calculateCBREWithTTSupplements(
 
   if (mappedComponents.cbre.includes('Furniture')) {
     try {
-      const cbreResult = await calculateBudget({ project, budget: { ...budget, primaryDataSource: 'CBRE' }, budgetStructure });
+      const cbreResult = await calculateBudget({ 
+        project, 
+        budget: { 
+          ...budget, 
+          primaryDataSource: 'CBRE' as DataSourceType,
+          jllLayout: undefined,
+          jllQuality: undefined
+        } as any, 
+        budgetStructure 
+      });
       const furnitureCost = cbreResult.furnitureCost || 0;
       const furnitureRate = furnitureCost / area;
       
