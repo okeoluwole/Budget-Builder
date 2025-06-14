@@ -543,7 +543,7 @@ export const calculateBudget = async ({
       
       // Determine scope for T&T calculation
       const tt2025Scope = scope === 'Fitout' ? 'Construction' :
-                          scope === 'Furniture' ? 'Furniture' :
+                          scope === 'Furniture' ? 'LooseFurniture' :
                           'Complete'; // For 'Both'
       
       // Calculate using T&T 2025 data
@@ -1250,15 +1250,36 @@ export async function calculateMultiSourceBudget(
 ): Promise<MultiSourceBudget> {
   
   // Calculate T&T budget
-  const ttBudget = await calculateTT2025Budget({
+  const ttBudgetResult = await calculateBudget({
     project,
     budget: {
       ...budget,
-      primaryDataSource: 'TT',
-      ttComponentSpecs: budget.ttComponentSpecs || {}
-    },
+      primaryDataSource: 'TT' as DataSourceType,
+      ttComponentSpecs: budget.ttComponentSpecs || {},
+      jllLayout: null,
+      jllQuality: null
+    } as any,
     budgetStructure
   });
+
+  const ttBudget = {
+    components: [
+      {
+        component: 'Construction',
+        cost: ttBudgetResult.fitoutCost || 0,
+        rate: (ttBudgetResult.fitoutCost || 0) / project.totalArea,
+        dataSource: 'TT' as const
+      },
+      {
+        component: 'Loose Furniture', 
+        cost: ttBudgetResult.furnitureCost || 0,
+        rate: (ttBudgetResult.furnitureCost || 0) / project.totalArea,
+        dataSource: 'TT' as const
+      }
+    ],
+    total: ttBudgetResult.totalCost,
+    costPerSqm: ttBudgetResult.totalCost / project.totalArea
+  };
 
   // Calculate CBRE budget with T&T supplements for missing components
   const cbreBudget = await calculateCBREWithTTSupplements(project, budget, budgetStructure);
@@ -1299,7 +1320,7 @@ async function calculateCBREWithTTSupplements(
   const area = project.totalArea;
 
   // Get scope components
-  const scopeArray = Array.isArray(budget.scope) ? budget.scope : [budget.scope].filter(Boolean);
+  const scopeArray = Array.isArray(budget.scope) ? budget.scope : [budget.scope].filter(Boolean) as string[];
   const mappedComponents = mapSelectedComponents(scopeArray);
 
   // Calculate CBRE native components (Construction & Furniture)
