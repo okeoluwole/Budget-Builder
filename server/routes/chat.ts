@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { eq, and } from 'drizzle-orm';
 import * as localChat from '../utils/localChat';
+import { TT2025_COST_DATA, getTT2025DataByLocation, getAllTT2025Cities } from '../data/tt2025Data';
 
 const router = Router();
 
@@ -323,7 +324,26 @@ async function processCostGuideQuery(message: string, history: any[]): Promise<s
 
 async function handleLocationQuery(city: string, country: string, query: string): Promise<string> {
   try {
-    // Query fitout costs using actual schema fields
+    let response = `**Cost data for ${city}, ${country}:**\n\n`;
+    let hasData = false;
+
+    // Check Turner & Townsend 2025 data first
+    const ttData = getTT2025DataByLocation(city, country);
+    if (ttData) {
+      hasData = true;
+      response += `**Turner & Townsend 2025 Global Fit-Out Costs:**\n`;
+      response += `• Low specification: $${ttData.costs.total.low.toFixed(2)}/sqm\n`;
+      response += `• Medium specification: $${ttData.costs.total.medium.toFixed(2)}/sqm\n`;
+      response += `• High specification: $${ttData.costs.total.high.toFixed(2)}/sqm\n\n`;
+      
+      response += `**Component Breakdown (Medium spec):**\n`;
+      response += `• Construction: $${ttData.costs.construction.medium.toFixed(2)}/sqm\n`;
+      response += `• Loose Furniture: $${ttData.costs.looseFurniture.medium.toFixed(2)}/sqm\n`;
+      response += `• Audio Visual: $${ttData.costs.audioVisual.medium.toFixed(2)}/sqm\n`;
+      response += `• Professional Fees: $${ttData.costs.professionalFees.medium.toFixed(2)}/sqm\n\n`;
+    }
+
+    // Query CBRE fitout costs
     const fitoutResults = await db.select()
       .from(fitoutCosts)
       .where(and(
@@ -331,7 +351,7 @@ async function handleLocationQuery(city: string, country: string, query: string)
         eq(fitoutCosts.country, country)
       ));
     
-    // Query furniture costs using actual schema fields
+    // Query CBRE furniture costs
     const furnitureResults = await db.select()
       .from(furnitureCosts)
       .where(and(
@@ -339,43 +359,44 @@ async function handleLocationQuery(city: string, country: string, query: string)
         eq(furnitureCosts.country, country)
       ));
     
-    if (fitoutResults.length === 0 && furnitureResults.length === 0) {
-      return `I couldn't find cost data for ${city}, ${country}. Available locations include London, New York, Singapore, and many other major cities. Would you like me to list available locations?`;
-    }
-    
-    let response = `**Cost data for ${city}, ${country}:**\n\n`;
-    
     if (fitoutResults.length > 0) {
+      hasData = true;
       const fitout = fitoutResults[0];
       const lowRate = parseFloat(fitout.activityLowSqm || '0');
       const mediumRate = parseFloat(fitout.activityMediumSqm || '0');
       const highRate = parseFloat(fitout.activityHighSqm || '0');
       
-      response += `**Fit-out Costs (CBRE):**\n`;
+      response += `**CBRE Fit-out Costs:**\n`;
       response += `• Low specification: $${lowRate.toFixed(2)}/sqm\n`;
       response += `• Medium specification: $${mediumRate.toFixed(2)}/sqm\n`;
       response += `• High specification: $${highRate.toFixed(2)}/sqm\n\n`;
     }
     
     if (furnitureResults.length > 0) {
+      hasData = true;
       const furniture = furnitureResults[0];
       const lowRate = parseFloat(furniture.activityLowSqm || '0');
       const mediumRate = parseFloat(furniture.activityMediumSqm || '0');
       const highRate = parseFloat(furniture.activityHighSqm || '0');
       
-      response += `**Furniture Costs (CBRE):**\n`;
+      response += `**CBRE Furniture Costs:**\n`;
       response += `• Low specification: $${lowRate.toFixed(2)}/sqm\n`;
       response += `• Medium specification: $${mediumRate.toFixed(2)}/sqm\n`;
       response += `• High specification: $${highRate.toFixed(2)}/sqm\n\n`;
     }
     
-    if (query.includes('furniture')) {
-      response += `These are furniture costs per square meter. `;
-    } else if (query.includes('fitout') || query.includes('fit-out')) {
-      response += `These are fit-out construction costs per square meter. `;
+    if (!hasData) {
+      const availableCities = getAllTT2025Cities().slice(0, 5).join(', ');
+      return `I couldn't find cost data for ${city}, ${country}. Available locations include ${availableCities}, and many others. Would you like me to list all available locations?`;
     }
     
-    response += `Would you like to compare with other locations or see Turner & Townsend data?`;
+    if (query.includes('furniture')) {
+      response += `These costs include furniture and fit-out components. `;
+    } else if (query.includes('fitout') || query.includes('fit-out')) {
+      response += `These are comprehensive fit-out costs including construction and furniture. `;
+    }
+    
+    response += `Would you like to compare with other locations or see more detailed breakdowns?`;
     
     return response;
   } catch (error) {
@@ -478,22 +499,28 @@ async function handleRateQuery(query: string): Promise<string> {
 
 async function handleGuideInfoQuery(guide: string, query: string): Promise<string> {
   if (guide === 'TT') {
+    const ttCities = getAllTT2025Cities();
     return `**Turner & Townsend Global Office Fit-Out Cost Guide 2025:**\n\n` +
-           `• Comprehensive global coverage\n` +
-           `• Four main components: Construction, Furniture, Audio-Visual, Professional Fees\n` +
+           `Turner & Townsend provides comprehensive global fit-out cost data across ${ttCities.length} major markets worldwide.\n\n` +
+           `**Key Features:**\n` +
+           `• Global coverage across EMEA, Americas, and APAC regions\n` +
+           `• Four main components: Construction, Loose Furniture, Audio-Visual, Professional Fees\n` +
            `• Quality specifications: Low, Medium, High\n` +
-           `• Component-specific specification selection\n` +
-           `• Regional cost variations included\n` +
+           `• Component-specific cost breakdowns\n` +
+           `• All costs in USD per square meter\n` +
            `• Updated for 2025 market conditions\n\n` +
+           `**Available Cities:** ${ttCities.slice(0, 8).join(', ')}${ttCities.length > 8 ? ', and more...' : ''}\n\n` +
            `Ask me: "What's the Turner & Townsend rate for London?" or "Compare T&T construction vs furniture costs"`;
   } else {
     return `**CBRE Global Fit-Out Cost Guide:**\n\n` +
+           `CBRE provides detailed fit-out and furniture cost data for office spaces across global markets.\n\n` +
+           `**Key Features:**\n` +
            `• Separate fit-out and furniture datasets\n` +
            `• Three space types: Activity, Team, Event\n` +
            `• Quality levels: Low, Medium, High\n` +
            `• Regional location factors\n` +
            `• Square meter and square foot data\n` +
-           `• Comprehensive global city coverage\n\n` +
+           `• Covers 134 cities for fit-out and 135 cities for furniture\n\n` +
            `Ask me: "What's the CBRE rate for Singapore?" or "Compare CBRE fit-out vs furniture"`;
   }
 }
