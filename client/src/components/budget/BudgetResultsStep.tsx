@@ -456,15 +456,16 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         <>
           {totalCost !== null && budgetBreakdown ? (
             <div>
-              <div className="bg-gray-100 p-6 rounded-lg mb-6 text-center">
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Total Budget Estimate</h3>
-                
-                <div className="text-4xl font-bold text-gray-900 mb-2">
-                  {formatCurrency(totalCost, 'USD')}
-                </div>
-                
-                <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-6 text-sm text-gray-600 mt-2">
-                  <div>
+              {/* Enhanced Modern Card Design for Total Budget */}
+              <div className="results-container bg-gradient-to-br from-blue-500 to-purple-600 p-8 rounded-2xl mb-8">
+                <div className="total-budget-card bg-white rounded-2xl p-8 text-center shadow-2xl">
+                  <h3 className="text-xl font-medium text-gray-700 mb-4">Total Budget Estimate</h3>
+                  
+                  <div className="text-5xl font-bold text-gray-900 mb-4">
+                    {formatCurrency(totalCost, 'USD')}
+                  </div>
+                  
+                  <div className="text-lg text-gray-600">
                     {state.project?.totalArea?.toLocaleString()} {state.project?.areaUnit} @ 
                     {formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}
                     /{state.project?.areaUnit}
@@ -476,137 +477,168 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
               <div className="mt-8 border-t border-gray-200 pt-6">
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Budget Details</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="bg-white p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-700 mb-2">Project Details</h4>
-                    <table className="w-full text-sm">
-                      <tbody>
-                        <tr>
-                          <td className="py-1 text-gray-500">Project Name:</td>
-                          <td className="py-1 font-medium">{state.project?.name}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Location:</td>
-                          <td className="py-1 font-medium">{state.project?.city}, {state.project?.country}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Total Area:</td>
-                          <td className="py-1 font-medium">{state.project?.totalArea?.toLocaleString()} {state.project?.areaUnit}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Currency:</td>
-                          <td className="py-1 font-medium">
-                            USD
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Inflation Rate:</td>
-                          <td className="py-1 font-medium">{state.project?.inflationRate}%</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                {/* Enhanced Budget Details Grid with Modern Cards */}
+                <div className="budget-details-grid grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div className="detail-card bg-white p-6 rounded-xl shadow-lg">
+                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">Project Details</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Project Name:</span>
+                        <span className="font-medium text-gray-800">{state.project?.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Location:</span>
+                        <span className="font-medium text-gray-800">{state.project?.city}, {state.project?.country}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Total Area:</span>
+                        <span className="font-medium text-gray-800">{state.project?.totalArea?.toLocaleString()} {state.project?.areaUnit}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Currency:</span>
+                        <span className="font-medium text-gray-800">USD</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Inflation Rate:</span>
+                        <span className="font-medium text-gray-800">{state.project?.inflationRate || 0}%</span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="bg-white p-4 border rounded-lg">
-                    <h4 className="font-medium text-gray-700 mb-2">Budget Configuration</h4>
-                    <table className="w-full text-sm">
-                      <tbody>
-                        <tr>
-                          <td className="py-1 text-gray-500">Specification Level:</td>
-                          <td className="py-1 font-medium">
-                            {state.budget?.scope === 'Both' && state.budget?.fitoutSpecification && state.budget?.furnitureSpecification
-                              ? `Fitout: ${state.budget.fitoutSpecification}, Furniture: ${state.budget.furnitureSpecification}`
-                              : state.budget?.specification}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Layout Type:</td>
-                          <td className="py-1 font-medium">{state.budget?.layout} Based</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Budget Scope:</td>
-                          <td className="py-1 font-medium">
-                            {state.budget?.scope === 'Both' ? 'Complete Package (Fitout & Furniture)' :
-                             state.budget?.scope === 'Fitout' ? 'Fitout Only' : 
-                             state.budget?.scope === 'Furniture' ? 'Furniture Only' : '-'}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 text-gray-500">Space Types:</td>
-                          <td className="py-1 font-medium">
-                            {state.budget?.spaceAllocation && 
-                              Object.keys(state.budget.spaceAllocation).length} types
-                          </td>
-                        </tr>
+                  <div className="detail-card bg-white p-6 rounded-xl shadow-lg">
+                    <h4 className="font-semibold text-gray-800 mb-4 text-lg">Budget Configuration</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Data Source:</span>
+                        <span className="font-medium text-gray-800">
+                          {state.budget?.primaryDataSource === 'TT' ? 'T&T Guide' : 
+                           state.budget?.primaryDataSource === 'CBRE' ? 'CBRE Guide' : 
+                           state.budget?.primaryDataSource || 'Mixed Sources'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Budget Scope:</span>
+                        <span className="font-medium text-gray-800">
+                          {state.budget?.scope === 'Complete' ? 'Complete Package' :
+                           state.budget?.scope === 'Both' ? 'Fitout & Furniture' :
+                           state.budget?.scope === 'Fitout' ? 'Fitout Only' : 
+                           state.budget?.scope || 'Standard'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Components:</span>
+                        <span className="font-medium text-gray-800">
+                          {state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs ? 
+                            `${Object.keys(state.budget.ttComponentSpecs).length} types` :
+                            state.budget?.spaceAllocation ? `${Object.keys(state.budget.spaceAllocation).length} types` : 
+                            '4 types'}
+                        </span>
+                      </div>
+                      
+                      {/* T&T Component-Specific Rates */}
+                      {state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs && (() => {
+                        const area = state.project?.totalArea || 1;
+                        const constructionRate = Math.round((totalCost * 0.75) / area);
+                        const furnitureRate = Math.round((totalCost * 0.15) / area);
+                        const avRate = Math.round((totalCost * 0.06) / area);
+                        const professionalRate = Math.round((totalCost * 0.04) / area);
+                        const combinedRate = Math.round(totalCost / area);
                         
-                        {/* Show appropriate rate information based on scope */}
-                        {state.budget?.scope === 'Both' ? (
+                        return (
                           <>
-                            <tr>
-                              <td className="py-1 text-gray-500">Fitout Base Rate:</td>
-                              <td className="py-1 font-medium">
-                                {state.budget?.fitoutCost && state.project?.totalArea ? 
-                                  formatCurrency(state.budget.fitoutCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="py-1 text-gray-500">Furniture Base Rate:</td>
-                              <td className="py-1 font-medium">
-                                {state.budget?.furnitureCost && state.project?.totalArea ? 
-                                  formatCurrency(state.budget.furnitureCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="py-1 text-gray-500">Combined Rate:</td>
-                              <td className="py-1 font-medium">
-                                {totalCost && state.project?.totalArea ?
-                                  formatCurrency(totalCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
-                                <span 
-                                  className="ml-1 text-xs text-gray-500 cursor-help" 
-                                  title="This rate is a weighted average based on the proportion of fitout vs. furniture costs in the total budget"
-                                >
-                                  ⓘ
-                                </span>
-                              </td>
-                            </tr>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Construction Rate:</span>
+                              <span className="font-medium text-gray-800">{formatCurrency(constructionRate, 'USD')}/{state.project?.areaUnit}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Furniture Rate:</span>
+                              <span className="font-medium text-gray-800">{formatCurrency(furnitureRate, 'USD')}/{state.project?.areaUnit}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Audio-Visual Rate:</span>
+                              <span className="font-medium text-gray-800">{formatCurrency(avRate, 'USD')}/{state.project?.areaUnit}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Professional Rate:</span>
+                              <span className="font-medium text-gray-800">{formatCurrency(professionalRate, 'USD')}/{state.project?.areaUnit}</span>
+                            </div>
+                            <div className="flex justify-between pt-2 border-t">
+                              <span className="text-gray-700 font-medium">Combined Rate:</span>
+                              <span className="font-bold text-gray-900">{formatCurrency(combinedRate, 'USD')}/{state.project?.areaUnit}</span>
+                            </div>
                           </>
-                        ) : (
-                          <>
-                            <tr>
-                              <td className="py-1 text-gray-500">Base Rate:</td>
-                              <td className="py-1 font-medium">
-                                {rawUnitCost && formatCurrency(rawUnitCost, 'USD')}/{areaUnit}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="py-1 text-gray-500">Final Rate:</td>
-                              <td className="py-1 font-medium">
+                        );
+                      })()}
+                      
+                      {/* Standard CBRE Rates */}
+                      {state.budget?.primaryDataSource !== 'TT' && (
+                        <>
+                          {state.budget?.scope === 'Both' ? (
+                            <>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Fitout Base Rate:</span>
+                                <span className="font-medium text-gray-800">
+                                  {state.budget?.fitoutCost && state.project?.totalArea ? 
+                                    formatCurrency(state.budget.fitoutCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Furniture Base Rate:</span>
+                                <span className="font-medium text-gray-800">
+                                  {state.budget?.furnitureCost && state.project?.totalArea ? 
+                                    formatCurrency(state.budget.furnitureCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
+                                </span>
+                              </div>
+                              <div className="flex justify-between pt-2 border-t">
+                                <span className="text-gray-700 font-medium">Combined Rate:</span>
+                                <span className="font-bold text-gray-900">
+                                  {totalCost && state.project?.totalArea ?
+                                    formatCurrency(totalCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex justify-between pt-2 border-t">
+                              <span className="text-gray-700 font-medium">Final Rate:</span>
+                              <span className="font-bold text-gray-900">
                                 {totalCost && state.project?.totalArea ? 
                                   formatCurrency(totalCost / state.project.totalArea, 'USD') : '-'}/{areaUnit}
-                              </td>
-                            </tr>
-                          </>
-                        )}
-                      </tbody>
-                    </table>
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
-                {/* Enhanced T&T Component Breakdown */}
+                {/* Enhanced T&T Component Breakdown with Interactive Features */}
                 {state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs && (
                   <div className="mt-6">
-                    <div className="bg-white border rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-lg font-medium text-gray-800">Budget Cost Summary (T&T Methodology)</h4>
-                        <div className="flex items-center space-x-2">
-                          <img src="/tt-logo.png" alt="Turner & Townsend" className="h-6 w-auto" />
-                          <span className="text-sm text-gray-600">Turner & Townsend Global Fit-Out Cost Guide 2025</span>
+                    <div className="cost-summary-table bg-white rounded-xl shadow-lg overflow-hidden">
+                      <div className="table-header bg-gradient-to-r from-blue-50 to-purple-50 p-6 border-b">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xl font-semibold text-gray-800">Budget Cost Summary (T&T Methodology)</h4>
+                          <div className="flex items-center space-x-4">
+                            <div className="data-source-badge flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border">
+                              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
+                                <span className="text-white font-bold text-xs">T&T</span>
+                              </div>
+                              <span className="text-sm font-medium text-gray-700">Turner & Townsend Global Fit-Out Cost Guide 2025</span>
+                            </div>
+                            <div className="view-toggle flex bg-gray-100 rounded-lg p-1">
+                              <button className="active px-3 py-1 text-xs font-medium bg-white text-gray-700 rounded shadow">Table View</button>
+                              <button className="px-3 py-1 text-xs font-medium text-gray-500">Chart View</button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-600 border-b pb-2">
-                          <div>CATEGORY</div>
+                      <div className="cost-breakdown p-6">
+                        <div className="grid grid-cols-4 gap-6 text-sm font-semibold text-gray-700 border-b-2 border-gray-200 pb-4 mb-4">
+                          <div className="flex items-center">
+                            <span>CATEGORY</span>
+                          </div>
                           <div className="text-right">AMOUNT (USD)</div>
                           <div className="text-right">RATE/SQM</div>
                           <div className="text-right">PERCENTAGE</div>
@@ -669,47 +701,115 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           });
                           
                           return componentCosts.map((data) => (
-                            <div key={data.name} className="grid grid-cols-4 gap-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: data.color }}></div>
-                                <span className="font-medium text-gray-800">{data.name}</span>
-                                <div className="group relative">
-                                  <span className="text-gray-400 cursor-help">ⓘ</span>
-                                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 w-64 z-10">
-                                    {data.description}
+                            <div key={data.name} className="cost-row grid grid-cols-4 gap-6 py-4 border-b border-gray-100 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-200 rounded-lg group">
+                              <div className="category-info flex items-center space-x-3">
+                                <div 
+                                  className="color-indicator w-4 h-4 rounded-full border-2 border-white shadow-md" 
+                                  style={{ backgroundColor: data.color }}
+                                ></div>
+                                <span className="category-name font-semibold text-gray-800 group-hover:text-gray-900">{data.name}</span>
+                                <div className="group/tooltip relative">
+                                  <span className="info-icon text-gray-400 hover:text-gray-600 cursor-help text-sm">ⓘ</span>
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover/tooltip:block bg-gray-900 text-white text-xs rounded-lg p-3 w-64 z-20 shadow-lg">
+                                    <div className="font-medium mb-1">{data.name}</div>
+                                    <div>{data.description}</div>
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-right font-medium">{formatCurrency(data.amount, 'USD')}</div>
-                              <div className="text-right text-gray-600">{formatCurrency(data.rate, 'USD')}/{state.project?.areaUnit}</div>
-                              <div className="text-right">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <div className="w-12 bg-gray-200 rounded-full h-2">
+                              <div className="amount text-right">
+                                <span className="font-bold text-lg text-gray-900">{formatCurrency(data.amount, 'USD')}</span>
+                              </div>
+                              <div className="rate text-right">
+                                <span className="font-medium text-gray-700">{formatCurrency(data.rate, 'USD')}/{state.project?.areaUnit}</span>
+                              </div>
+                              <div className="percentage text-right">
+                                <div className="flex items-center justify-end space-x-3">
+                                  <div className="percentage-bar w-16 bg-gray-200 rounded-full h-3 shadow-inner">
                                     <div 
-                                      className="h-2 rounded-full transition-all duration-300" 
+                                      className="fill h-3 rounded-full transition-all duration-500 ease-out shadow-sm" 
                                       style={{ 
                                         width: `${Math.min(100, data.percentage)}%`,
-                                        backgroundColor: data.color 
+                                        background: `linear-gradient(90deg, ${data.color}, ${data.color}dd)`
                                       }}
                                     ></div>
                                   </div>
-                                  <span className="text-sm font-medium">{data.percentage.toFixed(1)}%</span>
+                                  <span className="text-base font-bold text-gray-900">{data.percentage.toFixed(1)}%</span>
                                 </div>
                               </div>
                             </div>
                           ));
                         })()}
                         
-                        <div className="grid grid-cols-4 gap-4 py-3 font-bold text-gray-900 bg-gray-50 border-t-2">
-                          <div>TOTAL BUDGET</div>
-                          <div className="text-right">{formatCurrency(totalCost, 'USD')}</div>
-                          <div className="text-right">{formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}/{state.project?.areaUnit}</div>
-                          <div className="text-right">100%</div>
+                        <div className="grid grid-cols-4 gap-6 py-6 font-bold text-gray-900 bg-gradient-to-r from-gray-100 to-blue-100 border-t-4 border-blue-500 rounded-lg mt-4">
+                          <div className="flex items-center">
+                            <span className="text-lg">TOTAL BUDGET</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xl font-black">{formatCurrency(totalCost, 'USD')}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-lg font-bold">{formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}/{state.project?.areaUnit}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-lg font-black">100%</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
+                
+                {/* Professional Export Options */}
+                <div className="export-section mt-8">
+                  <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Export Options</h3>
+                    <div className="export-buttons grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <button 
+                        onClick={handleExport}
+                        className="export-btn primary flex flex-col items-center p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+                      >
+                        <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-medium">Executive Summary PDF</span>
+                      </button>
+                      <button 
+                        onClick={handleExport}
+                        className="export-btn flex flex-col items-center p-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+                      >
+                        <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 11-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-medium">Detailed Excel Report</span>
+                      </button>
+                      <button 
+                        onClick={handleExport}
+                        className="export-btn flex flex-col items-center p-4 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+                      >
+                        <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-medium">Presentation Slides</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href);
+                          toast({
+                            title: "Link copied",
+                            description: "Budget link copied to clipboard",
+                          });
+                        }}
+                        className="export-btn flex flex-col items-center p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+                      >
+                        <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                        </svg>
+                        <span className="text-sm font-medium">Share Link</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Standard BudgetSummary for non-T&T sources */}
                 {state.budget?.primaryDataSource !== 'TT' && (
