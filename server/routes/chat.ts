@@ -266,7 +266,7 @@ router.post('/query', async (req: Request, res: Response) => {
     res.json({ response });
   } catch (error: any) {
     console.error('Cost guide query error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Unable to process your question. Please try asking about specific locations like London, New York, or Singapore.' });
   }
 });
 
@@ -299,7 +299,7 @@ async function processCostGuideQuery(message: string, history: any[]): Promise<s
     }
     
     // Guide information queries
-    if (lowerMessage.includes('turner') && lowerMessage.includes('townsend') || lowerMessage.includes('t&t')) {
+    if ((lowerMessage.includes('turner') && lowerMessage.includes('townsend')) || lowerMessage.includes('t&t')) {
       return await handleGuideInfoQuery('TT', lowerMessage);
     }
     

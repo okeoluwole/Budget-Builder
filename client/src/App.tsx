@@ -12,7 +12,9 @@ import Settings from "@/pages/settings";
 import AppLayout from "@/components/layouts/AppLayout";
 import { BudgetProvider } from "@/contexts/BudgetContext";
 import ChatInterface from "@/components/chat/ChatInterface";
+import ChatWizard from "@/components/chat/ChatWizard";
 import DatasetValidator from "@/components/DatasetValidator";
+import { useState } from "react";
 
 function Router() {
   return (
@@ -29,6 +31,12 @@ function Router() {
 }
 
 function App() {
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const handleChatToggle = () => {
+    setIsChatOpen(!isChatOpen);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <BudgetProvider>
@@ -37,6 +45,7 @@ function App() {
           <Router />
         </AppLayout>
         <ChatInterface />
+        <ChatWizard isOpen={isChatOpen} onToggle={handleChatToggle} />
         <Toaster />
       </BudgetProvider>
     </QueryClientProvider>
