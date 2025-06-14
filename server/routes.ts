@@ -192,10 +192,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/budgets', async (req, res) => {
     try {
+      console.log('Creating budget with data:', JSON.stringify(req.body, null, 2));
+      
+      // Validate required fields
+      if (!req.body.projectId) {
+        return res.status(400).json({ message: 'Project ID is required' });
+      }
+      
+      // Ensure ttComponentSpecs is properly formatted as JSON string if it's an object
+      if (req.body.ttComponentSpecs && typeof req.body.ttComponentSpecs === 'object') {
+        req.body.ttComponentSpecs = JSON.stringify(req.body.ttComponentSpecs);
+      }
+      
+      // Ensure spaceAllocation is properly formatted as JSON string if it's an object
+      if (req.body.spaceAllocation && typeof req.body.spaceAllocation === 'object') {
+        req.body.spaceAllocation = JSON.stringify(req.body.spaceAllocation);
+      }
+      
+      // Ensure costsBreakdown is properly formatted as JSON string if it's an object
+      if (req.body.costsBreakdown && typeof req.body.costsBreakdown === 'object') {
+        req.body.costsBreakdown = JSON.stringify(req.body.costsBreakdown);
+      }
+      
       const budget = await storage.createBudget(req.body);
+      console.log('Budget created successfully:', budget.id);
       res.status(201).json(budget);
-    } catch (error) {
-      res.status(400).json({ message: 'Failed to create budget' });
+    } catch (error: any) {
+      console.error('Budget creation error:', error);
+      res.status(400).json({ 
+        message: 'Failed to create budget',
+        error: error.message,
+        details: error.stack
+      });
     }
   });
 
