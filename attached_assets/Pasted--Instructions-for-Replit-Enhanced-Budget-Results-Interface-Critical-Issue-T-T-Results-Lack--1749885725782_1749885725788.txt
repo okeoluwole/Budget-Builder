@@ -1,0 +1,285 @@
+# Instructions for Replit: Enhanced Budget Results Interface
+
+## Critical Issue: T&T Results Lack Detail Parity with CBRE
+
+### **Current Problem:**
+- CBRE shows comprehensive breakdown with unit costs, percentages, and detailed configuration
+- T&T shows basic summary without component-level details
+- Visual inconsistency between data sources
+
+### **Solution: Unified, Enhanced Results Interface**
+
+## 1. T&T Budget Results - Enhanced Detail Structure
+
+### **T&T Results Layout (Match CBRE Detail Level):**
+
+```
+Budget Results
+Review your budget estimate and export the details as needed.
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    Total Budget Estimate                        │
+│                      US$11,568,082                             │
+│                  5,000 sqm @US$2,314/sqm                       │
+└─────────────────────────────────────────────────────────────────┘
+
+Budget Details
+┌───────────────────────────────┐  ┌───────────────────────────────┐
+│ Project Details               │  │ Budget Configuration          │
+│                              │  │                              │
+│ Project Name:    C           │  │ Specification Level: Medium   │
+│ Location:        London, UK   │  │ Data Source:    T&T Guide     │
+│ Total Area:      5,000 sqm   │  │ Budget Scope:   Complete      │
+│ Currency:        USD         │  │ Components:     4 types       │
+│ Inflation Rate:  0%          │  │                              │
+│                              │  │ Construction Rate: US$278/sqm │
+│                              │  │ Furniture Rate:   US$53/sqm   │
+│                              │  │ Audio-Visual Rate: US$25/sqm  │
+│                              │  │ Professional Rate: US$46/sqm  │
+│                              │  │ Combined Rate:    US$402/sqm  │
+└───────────────────────────────┘  └───────────────────────────────┘
+
+Budget Cost Summary (T&T Methodology)
+┌─────────────────────────────────────────────────────────────────┐
+│ CATEGORY                    AMOUNT (USD)      RATE/SQM   PERCENTAGE│
+│─────────────────────────────────────────────────────────────────│
+│ Construction Costs          US$1,390,000     US$278/sqm    69.2%  │
+│ Loose Furniture            US$265,000       US$53/sqm     13.2%  │
+│ Audio-Visual Systems       US$125,000       US$25/sqm      6.2%  │
+│ Professional Fees          US$230,000       US$46/sqm     11.4%  │
+│─────────────────────────────────────────────────────────────────│
+│ TOTAL BUDGET               US$2,010,000     US$402/sqm    100%   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 2. Visual Enhancement - Modern Card Design
+
+### **Enhanced Visual Layout for Both Sources:**
+
+```css
+/* Modern Card-Based Results Layout */
+.results-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+  border-radius: 12px;
+}
+
+.total-budget-card {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.budget-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.detail-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.cost-summary-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+```
+
+## 3. Interactive Elements
+
+### **Add Interactive Features:**
+
+```javascript
+// Interactive cost breakdown with hover effects
+const costBreakdownRows = [
+  {
+    category: "Construction Costs",
+    amount: "$1,390,000", 
+    rate: "$278/sqm",
+    percentage: "69.2%",
+    color: "#3B82F6", // Blue
+    description: "Partitions, flooring, ceilings, mechanical works"
+  },
+  {
+    category: "Loose Furniture", 
+    amount: "$265,000",
+    rate: "$53/sqm", 
+    percentage: "13.2%",
+    color: "#10B981", // Green
+    description: "Desks, chairs, storage, meeting room furniture"
+  },
+  {
+    category: "Audio-Visual Systems",
+    amount: "$125,000",
+    rate: "$25/sqm",
+    percentage: "6.2%", 
+    color: "#F59E0B", // Orange
+    description: "Displays, conferencing, control systems"
+  },
+  {
+    category: "Professional Fees",
+    amount: "$230,000",
+    rate: "$46/sqm", 
+    percentage: "11.4%",
+    color: "#8B5CF6", // Purple
+    description: "Design, project management, consulting"
+  }
+];
+```
+
+### **Interactive Cost Summary Table:**
+
+```html
+<div class="cost-summary-table">
+  <div class="table-header">
+    <h3>Budget Cost Summary (T&T Methodology)</h3>
+    <div class="view-toggle">
+      <button class="active">Table View</button>
+      <button>Chart View</button>
+    </div>
+  </div>
+  
+  <div class="cost-breakdown">
+    {costBreakdownRows.map(row => (
+      <div class="cost-row" onHover="showDetails(row)">
+        <div class="category-info">
+          <div class="color-indicator" style="background: {row.color}"></div>
+          <span class="category-name">{row.category}</span>
+          <i class="info-icon" title="{row.description}"></i>
+        </div>
+        <div class="amount">{row.amount}</div>
+        <div class="rate">{row.rate}</div>
+        <div class="percentage">
+          <div class="percentage-bar">
+            <div class="fill" style="width: {row.percentage}; background: {row.color}"></div>
+          </div>
+          <span>{row.percentage}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+```
+
+## 4. Enhanced Data Source Attribution
+
+### **Clear Data Source Indicators:**
+
+```html
+<!-- For T&T Results -->
+<div class="data-source-badge">
+  <img src="tt-logo.png" alt="Turner & Townsend" />
+  <span>Turner & Townsend Global Office Fit-Out Cost Guide 2025</span>
+</div>
+
+<!-- For CBRE Results -->  
+<div class="data-source-badge">
+  <img src="cbre-logo.png" alt="CBRE" />
+  <span>CBRE Global Fit-Out Cost Guide 2024/25</span>
+</div>
+
+<!-- For Mixed Sources -->
+<div class="data-source-badge mixed">
+  <div class="source-indicator">
+    <img src="cbre-logo.png" alt="CBRE" />
+    <span>Construction & Furniture</span>
+  </div>
+  <div class="source-indicator">
+    <img src="tt-logo.png" alt="T&T" />
+    <span>AV & Professional*</span>
+  </div>
+</div>
+```
+
+## 5. Multi-Source Comparison Enhanced Layout
+
+### **Side-by-Side Comparison View:**
+
+```html
+<div class="comparison-results">
+  <div class="comparison-header">
+    <h2>Multi-Source Budget Comparison</h2>
+    <div class="variance-summary">
+      <span class="variance-indicator">±12.3% Total Variance</span>
+    </div>
+  </div>
+  
+  <div class="comparison-grid">
+    <div class="source-column tt-column">
+      <div class="source-header">
+        <img src="tt-logo.png" alt="T&T" />
+        <h3>Turner & Townsend</h3>
+        <div class="total-cost">US$2,010,000</div>
+      </div>
+      <!-- T&T breakdown details -->
+    </div>
+    
+    <div class="variance-column">
+      <div class="variance-indicators">
+        <!-- Visual variance indicators -->
+      </div>
+    </div>
+    
+    <div class="source-column cbre-column">
+      <div class="source-header">
+        <img src="cbre-logo.png" alt="CBRE" />
+        <h3>CBRE</h3>
+        <div class="total-cost">US$2,257,000</div>
+      </div>
+      <!-- CBRE breakdown details -->
+    </div>
+  </div>
+</div>
+```
+
+## 6. Export Enhancements
+
+### **Professional Export Options:**
+
+```html
+<div class="export-section">
+  <h3>Export Options</h3>
+  <div class="export-buttons">
+    <button class="export-btn primary">
+      <i class="pdf-icon"></i>
+      Executive Summary PDF
+    </button>
+    <button class="export-btn">
+      <i class="excel-icon"></i>  
+      Detailed Excel Report
+    </button>
+    <button class="export-btn">
+      <i class="powerpoint-icon"></i>
+      Presentation Slides
+    </button>
+    <button class="export-btn">
+      <i class="share-icon"></i>
+      Share Link
+    </button>
+  </div>
+</div>
+```
+
+## 7. Implementation Checklist
+
+### **Priority Tasks:**
+1. **Standardize T&T results format** to match CBRE detail level
+2. **Add unit cost breakdowns** for all T&T components  
+3. **Implement percentage calculations** for T&T cost summary
+4. **Create interactive hover effects** and tooltips
+5. **Add visual indicators** for cost components
+6. **Implement chart view toggle** for cost breakdown
+7. **Enhance comparison layout** for multi-source results
+8. **Add professional export options**
+
+This approach creates a consistent, professional, and interactive budget results interface that provides the same level of detail regardless of data source while enhancing the overall user experience.

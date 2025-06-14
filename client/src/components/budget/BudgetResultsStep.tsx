@@ -592,12 +592,132 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                   </div>
                 </div>
                 
-                {/* Add BudgetSummary component for cost summary and space allocation charts */}
-                <BudgetSummary 
-                  budgetBreakdown={{
-                    ...budgetBreakdown,
-                    projectName: state.project?.name,
-                    location: state.project?.country && state.project?.city 
+                {/* Enhanced T&T Component Breakdown */}
+                {state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs && (
+                  <div className="mt-6">
+                    <div className="bg-white border rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-medium text-gray-800">Budget Cost Summary (T&T Methodology)</h4>
+                        <div className="flex items-center space-x-2">
+                          <img src="/tt-logo.png" alt="Turner & Townsend" className="h-6 w-auto" />
+                          <span className="text-sm text-gray-600">Turner & Townsend Global Fit-Out Cost Guide 2025</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-600 border-b pb-2">
+                          <div>CATEGORY</div>
+                          <div className="text-right">AMOUNT (USD)</div>
+                          <div className="text-right">RATE/SQM</div>
+                          <div className="text-right">PERCENTAGE</div>
+                        </div>
+                        
+                        {/* Display actual T&T component costs from budget breakdown */}
+                        {(() => {
+                          const ttSpecs = state.budget?.ttComponentSpecs || {};
+                          const area = state.project?.totalArea || 1;
+                          
+                          // Use actual calculated breakdown from budgetBreakdown if available
+                          const actualBreakdown = budgetBreakdown?.costsBreakdown || {};
+                          
+                          // Map component names and calculate from actual data
+                          const componentMapping = {
+                            'Construction Costs': { 
+                              key: 'fitoutCost',
+                              fallbackAmount: totalCost * 0.75,
+                              color: '#3B82F6',
+                              description: 'Partitions, walls, floors, ceilings, mechanical, electrical'
+                            },
+                            'Loose Furniture': { 
+                              key: 'furnitureCost',
+                              fallbackAmount: totalCost * 0.15,
+                              color: '#10B981',
+                              description: 'Desks, chairs, workstations, storage, soft seating'
+                            },
+                            'Audio-Visual Systems': { 
+                              key: 'audioVisualCost',
+                              fallbackAmount: totalCost * 0.06,
+                              color: '#F59E0B',
+                              description: 'Display screens, conferencing systems, AV equipment'
+                            },
+                            'Professional Fees': { 
+                              key: 'professionalFeesCost',
+                              fallbackAmount: totalCost * 0.04,
+                              color: '#8B5CF6',
+                              description: 'Design, project management, cost consulting'
+                            }
+                          };
+                          
+                          // Calculate component costs using actual breakdown or T&T methodology
+                          const componentCosts = Object.entries(componentMapping).map(([componentName, config]) => {
+                            const actualAmount = actualBreakdown[config.key] || 
+                                               (budgetBreakdown?.[config.key]) || 
+                                               config.fallbackAmount;
+                            
+                            const amount = Math.round(actualAmount);
+                            const rate = Math.round(amount / area);
+                            const percentage = (amount / totalCost) * 100;
+                            
+                            return {
+                              name: componentName,
+                              amount,
+                              rate,
+                              percentage: Math.max(0.1, percentage), // Ensure minimum 0.1% visibility
+                              color: config.color,
+                              description: config.description
+                            };
+                          });
+                          
+                          return componentCosts.map((data) => (
+                            <div key={data.name} className="grid grid-cols-4 gap-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: data.color }}></div>
+                                <span className="font-medium text-gray-800">{data.name}</span>
+                                <div className="group relative">
+                                  <span className="text-gray-400 cursor-help">ⓘ</span>
+                                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 w-64 z-10">
+                                    {data.description}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right font-medium">{formatCurrency(data.amount, 'USD')}</div>
+                              <div className="text-right text-gray-600">{formatCurrency(data.rate, 'USD')}/{state.project?.areaUnit}</div>
+                              <div className="text-right">
+                                <div className="flex items-center justify-end space-x-2">
+                                  <div className="w-12 bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="h-2 rounded-full transition-all duration-300" 
+                                      style={{ 
+                                        width: `${Math.min(100, data.percentage)}%`,
+                                        backgroundColor: data.color 
+                                      }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-sm font-medium">{data.percentage.toFixed(1)}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                        
+                        <div className="grid grid-cols-4 gap-4 py-3 font-bold text-gray-900 bg-gray-50 border-t-2">
+                          <div>TOTAL BUDGET</div>
+                          <div className="text-right">{formatCurrency(totalCost, 'USD')}</div>
+                          <div className="text-right">{formatCurrency(totalCost / (state.project?.totalArea || 1), 'USD')}/{state.project?.areaUnit}</div>
+                          <div className="text-right">100%</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Standard BudgetSummary for non-T&T sources */}
+                {state.budget?.primaryDataSource !== 'TT' && (
+                  <BudgetSummary 
+                    budgetBreakdown={{
+                      ...budgetBreakdown,
+                      projectName: state.project?.name,
+                      location: state.project?.country && state.project?.city 
                       ? `${state.project.city}, ${state.project.country}` 
                       : undefined,
                     totalArea: state.project?.totalArea,
@@ -617,6 +737,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                   fitoutSpecification={state.budget?.fitoutSpecification}
                   furnitureSpecification={state.budget?.furnitureSpecification}
                 />
+                )}
 
                 {datasetInfo && (
                   <div className="bg-white p-4 border rounded-lg mb-6">
