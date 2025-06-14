@@ -4,11 +4,14 @@ import {
   insertChatSessionSchema, 
   insertChatMessageSchema, 
   FitoutCost, 
-  SpecificationRecord 
+  SpecificationRecord,
+  fitoutCosts,
+  furnitureCosts,
+  specifications 
 } from '@shared/schema';
 import { z } from 'zod';
 import { db } from '../db';
-import { fitoutCosts, specifications } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
 import * as localChat from '../utils/localChat';
 
 const router = Router();
@@ -249,5 +252,279 @@ router.post('/recommendation', async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Cost Guide Query endpoint for AI assistant
+router.post('/query', async (req: Request, res: Response) => {
+  try {
+    const { message, conversationHistory } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const response = await processCostGuideQuery(message, conversationHistory || []);
+    res.json({ response });
+  } catch (error: any) {
+    console.error('Cost guide query error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Process cost guide queries with intelligent data analysis
+async function processCostGuideQuery(message: string, history: any[]): Promise<string> {
+  try {
+    const lowerMessage = message.toLowerCase();
+    
+    // Location-based queries
+    if (lowerMessage.includes('london') || lowerMessage.includes('uk') || lowerMessage.includes('united kingdom')) {
+      return await handleLocationQuery('London', 'United Kingdom', lowerMessage);
+    }
+    
+    if (lowerMessage.includes('new york') || lowerMessage.includes('nyc')) {
+      return await handleLocationQuery('New York', 'United States', lowerMessage);
+    }
+    
+    if (lowerMessage.includes('singapore')) {
+      return await handleLocationQuery('Singapore', 'Singapore', lowerMessage);
+    }
+    
+    // Comparison queries
+    if (lowerMessage.includes('compare') || lowerMessage.includes('vs') || lowerMessage.includes('versus') || lowerMessage.includes('difference')) {
+      return await handleComparisonQuery(lowerMessage);
+    }
+    
+    // Rate queries
+    if (lowerMessage.includes('rate') || lowerMessage.includes('cost') || lowerMessage.includes('price')) {
+      return await handleRateQuery(lowerMessage);
+    }
+    
+    // Guide information queries
+    if (lowerMessage.includes('turner') && lowerMessage.includes('townsend') || lowerMessage.includes('t&t')) {
+      return await handleGuideInfoQuery('TT', lowerMessage);
+    }
+    
+    if (lowerMessage.includes('cbre')) {
+      return await handleGuideInfoQuery('CBRE', lowerMessage);
+    }
+    
+    // General help
+    if (lowerMessage.includes('help') || lowerMessage.includes('what can') || lowerMessage.includes('how')) {
+      return getHelpResponse();
+    }
+    
+    // Default intelligent response
+    return await handleGeneralQuery(message);
+    
+  } catch (error) {
+    console.error('Error processing cost guide query:', error);
+    return "I'm having trouble accessing the cost data right now. Please try asking about specific locations like London, New York, or Singapore, or try comparing rates between different guides.";
+  }
+}
+
+async function handleLocationQuery(city: string, country: string, query: string): Promise<string> {
+  try {
+    // Query fitout costs using actual schema fields
+    const fitoutResults = await db.select()
+      .from(fitoutCosts)
+      .where(and(
+        eq(fitoutCosts.city, city),
+        eq(fitoutCosts.country, country)
+      ));
+    
+    // Query furniture costs using actual schema fields
+    const furnitureResults = await db.select()
+      .from(furnitureCosts)
+      .where(and(
+        eq(furnitureCosts.city, city),
+        eq(furnitureCosts.country, country)
+      ));
+    
+    if (fitoutResults.length === 0 && furnitureResults.length === 0) {
+      return `I couldn't find cost data for ${city}, ${country}. Available locations include London, New York, Singapore, and many other major cities. Would you like me to list available locations?`;
+    }
+    
+    let response = `**Cost data for ${city}, ${country}:**\n\n`;
+    
+    if (fitoutResults.length > 0) {
+      const fitout = fitoutResults[0];
+      const lowRate = parseFloat(fitout.activityLowSqm || '0');
+      const mediumRate = parseFloat(fitout.activityMediumSqm || '0');
+      const highRate = parseFloat(fitout.activityHighSqm || '0');
+      
+      response += `**Fit-out Costs (CBRE):**\n`;
+      response += `• Low specification: $${lowRate.toFixed(2)}/sqm\n`;
+      response += `• Medium specification: $${mediumRate.toFixed(2)}/sqm\n`;
+      response += `• High specification: $${highRate.toFixed(2)}/sqm\n\n`;
+    }
+    
+    if (furnitureResults.length > 0) {
+      const furniture = furnitureResults[0];
+      const lowRate = parseFloat(furniture.activityLowSqm || '0');
+      const mediumRate = parseFloat(furniture.activityMediumSqm || '0');
+      const highRate = parseFloat(furniture.activityHighSqm || '0');
+      
+      response += `**Furniture Costs (CBRE):**\n`;
+      response += `• Low specification: $${lowRate.toFixed(2)}/sqm\n`;
+      response += `• Medium specification: $${mediumRate.toFixed(2)}/sqm\n`;
+      response += `• High specification: $${highRate.toFixed(2)}/sqm\n\n`;
+    }
+    
+    if (query.includes('furniture')) {
+      response += `These are furniture costs per square meter. `;
+    } else if (query.includes('fitout') || query.includes('fit-out')) {
+      response += `These are fit-out construction costs per square meter. `;
+    }
+    
+    response += `Would you like to compare with other locations or see Turner & Townsend data?`;
+    
+    return response;
+  } catch (error) {
+    console.error('Location query error:', error);
+    return `Error retrieving data for ${city}, ${country}. Please try again.`;
+  }
+}
+
+async function handleComparisonQuery(query: string): Promise<string> {
+  try {
+    // Extract locations or guides from query
+    if (query.includes('turner') && query.includes('cbre')) {
+      return `**Turner & Townsend vs CBRE Comparison:**\n\n` +
+             `**Turner & Townsend 2025:**\n` +
+             `• Covers global office fit-out costs\n` +
+             `• Includes construction, furniture, AV, and professional fees\n` +
+             `• Quality levels: Low, Medium, High\n` +
+             `• Component-specific specifications\n\n` +
+             `**CBRE:**\n` +
+             `• Separate fit-out and furniture datasets\n` +
+             `• Quality levels: Low, Medium, High\n` +
+             `• Regional coverage with location factors\n` +
+             `• Activity, Team, and Event space categories\n\n` +
+             `For specific location comparisons, ask: "Compare London rates between Turner & Townsend and CBRE"`;
+    }
+    
+    // Location comparison
+    if (query.includes('london') && query.includes('new york')) {
+      return await compareLocationRates('London', 'United Kingdom', 'New York', 'United States');
+    }
+    
+    return `I can help you compare:\n• Turner & Townsend vs CBRE methodologies\n• Different locations (London vs New York)\n• Specification levels within a location\n\nWhat would you like to compare specifically?`;
+  } catch (error) {
+    return `Error processing comparison. Please try asking: "Compare Turner & Townsend vs CBRE" or "Compare London vs New York rates"`;
+  }
+}
+
+async function compareLocationRates(city1: string, country1: string, city2: string, country2: string): Promise<string> {
+  try {
+    const location1Data = await db.select()
+      .from(fitoutCosts)
+      .where(and(
+        eq(fitoutCosts.city, city1),
+        eq(fitoutCosts.country, country1)
+      ));
+    
+    const location2Data = await db.select()
+      .from(fitoutCosts)  
+      .where(and(
+        eq(fitoutCosts.city, city2),
+        eq(fitoutCosts.country, country2)
+      ));
+    
+    if (location1Data.length === 0 || location2Data.length === 0) {
+      return `I couldn't find complete data for both locations. Available locations include major cities covered in the CBRE datasets.`;
+    }
+    
+    const loc1 = location1Data[0];
+    const loc2 = location2Data[0];
+    
+    const loc1Medium = parseFloat(loc1.activityMediumSqm || '0');
+    const loc2Medium = parseFloat(loc2.activityMediumSqm || '0');
+    const mediumDiff = ((loc1Medium - loc2Medium) / loc2Medium) * 100;
+    
+    let response = `**${city1} vs ${city2} - Fit-out Costs Comparison:**\n\n`;
+    response += `**${city1}, ${country1}:**\n`;
+    response += `• Medium spec: $${loc1Medium.toFixed(2)}/sqm\n\n`;
+    response += `**${city2}, ${country2}:**\n`;
+    response += `• Medium spec: $${loc2Medium.toFixed(2)}/sqm\n\n`;
+    response += `**Difference:** ${city1} is ${Math.abs(mediumDiff).toFixed(1)}% ${mediumDiff > 0 ? 'higher' : 'lower'} than ${city2}\n\n`;
+    response += `This comparison uses CBRE fit-out data. Would you like to see furniture costs or Turner & Townsend data?`;
+    
+    return response;
+  } catch (error) {
+    return `Error comparing locations. Please try again with specific city names.`;
+  }
+}
+
+async function handleRateQuery(query: string): Promise<string> {
+  try {
+    // If no specific location mentioned, provide general guidance
+    if (!query.includes('london') && !query.includes('new york') && !query.includes('singapore')) {
+      return `I can provide cost rates for specific locations. Try asking:\n\n` +
+             `• "What's the fit-out rate in London?"\n` +
+             `• "Singapore furniture costs"\n` +
+             `• "New York medium specification rates"\n\n` +
+             `Available locations include major cities from CBRE and Turner & Townsend datasets.`;
+    }
+    
+    // Handle specific location rate queries through location handler
+    if (query.includes('london')) return await handleLocationQuery('London', 'United Kingdom', query);
+    if (query.includes('new york')) return await handleLocationQuery('New York', 'United States', query);
+    if (query.includes('singapore')) return await handleLocationQuery('Singapore', 'Singapore', query);
+    
+    return `Please specify a location for rate information. I have data for London, New York, Singapore, and many other cities.`;
+  } catch (error) {
+    return `Error retrieving rate information. Please try asking about specific locations.`;
+  }
+}
+
+async function handleGuideInfoQuery(guide: string, query: string): Promise<string> {
+  if (guide === 'TT') {
+    return `**Turner & Townsend Global Office Fit-Out Cost Guide 2025:**\n\n` +
+           `• Comprehensive global coverage\n` +
+           `• Four main components: Construction, Furniture, Audio-Visual, Professional Fees\n` +
+           `• Quality specifications: Low, Medium, High\n` +
+           `• Component-specific specification selection\n` +
+           `• Regional cost variations included\n` +
+           `• Updated for 2025 market conditions\n\n` +
+           `Ask me: "What's the Turner & Townsend rate for London?" or "Compare T&T construction vs furniture costs"`;
+  } else {
+    return `**CBRE Global Fit-Out Cost Guide:**\n\n` +
+           `• Separate fit-out and furniture datasets\n` +
+           `• Three space types: Activity, Team, Event\n` +
+           `• Quality levels: Low, Medium, High\n` +
+           `• Regional location factors\n` +
+           `• Square meter and square foot data\n` +
+           `• Comprehensive global city coverage\n\n` +
+           `Ask me: "What's the CBRE rate for Singapore?" or "Compare CBRE fit-out vs furniture"`;
+  }
+}
+
+async function handleGeneralQuery(message: string): Promise<string> {
+  return `I can help you with cost guide information! Try asking:\n\n` +
+         `**Location queries:**\n` +
+         `• "What's the fit-out rate in London?"\n` +
+         `• "Singapore furniture costs"\n\n` +
+         `**Comparisons:**\n` +
+         `• "Compare Turner & Townsend vs CBRE"\n` +
+         `• "London vs New York rates"\n\n` +
+         `**Guide information:**\n` +
+         `• "Tell me about Turner & Townsend"\n` +
+         `• "CBRE methodology"\n\n` +
+         `What specific cost information are you looking for?`;
+}
+
+function getHelpResponse(): string {
+  return `**I can help you with:**\n\n` +
+         `🏢 **Location-specific rates**\n` +
+         `"What's the fit-out rate in London?"\n\n` +
+         `📊 **Compare data sources**\n` +
+         `"Compare Turner & Townsend vs CBRE"\n\n` +
+         `🌍 **Compare locations**\n` +
+         `"London vs Singapore costs"\n\n` +
+         `📋 **Guide information**\n` +
+         `"Tell me about CBRE methodology"\n\n` +
+         `💰 **Specific cost types**\n` +
+         `"Furniture costs in New York"\n\n` +
+         `Just ask in plain English about any cost data you need!`;
+}
 
 export default router;
