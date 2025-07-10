@@ -123,15 +123,27 @@ const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack,
       ]
     },
     {
-      value: 'Both',
+      value: 'AudioVisual',
+      title: 'Technology Only',
+      description: 'Focus exclusively on AV, IT, and technology infrastructure elements.',
+      icon: <Monitor className="h-8 w-8 text-purple-500" />,
+      benefits: [
+        'Audio-visual systems and equipment',
+        'IT infrastructure and networking',
+        'Technology integration systems',
+        'Ideal for technology upgrade projects'
+      ]
+    },
+    {
+      value: 'Complete',
       title: 'Complete Package',
-      description: 'Comprehensive budget including both fitout construction and furniture components.',
+      description: 'Comprehensive budget including all four cost categories: fitout, furniture, technology, and professional fees.',
       icon: <Package className="h-8 w-8 text-green-500" />,
       benefits: [
-        'Comprehensive total project cost',
-        'Includes both construction and movable items',
-        'Separate specifications for each component',
-        'Most suitable for full office refresh projects'
+        'All fitout construction costs',
+        'All furniture costs',
+        'All technology costs',
+        'Professional fees (calculated as percentage)'
       ]
     }
   ];
