@@ -562,7 +562,46 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
               <h3>Budget Configuration</h3>
               <p><strong>Data Source:</strong> ${dataSource}</p>
               <p><strong>Budget Scope:</strong> ${state.budget?.scope === 'Complete' ? 'Complete Package' : state.budget?.scope}</p>
-              <p><strong>Specification:</strong> ${state.budget?.specification || 'Medium Level'}</p>
+              <p><strong>Component Specifications:</strong></p>
+              ${(() => {
+                const getSpecDisplay = (specLevel) => {
+                  const specMap = {
+                    'Low': 'Bronze (Low)', 'Medium': 'Silver (Medium)', 'High': 'Gold (High)',
+                    'Bronze': 'Bronze (Low)', 'Silver': 'Silver (Medium)', 'Gold': 'Gold (High)'
+                  };
+                  return specMap[specLevel] || specLevel;
+                };
+                
+                const scope = state.budget?.scope;
+                const area = state.project?.totalArea || 1;
+                let specs = [];
+                
+                if (state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs) {
+                  const ttSpecs = state.budget.ttComponentSpecs;
+                  if (ttSpecs.construction) specs.push(`Construction: ${getSpecDisplay(ttSpecs.construction)}`);
+                  if (ttSpecs.furniture) specs.push(`Loose Furniture: ${getSpecDisplay(ttSpecs.furniture)}`);
+                  if (ttSpecs.audioVisual) specs.push(`Audio-Visual: ${getSpecDisplay(ttSpecs.audioVisual)}`);
+                  if (scope === 'Complete') specs.push(`Professional Fees: 4.9% of other components`);
+                } else {
+                  if (scope === 'Fitout' || scope === 'Complete' || scope === 'Both') {
+                    const fitoutSpec = state.budget?.fitoutSpecification || state.budget?.specification || 'Medium';
+                    specs.push(`Fitout Construction: ${getSpecDisplay(fitoutSpec)}`);
+                  }
+                  if (scope === 'Furniture' || scope === 'Complete' || scope === 'Both') {
+                    const furnitureSpec = state.budget?.furnitureSpecification || state.budget?.specification || 'Medium';
+                    specs.push(`Furniture: ${getSpecDisplay(furnitureSpec)}`);
+                  }
+                  if (scope === 'technology' || scope === 'AudioVisual' || scope === 'Complete') {
+                    const technologySpec = state.budget?.technologySpecification || state.budget?.specification || 'Medium';
+                    specs.push(`Technology: ${getSpecDisplay(technologySpec)}`);
+                  }
+                  if (scope === 'Complete') {
+                    specs.push(`Professional Fees: 4.9% of other components`);
+                  }
+                }
+                
+                return specs.map(spec => `<div style="margin-left: 20px;">• ${spec}</div>`).join('');
+              })()}
               <p><strong>Components:</strong> ${componentCosts.length} categories</p>
             </div>
           </div>
@@ -717,7 +756,44 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         ['BUDGET CONFIGURATION'],
         ['Data Source', dataSource.replace('_', ' ')],
         ['Budget Scope', state.budget?.scope === 'Complete' ? 'Complete Package' : state.budget?.scope || 'Complete Package'],
-        ['Specification Level', state.budget?.specification || 'Medium Level'],
+        ['Component Specifications', (() => {
+          const getSpecDisplay = (specLevel) => {
+            const specMap = {
+              'Low': 'Bronze (Low)', 'Medium': 'Silver (Medium)', 'High': 'Gold (High)',
+              'Bronze': 'Bronze (Low)', 'Silver': 'Silver (Medium)', 'Gold': 'Gold (High)'
+            };
+            return specMap[specLevel] || specLevel;
+          };
+          
+          const scope = state.budget?.scope;
+          let specs = [];
+          
+          if (state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs) {
+            const ttSpecs = state.budget.ttComponentSpecs;
+            if (ttSpecs.construction) specs.push(`Construction: ${getSpecDisplay(ttSpecs.construction)}`);
+            if (ttSpecs.furniture) specs.push(`Furniture: ${getSpecDisplay(ttSpecs.furniture)}`);
+            if (ttSpecs.audioVisual) specs.push(`Audio-Visual: ${getSpecDisplay(ttSpecs.audioVisual)}`);
+            if (scope === 'Complete') specs.push(`Professional Fees: 4.9%`);
+          } else {
+            if (scope === 'Fitout' || scope === 'Complete' || scope === 'Both') {
+              const fitoutSpec = state.budget?.fitoutSpecification || state.budget?.specification || 'Medium';
+              specs.push(`Fitout: ${getSpecDisplay(fitoutSpec)}`);
+            }
+            if (scope === 'Furniture' || scope === 'Complete' || scope === 'Both') {
+              const furnitureSpec = state.budget?.furnitureSpecification || state.budget?.specification || 'Medium';
+              specs.push(`Furniture: ${getSpecDisplay(furnitureSpec)}`);
+            }
+            if (scope === 'technology' || scope === 'AudioVisual' || scope === 'Complete') {
+              const technologySpec = state.budget?.technologySpecification || state.budget?.specification || 'Medium';
+              specs.push(`Technology: ${getSpecDisplay(technologySpec)}`);
+            }
+            if (scope === 'Complete') {
+              specs.push(`Professional Fees: 4.9%`);
+            }
+          }
+          
+          return specs.join('; ');
+        })()],
         [],
         ['COST BREAKDOWN'],
         ['Category', 'Amount (USD)', `Rate per ${state.project?.areaUnit}`, 'Percentage'],
@@ -870,39 +946,129 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           })()}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Specification Level:</span>
-                        <span className="font-medium text-gray-800">
-                          {state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs ? (
-                            (() => {
+                      {/* Component Specifications Breakdown */}
+                      <div className="component-specifications">
+                        <div className="mb-3">
+                          <span className="text-gray-500 font-medium">Component Specifications:</span>
+                        </div>
+                        <div className="space-y-2">
+                          {(() => {
+                            const getSpecificationDisplay = (specLevel) => {
+                              const specMap = {
+                                'Low': 'Bronze (Low)',
+                                'Medium': 'Silver (Medium)', 
+                                'High': 'Gold (High)',
+                                'Bronze': 'Bronze (Low)',
+                                'Silver': 'Silver (Medium)',
+                                'Gold': 'Gold (High)'
+                              };
+                              return specMap[specLevel] || specLevel;
+                            };
+
+                            const getSpecificationBadge = (specification) => {
+                              if (specification.includes('Bronze')) {
+                                return <span className="inline-block px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-md mr-2">Bronze</span>;
+                              } else if (specification.includes('Silver')) {
+                                return <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-md mr-2">Silver</span>;
+                              } else if (specification.includes('Gold')) {
+                                return <span className="inline-block px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-md mr-2">Gold</span>;
+                              }
+                              return <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-md mr-2">Standard</span>;
+                            };
+
+                            const componentSpecs = [];
+                            const scope = state.budget?.scope;
+                            const area = state.project?.totalArea || 1;
+
+                            if (state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs) {
                               const specs = state.budget.ttComponentSpecs;
-                              const specValues = Object.values(specs).filter(Boolean);
-                              const uniqueSpecs = specValues.filter((value, index, self) => self.indexOf(value) === index);
-                              
-                              if (uniqueSpecs.length === 1) {
-                                return `${uniqueSpecs[0]} (All Components)`;
-                              } else if (uniqueSpecs.length > 1) {
-                                return `Mixed: ${uniqueSpecs.join(', ')}`;
-                              } else {
-                                return 'Medium Level';
+                              if (specs.construction) {
+                                const constructionRate = Math.round((totalCost * 0.729) / area);
+                                componentSpecs.push({
+                                  name: 'Construction',
+                                  specification: getSpecificationDisplay(specs.construction),
+                                  rate: `US$${constructionRate}/sqm`
+                                });
                               }
-                            })()
-                          ) : state.budget?.primaryDataSource === 'CBRE' && state.budget?.scope === 'Both' ? (
-                            (() => {
-                              // For CBRE "Both" scope, show fitout and furniture specs separately
-                              const fitoutSpec = state.budget?.fitoutSpecification || 'Medium';
-                              const furnitureSpec = state.budget?.furnitureSpecification || 'Medium';
-                              
-                              if (fitoutSpec === furnitureSpec) {
-                                return `${fitoutSpec} (Both Components)`;
-                              } else {
-                                return `Fitout: ${fitoutSpec}, Furniture: ${furnitureSpec}`;
+                              if (specs.furniture) {
+                                const furnitureRate = Math.round((totalCost * 0.127) / area);
+                                componentSpecs.push({
+                                  name: 'Loose Furniture',
+                                  specification: getSpecificationDisplay(specs.furniture),
+                                  rate: `US$${furnitureRate}/sqm`
+                                });
                               }
-                            })()
-                          ) : (
-                            state.budget?.specification || 'Medium Level'
-                          )}
-                        </span>
+                              if (specs.audioVisual) {
+                                const avRate = Math.round((totalCost * 0.095) / area);
+                                componentSpecs.push({
+                                  name: 'Audio-Visual',
+                                  specification: getSpecificationDisplay(specs.audioVisual),
+                                  rate: `US$${avRate}/sqm`
+                                });
+                              }
+                              if (scope === 'Complete') {
+                                const professionalRate = Math.round((totalCost * 0.049) / area);
+                                componentSpecs.push({
+                                  name: 'Professional Fees',
+                                  specification: '4.9% of other components',
+                                  rate: `US$${professionalRate}/sqm`
+                                });
+                              }
+                            } else {
+                              // CBRE specifications
+                              if (scope === 'Fitout' || scope === 'Complete' || scope === 'Both') {
+                                const fitoutSpec = state.budget?.fitoutSpecification || state.budget?.specification || 'Medium';
+                                const fitoutRate = scope === 'Fitout' ? Math.round(totalCost / area) : Math.round((totalCost * 0.729) / area);
+                                componentSpecs.push({
+                                  name: 'Fitout Construction',
+                                  specification: getSpecificationDisplay(fitoutSpec),
+                                  rate: `US$${fitoutRate}/sqm`
+                                });
+                              }
+                              
+                              if (scope === 'Furniture' || scope === 'Complete' || scope === 'Both') {
+                                const furnitureSpec = state.budget?.furnitureSpecification || state.budget?.specification || 'Medium';
+                                const furnitureRate = scope === 'Furniture' ? Math.round(totalCost / area) : Math.round((totalCost * 0.127) / area);
+                                componentSpecs.push({
+                                  name: 'Furniture',
+                                  specification: getSpecificationDisplay(furnitureSpec),
+                                  rate: `US$${furnitureRate}/sqm`
+                                });
+                              }
+                              
+                              if (scope === 'technology' || scope === 'AudioVisual' || scope === 'Complete') {
+                                const technologySpec = state.budget?.technologySpecification || state.budget?.specification || 'Medium';
+                                const technologyRate = scope === 'technology' || scope === 'AudioVisual' ? Math.round(totalCost / area) : Math.round((totalCost * 0.095) / area);
+                                componentSpecs.push({
+                                  name: 'Technology',
+                                  specification: getSpecificationDisplay(technologySpec),
+                                  rate: `US$${technologyRate}/sqm`
+                                });
+                              }
+                              
+                              if (scope === 'Complete') {
+                                const professionalRate = Math.round((totalCost * 0.049) / area);
+                                componentSpecs.push({
+                                  name: 'Professional Fees',
+                                  specification: '4.9% of other components',
+                                  rate: `US$${professionalRate}/sqm`
+                                });
+                              }
+                            }
+
+                            return componentSpecs.map((comp, index) => (
+                              <div key={index} className="flex items-center justify-between py-1">
+                                <div className="flex items-center">
+                                  <span className="text-sm text-gray-700 mr-2">•</span>
+                                  <span className="text-sm font-medium text-gray-800">{comp.name}:</span>
+                                  {getSpecificationBadge(comp.specification)}
+                                  <span className="text-xs text-gray-600">{comp.specification}</span>
+                                </div>
+                                <span className="text-sm font-medium text-gray-700">{comp.rate}</span>
+                              </div>
+                            ));
+                          })()}
+                        </div>
                       </div>
                       
                       {/* T&T Component-Specific Rates */}
