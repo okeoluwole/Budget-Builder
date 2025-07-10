@@ -1419,45 +1419,56 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           <div className="text-right">PERCENTAGE</div>
                         </div>
                         
-                        {/* Enhanced CBRE Component Breakdown */}
+                        {/* Enhanced CBRE Component Breakdown - Using Actual Server Data */}
                         {(() => {
                           const area = state.project?.totalArea || 1;
+                          const breakdown = budgetBreakdown?.costsBreakdown || {};
                           
-                          // Calculate CBRE component costs based on actual breakdown
-                          const cbreComponentCosts = [
-                            {
-                              name: "Construction Costs",
-                              amount: totalCost * 0.729, // 72.9% based on CBRE methodology
-                              rate: (totalCost * 0.729) / area,
-                              percentage: 72.9,
+                          console.log("CBRE Breakdown Table - Using actual server breakdown:", breakdown);
+                          
+                          // Create component mapping for CBRE data using actual server breakdown
+                          const componentDisplayMap = {
+                            'FITOUT COSTS': {
+                              displayName: "Construction Costs",
                               color: "#3B82F6",
                               description: "Partitions, flooring, ceilings, mechanical works, electrical systems"
                             },
-                            {
-                              name: "Furniture Costs", 
-                              amount: totalCost * 0.127, // 12.7%
-                              rate: (totalCost * 0.127) / area,
-                              percentage: 12.7,
-                              color: "#10B981",
+                            'FURNITURE COSTS': {
+                              displayName: "Furniture Costs",
+                              color: "#10B981", 
                               description: "Desks, chairs, storage, meeting room furniture, workstations"
                             },
-                            {
-                              name: "Technology Costs",
-                              amount: totalCost * 0.095, // 9.5%
-                              rate: (totalCost * 0.095) / area,
-                              percentage: 9.5,
+                            'TECHNOLOGY COSTS': {
+                              displayName: "Technology Costs",
                               color: "#F59E0B",
                               description: "AV systems, displays, conferencing equipment, IT infrastructure"
                             },
-                            {
-                              name: "Professional Fees",
-                              amount: totalCost * 0.049, // 4.9%
-                              rate: (totalCost * 0.049) / area,
-                              percentage: 4.9,
+                            'PROFESSIONAL FEES': {
+                              displayName: "Professional Fees",
                               color: "#8B5CF6",
                               description: "Design, project management, consulting, contract administration"
                             }
-                          ];
+                          };
+                          
+                          // Build component costs from actual server breakdown
+                          const cbreComponentCosts = Object.entries(breakdown)
+                            .filter(([key, value]) => componentDisplayMap[key] && value > 0)
+                            .map(([key, amount]) => {
+                              const config = componentDisplayMap[key];
+                              const rate = amount / area;
+                              const percentage = (amount / totalCost) * 100;
+                              
+                              console.log(`${key}: $${amount} = $${Math.round(rate)}/sqm (${percentage.toFixed(1)}%)`);
+                              
+                              return {
+                                name: config.displayName,
+                                amount: amount,
+                                rate: rate,
+                                percentage: percentage,
+                                color: config.color,
+                                description: config.description
+                              };
+                            });
                           
                           return cbreComponentCosts.map((data) => (
                             <div key={data.name} className="cost-row grid grid-cols-4 gap-6 py-4 border-b border-gray-100 hover:bg-gradient-to-r hover:from-gray-50 hover:to-green-50 transition-all duration-200 rounded-lg group">
