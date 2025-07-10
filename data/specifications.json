@@ -1,6 +1,6 @@
 [
   {
-    "name": "Bronze",
+    "name": "Low (Bronze)",
     "description": "Standard specification with potential for future customization",
     "walls": "Painted walls with minimal branding",
     "partitions": {
@@ -23,7 +23,7 @@
     "recommendedFor": "Standard office spaces with budget constraints"
   },
   {
-    "name": "Silver",
+    "name": "Medium (Silver)",
     "description": "Budget-conscious upgrade with more features and higher-grade materials",
     "walls": "Feature walls with special finishes",
     "partitions": {
@@ -46,7 +46,7 @@
     "recommendedFor": "Enhanced office environments requiring more customization"
   },
   {
-    "name": "Gold",
+    "name": "High (Gold)",
     "description": "Agile, personalized, high-tech with premium finishes",
     "walls": "Feature wall concepts throughout, extensive branding",
     "partitions": {

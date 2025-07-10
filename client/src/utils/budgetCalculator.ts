@@ -298,9 +298,9 @@ const calculateCBRETechnologyCost = async (
       return 0;
     }
     
-    // Map Bronze/Silver/Gold to Low/Medium/High
-    const specLevel = specification === 'Bronze' ? 'Low' : 
-                     specification === 'Gold' ? 'High' : 'Medium';
+    // Map specification names to CBRE levels
+    const specLevel = specification.includes('Low') || specification === 'Bronze' ? 'Low' : 
+                     specification.includes('High') || specification === 'Gold' ? 'High' : 'Medium';
     
     // Get layout type (default to Activity if not specified)
     const layoutType = budget.layout || 'Activity';
@@ -687,8 +687,8 @@ export const calculateBudget = async ({
         }
 
         // Get base costs based on layout type and specification level
-        const specificationLevel = budget.specification === 'Bronze' ? 'Low' : 
-                                 budget.specification === 'Silver' ? 'Medium' : 'High';
+        const specificationLevel = budget.specification?.includes('Low') || budget.specification === 'Bronze' ? 'Low' : 
+                                 budget.specification?.includes('High') || budget.specification === 'Gold' ? 'High' : 'Medium';
         
         const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
         const layoutType = budget.layout as keyof typeof fitoutLocationData.costs[typeof areaUnit];
@@ -732,8 +732,8 @@ export const calculateBudget = async ({
         }
 
         // Get base costs based on layout type and specification level
-        const specificationLevel = budget.specification === 'Bronze' ? 'Low' : 
-                                 budget.specification === 'Silver' ? 'Medium' : 'High';
+        const specificationLevel = budget.specification?.includes('Low') || budget.specification === 'Bronze' ? 'Low' : 
+                                 budget.specification?.includes('High') || budget.specification === 'Gold' ? 'High' : 'Medium';
         
         const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
         const layoutType = budget.layout as keyof typeof furnitureLocationData.costs[typeof areaUnit];
@@ -768,7 +768,8 @@ export const calculateBudget = async ({
           // If CBRE technology data is not available, fall back to T&T calculation
           if (technologyCost === 0) {
             console.log('CBRE technology data not available, falling back to T&T calculation');
-            const technologySpecLevel = technologySpec === 'Bronze' ? 'Low' : technologySpec === 'Gold' ? 'High' : 'Medium';
+            const technologySpecLevel = technologySpec?.includes('Low') || technologySpec === 'Bronze' ? 'Low' : 
+                                        technologySpec?.includes('High') || technologySpec === 'Gold' ? 'High' : 'Medium';
             
             const ttAudioVisualResult = calculateTT2025Budget(
               project.country,
