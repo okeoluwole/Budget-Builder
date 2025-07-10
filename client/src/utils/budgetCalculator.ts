@@ -806,12 +806,7 @@ export const calculateBudget = async ({
         }
       }
       
-      // Add professional fees for Complete scope only
-      if (scope === 'Complete') {
-        // Professional fees are typically 10-15% of construction + furniture + technology costs
-        const baseCosts = fitoutCost + furnitureCost + technologyCost;
-        professionalFeesCost = baseCosts * 0.12; // 12% professional fees
-      }
+      // Professional fees calculation is now handled within the Complete scope calculation below
       
       // Calculate total cost based on scope
       if (scope === 'Fitout') {
@@ -821,7 +816,32 @@ export const calculateBudget = async ({
       } else if (scope === 'technology' || scope === 'AudioVisual') {
         totalCost = technologyCost;
       } else if (scope === 'Complete') {
-        totalCost = fitoutCost + furnitureCost + technologyCost + professionalFeesCost;
+        // For Complete scope, we need to include technology cost in total
+        // Use the same technology calculation logic as in the breakdown section
+        let completeTechCost = 0;
+        
+        if (budget.primaryDataSource === 'CBRE') {
+          const technologySpec = (budget as any).technologySpecification || budget.specification;
+          
+          try {
+            completeTechCost = await calculateCBRETechnologyCost(project, budget, technologySpec);
+            
+            if (completeTechCost === 0) {
+              console.log('CBRE technology data not available for Complete total, using fallback');
+              completeTechCost = (fitoutCost + furnitureCost) * 0.15;
+            }
+          } catch (error) {
+            console.error('Error calculating technology cost for Complete total:', error);
+            completeTechCost = (fitoutCost + furnitureCost) * 0.15;
+          }
+        } else {
+          completeTechCost = (fitoutCost + furnitureCost) * 0.15;
+        }
+        
+        const completeBaseCosts = fitoutCost + furnitureCost + completeTechCost;
+        const completeProfessionalFees = completeBaseCosts * 0.12;
+        
+        totalCost = completeBaseCosts + completeProfessionalFees;
       } else {
         totalCost = fitoutCost + furnitureCost; // For 'Both'
       }
@@ -944,9 +964,49 @@ export const calculateBudget = async ({
       }
       
       if (scope === 'Complete') {
-        // Use the technology cost that was already calculated above using actual CBRE rates
-        // The technologyCost variable from the earlier calculation contains the actual CBRE technology cost
-        const techCost = technologyCost; // This is already calculated with actual CBRE rates above
+        // For Complete scope, we need to recalculate technology cost in this scope
+        // since the technologyCost variable is defined in the CBRE section above
+        let techCost = 0;
+        
+        // Calculate technology cost for Complete scope
+        if (budget.primaryDataSource === 'CBRE') {
+          // Use CBRE technology specification if available, otherwise fall back to main specification
+          const technologySpec = (budget as any).technologySpecification || budget.specification;
+          
+          try {
+            techCost = await calculateCBRETechnologyCost(project, budget, technologySpec);
+            
+            // If CBRE technology data is not available, fall back to T&T calculation
+            if (techCost === 0) {
+              console.log('CBRE technology data not available for Complete scope, falling back to T&T calculation');
+              const technologySpecLevel = technologySpec?.includes('Low') || technologySpec === 'Bronze' ? 'Low' : 
+                                          technologySpec?.includes('High') || technologySpec === 'Gold' ? 'High' : 'Medium';
+              
+              const ttAudioVisualResult = calculateTT2025Budget(
+                project.country,
+                project.city,
+                technologySpecLevel as TT2025Specification,
+                project.totalArea,
+                project.areaUnit as 'sqm' | 'sqft',
+                'AudioVisual'
+              );
+              
+              if (ttAudioVisualResult.success) {
+                techCost = ttAudioVisualResult.breakdown.audioVisual;
+              } else {
+                // Final fallback: use percentage estimate
+                techCost = (fitoutCost + furnitureCost) * 0.15; // 15% estimate
+              }
+            }
+          } catch (error) {
+            console.error('Error calculating technology cost for Complete scope:', error);
+            // Final fallback: use percentage estimate
+            techCost = (fitoutCost + furnitureCost) * 0.15; // 15% estimate
+          }
+        } else {
+          // For other data sources, use percentage estimate
+          techCost = (fitoutCost + furnitureCost) * 0.15; // 15% estimate
+        }
         
         // Professional fees: 12% of (fitout + furniture + technology)
         const professionalFees = (fitoutCost + furnitureCost + techCost) * 0.12;

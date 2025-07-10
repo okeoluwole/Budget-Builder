@@ -1,0 +1,160 @@
+Issue Identification: Budget calculation works for "Technology Only" workflow but fails for "Complete Package" with error "TechnologyCost is not defined."
+Expected Behavior: Complete Package should successfully integrate Technology costs alongside Fitout, Furniture, and Professional Fees calculations.
+Current Behavior: Technology Only works correctly, but Complete Package fails during budget calculation with undefined TechnologyCost variable.
+Specific Instructions for REPLIT:
+Phase 1: Error Root Cause Analysis
+1. Add comprehensive logging to identify the exact failure point:
+   
+   // In the Complete Package calculation function, add these logs:
+   console.log("=== COMPLETE PACKAGE DEBUG START ===");
+   console.log("Scope Selection:", selectedScope);
+   console.log("Selected Components:", selectedComponents);
+   console.log("Technology specification:", technologySpec);
+   console.log("Raw input data:", inputData);
+   
+   // Before each cost calculation:
+   console.log("Calculating Fitout Cost...");
+   console.log("Fitout data available:", fitoutData);
+   
+   console.log("Calculating Furniture Cost...");
+   console.log("Furniture data available:", furnitureData);
+   
+   console.log("Calculating Technology Cost...");
+   console.log("Technology data available:", technologyData);
+   console.log("Technology Cost variable before calculation:", typeof TechnologyCost);
+Phase 2: Variable Declaration and Scope Debugging
+2. Check variable declaration consistency between workflows:
+
+   // Compare Technology Only vs Complete Package variable handling:
+   
+   // Technology Only workflow (working):
+   let technologyCost = calculateTechnologyCost(inputs);
+   
+   // Complete Package workflow (failing):
+   // Verify this matches exactly:
+   let fitoutCost = calculateFitoutCost(inputs);
+   let furnitureCost = calculateFurnitureCost(inputs);
+   let technologyCost = calculateTechnologyCost(inputs); // Check this line exists
+   let professionalFees = calculateProfessionalFees(fitoutCost + furnitureCost + technologyCost);
+
+3. Add validation for each variable before use:
+   
+   if (typeof technologyCost === 'undefined') {
+       console.error("CRITICAL: technologyCost is undefined");
+       console.log("Technology inputs:", technologyInputs);
+       console.log("Technology function result:", calculateTechnologyCost(inputs));
+   }
+Phase 3: Technology Cost Function Integration
+4. Verify Technology calculation function is called correctly in Complete Package:
+
+   // Check if calculateTechnologyCost function receives proper inputs in Complete Package:
+   function calculateTechnologyCost(inputs) {
+       console.log("Technology function called with:", inputs);
+       console.log("Required inputs - Location:", inputs.location);
+       console.log("Required inputs - Area:", inputs.area);
+       console.log("Required inputs - Layout:", inputs.layout);
+       console.log("Required inputs - Tech Spec:", inputs.technologySpecification);
+       
+       // Verify technology data source access:
+       console.log("Technology data source loaded:", typeof technologyDataSource);
+       
+       return calculatedTechCost;
+   }
+
+5. Compare input data structure between Technology Only and Complete Package:
+   
+   // Technology Only (working) input structure:
+   console.log("Tech Only inputs:", techOnlyInputs);
+   
+   // Complete Package input structure:
+   console.log("Complete Package inputs:", completePackageInputs);
+   
+   // Verify both contain same technology-related data
+Phase 4: Data Source Access Verification
+6. Check Technology data source accessibility in Complete Package context:
+
+   // Verify technology data is accessible when called from Complete Package:
+   console.log("=== TECHNOLOGY DATA ACCESS TEST ===");
+   console.log("CBRE Tech data loaded:", typeof CBRETechData);
+   console.log("Technology rates for London:", CBRETechData?.London);
+   console.log("Activity layout rates:", CBRETechData?.Activity);
+   
+   // Test direct rate lookup:
+   try {
+       const testRate = getTechnologyRate('London', 'Activity', 'Silver');
+       console.log("Technology rate lookup test:", testRate);
+   } catch (error) {
+       console.error("Technology rate lookup failed:", error);
+   }
+
+7. Verify calculation sequence in Complete Package:
+   
+   // Ensure calculations happen in correct order:
+   console.log("Step 1: Calculating Fitout...");
+   const fitoutResult = calculateFitout();
+   console.log("Fitout result:", fitoutResult);
+   
+   console.log("Step 2: Calculating Furniture...");
+   const furnitureResult = calculateFurniture();
+   console.log("Furniture result:", furnitureResult);
+   
+   console.log("Step 3: Calculating Technology...");
+   const technologyResult = calculateTechnology();
+   console.log("Technology result:", technologyResult);
+   
+   console.log("Step 4: Calculating Professional Fees...");
+   const professionalFeesResult = calculateProfessionalFees();
+   console.log("Professional Fees result:", professionalFeesResult);
+Phase 5: Component Integration Fix
+8. Fix variable naming and reference consistency:
+
+   // Ensure consistent variable naming throughout Complete Package:
+   // Use same naming convention as Technology Only workflow
+   
+   // If Technology Only uses:
+   let technologyCost = calculateTechnologyCost(inputs);
+   
+   // Then Complete Package must use exactly:
+   let technologyCost = calculateTechnologyCost(inputs); // Not TechnologyCost
+   
+9. Verify component array includes Technology correctly:
+   
+   const completePackageComponents = [
+       { name: 'Construction', cost: fitoutCost },
+       { name: 'Furniture', cost: furnitureCost },
+       { name: 'Technology', cost: technologyCost }, // Check this line
+       { name: 'Professional Fees', cost: professionalFees }
+   ];
+   
+   console.log("Final component array:", completePackageComponents);
+
+10. Add error handling for missing components:
+    
+    // Before final calculation:
+    if (!fitoutCost && !furnitureCost && !technologyCost) {
+        throw new Error("No component costs calculated");
+    }
+    
+    if (selectedScope.includes('Technology') && !technologyCost) {
+        throw new Error("Technology cost required but not calculated");
+    }
+Phase 6: Final Integration Test
+11. Test Complete Package with minimal viable data:
+    
+    // Test with simplest possible Complete Package configuration:
+    const testInputs = {
+        location: 'London',
+        area: 1000,
+        scope: 'Complete Package',
+        fitoutSpec: 'Silver',
+        furnitureSpec: 'Silver', 
+        technologySpec: 'Silver',
+        layout: 'Activity'
+    };
+    
+    console.log("Testing Complete Package with:", testInputs);
+    const result = calculateCompletePackage(testInputs);
+    console.log("Complete Package test result:", result);
+Success Criteria: Complete Package workflow successfully calculates and integrates Technology costs alongside other components without undefined variable errors.
+Priority: CRITICAL - This blocks the primary Complete Package functionality.
+The error message suggests "TechnologyCost" (capital T) is being referenced somewhere instead of "technologyCost" (lowercase t), or the variable isn't being properly declared/passed between functions in the Complete Package workflow. The debugging will identify the exact inconsistency.
