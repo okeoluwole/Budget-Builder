@@ -1,0 +1,858 @@
+## Comprehensive Global CBRE Data Validation Instructions
+
+**Issue Identification**: Current validation only covers London. CBRE data sources contain extensive global coverage that needs complete validation across all countries and cities.
+
+**Objective**: Systematically debug and validate data extraction for ALL locations, countries, and cities in the CBRE source documents to ensure global accuracy.
+
+**Specific Instructions for REPLIT**:
+
+## Phase 1: Complete Global Location Discovery
+
+### Step 1: Comprehensive Location Inventory Across All CBRE Files
+```
+1. Discover all countries and cities in CBRE data sources:
+
+   async function discoverAllCBRELocations() {
+       console.log("=== DISCOVERING ALL CBRE LOCATIONS ===");
+       
+       const allLocations = {
+           countries: new Set(),
+           cities: new Set(),
+           regions: new Set(),
+           locationDetails: []
+       };
+       
+       const cbreFiles = [
+           'CBRE GOFOCG MAC Cost Data_29.01.2024 Rev 1 RC OO.xlsx',
+           'CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only.xlsx',
+           'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx', 
+           'CBRE Fit Out Guide Cost Data_Furniture Only.xlsx'
+       ];
+       
+       for (const fileName of cbreFiles) {
+           console.log(`\n--- ANALYZING ${fileName} ---`);
+           
+           try {
+               const fileData = await window.fs.readFile(fileName);
+               const workbook = XLSX.read(fileData, {
+                   cellStyles: true,
+                   cellFormulas: true,
+                   cellDates: true,
+                   cellNF: true,
+                   sheetStubs: true
+               });
+               
+               // Analyze each sheet for location data
+               workbook.SheetNames.forEach(sheetName => {
+                   console.log(`  Processing sheet: ${sheetName}`);
+                   const sheet = workbook.Sheets[sheetName];
+                   const sheetData = XLSX.utils.sheet_to_json(sheet, {header: 1});
+                   
+                   // Look for location data (typically in columns B, C, D)
+                   sheetData.forEach((row, rowIndex) => {
+                       if (row[1] && row[2] && row[3]) { // Country, City, Region
+                           const country = row[1].toString().trim();
+                           const city = row[2].toString().trim();
+                           const region = row[3].toString().trim();
+                           
+                           // Skip header rows
+                           if (country.toLowerCase() !== 'country' && 
+                               city.toLowerCase() !== 'city' &&
+                               !country.includes('COUNTRY')) {
+                               
+                               allLocations.countries.add(country);
+                               allLocations.cities.add(city);
+                               allLocations.regions.add(region);
+                               
+                               allLocations.locationDetails.push({
+                                   file: fileName,
+                                   sheet: sheetName,
+                                   row: rowIndex + 1,
+                                   country: country,
+                                   city: city,
+                                   region: region,
+                                   dataRow: row
+                               });
+                           }
+                       }
+                   });
+               });
+               
+           } catch (error) {
+               console.error(`Error processing ${fileName}:`, error);
+           }
+       }
+       
+       // Convert Sets to Arrays and sort
+       const globalLocationInventory = {
+           countries: Array.from(allLocations.countries).sort(),
+           cities: Array.from(allLocations.cities).sort(),
+           regions: Array.from(allLocations.regions).sort(),
+           totalLocations: allLocations.locationDetails.length,
+           locationDetails: allLocations.locationDetails
+       };
+       
+       console.log("\n=== GLOBAL LOCATION INVENTORY ===");
+       console.log("Total Countries:", globalLocationInventory.countries.length);
+       console.log("Countries:", globalLocationInventory.countries);
+       console.log("\nTotal Cities:", globalLocationInventory.cities.length);
+       console.log("Cities:", globalLocationInventory.cities);
+       console.log("\nRegions:", globalLocationInventory.regions);
+       console.log("\nTotal Location Records:", globalLocationInventory.totalLocations);
+       
+       return globalLocationInventory;
+   }
+
+2. Create location-specific data mapping:
+
+   function createLocationDataMapping(globalInventory) {
+       console.log("=== CREATING LOCATION DATA MAPPING ===");
+       
+       const locationMapping = {};
+       
+       globalInventory.locationDetails.forEach(location => {
+           const key = `${location.country}-${location.city}`;
+           
+           if (!locationMapping[key]) {
+               locationMapping[key] = {
+                   country: location.country,
+                   city: location.city,
+                   region: location.region,
+                   dataSources: {}
+               };
+           }
+           
+           // Determine data type based on file name
+           let dataType;
+           if (location.file.includes('Tech Only')) {
+               dataType = 'Technology';
+           } else if (location.file.includes('Fitout Only')) {
+               dataType = 'Fitout';
+           } else if (location.file.includes('Furniture Only')) {
+               dataType = 'Furniture';
+           } else {
+               dataType = 'Combined';
+           }
+           
+           locationMapping[key].dataSources[dataType] = {
+               file: location.file,
+               sheet: location.sheet,
+               row: location.row,
+               dataRow: location.dataRow
+           };
+       });
+       
+       console.log("Location mapping created for", Object.keys(locationMapping).length, "unique locations");
+       return locationMapping;
+   }
+```
+
+### Step 2: Regional Coverage Analysis
+```
+3. Analyze regional coverage and data completeness:
+
+   function analyzeRegionalCoverage(locationMapping) {
+       console.log("=== ANALYZING REGIONAL COVERAGE ===");
+       
+       const regionalAnalysis = {};
+       
+       Object.values(locationMapping).forEach(location => {
+           const region = location.region;
+           
+           if (!regionalAnalysis[region]) {
+               regionalAnalysis[region] = {
+                   countries: new Set(),
+                   cities: new Set(),
+                   locations: [],
+                   dataCompleteness: {
+                       technology: 0,
+                       fitout: 0,
+                       furniture: 0,
+                       combined: 0
+                   }
+               };
+           }
+           
+           regionalAnalysis[region].countries.add(location.country);
+           regionalAnalysis[region].cities.add(location.city);
+           regionalAnalysis[region].locations.push(location);
+           
+           // Check data completeness
+           Object.keys(location.dataSources).forEach(dataType => {
+               if (regionalAnalysis[region].dataCompleteness[dataType.toLowerCase()]) {
+                   regionalAnalysis[region].dataCompleteness[dataType.toLowerCase()]++;
+               }
+           });
+       });
+       
+       // Convert Sets to Arrays for final output
+       Object.keys(regionalAnalysis).forEach(region => {
+           regionalAnalysis[region].countries = Array.from(regionalAnalysis[region].countries);
+           regionalAnalysis[region].cities = Array.from(regionalAnalysis[region].cities);
+           
+           console.log(`\n--- REGION: ${region} ---`);
+           console.log("Countries:", regionalAnalysis[region].countries.length);
+           console.log("Cities:", regionalAnalysis[region].cities.length);
+           console.log("Data Completeness:", regionalAnalysis[region].dataCompleteness);
+       });
+       
+       return regionalAnalysis;
+   }
+
+4. Identify data gaps and inconsistencies:
+
+   function identifyDataGaps(locationMapping) {
+       console.log("=== IDENTIFYING DATA GAPS ===");
+       
+       const dataGaps = {
+           missingTechnology: [],
+           missingFitout: [],
+           missingFurniture: [],
+           incomplete: []
+       };
+       
+       Object.entries(locationMapping).forEach(([locationKey, location]) => {
+           const dataSources = location.dataSources;
+           
+           if (!dataSources.Technology) {
+               dataGaps.missingTechnology.push(locationKey);
+           }
+           if (!dataSources.Fitout) {
+               dataGaps.missingFitout.push(locationKey);
+           }
+           if (!dataSources.Furniture) {
+               dataGaps.missingFurniture.push(locationKey);
+           }
+           
+           const availableDataTypes = Object.keys(dataSources).length;
+           if (availableDataTypes < 3) { // Less than Technology, Fitout, Furniture
+               dataGaps.incomplete.push({
+                   location: locationKey,
+                   available: Object.keys(dataSources),
+                   missing: ['Technology', 'Fitout', 'Furniture'].filter(
+                       type => !dataSources[type]
+                   )
+               });
+           }
+       });
+       
+       console.log("Data Gaps Analysis:");
+       console.log("Missing Technology data:", dataGaps.missingTechnology.length);
+       console.log("Missing Fitout data:", dataGaps.missingFitout.length);
+       console.log("Missing Furniture data:", dataGaps.missingFurniture.length);
+       console.log("Incomplete locations:", dataGaps.incomplete.length);
+       
+       if (dataGaps.incomplete.length > 0) {
+           console.log("\nIncomplete Locations Details:");
+           dataGaps.incomplete.forEach(item => {
+               console.log(`  ${item.location}: Missing ${item.missing.join(', ')}`);
+           });
+       }
+       
+       return dataGaps;
+   }
+```
+
+## Phase 2: Global Data Extraction Validation
+
+### Step 3: Systematic Global Rate Extraction Testing
+```
+5. Test rate extraction for all locations:
+
+   async function testGlobalRateExtraction(locationMapping) {
+       console.log("=== TESTING GLOBAL RATE EXTRACTION ===");
+       
+       const extractionResults = {
+           successful: [],
+           failed: [],
+           rateValidation: {},
+           summary: {}
+       };
+       
+       const specifications = ['Low', 'Medium', 'High'];
+       const components = ['Technology', 'Fitout', 'Furniture'];
+       const layoutTypes = ['Activity', 'Team', 'Event'];
+       
+       // Test each location
+       for (const [locationKey, location] of Object.entries(locationMapping)) {
+           console.log(`\nTesting location: ${locationKey}`);
+           
+           const locationResults = {
+               location: locationKey,
+               country: location.country,
+               city: location.city,
+               region: location.region,
+               componentResults: {}
+           };
+           
+           // Test each component
+           for (const component of components) {
+               if (!location.dataSources[component]) {
+                   console.log(`  Skipping ${component} - no data source available`);
+                   continue;
+               }
+               
+               locationResults.componentResults[component] = {};
+               
+               // Test each specification level
+               for (const spec of specifications) {
+                   try {
+                       // For Technology, test all layout types
+                       if (component === 'Technology') {
+                           const layoutResults = {};
+                           for (const layout of layoutTypes) {
+                               try {
+                                   const rate = await extractComponentRate(
+                                       location.city, 
+                                       component, 
+                                       spec, 
+                                       layout,
+                                       location.dataSources[component]
+                                   );
+                                   layoutResults[layout] = rate;
+                               } catch (error) {
+                                   layoutResults[layout] = { error: error.message };
+                               }
+                           }
+                           locationResults.componentResults[component][spec] = layoutResults;
+                       } else {
+                           // For Fitout and Furniture, test default layout
+                           const rate = await extractComponentRate(
+                               location.city,
+                               component,
+                               spec,
+                               'Activity',
+                               location.dataSources[component]
+                           );
+                           locationResults.componentResults[component][spec] = rate;
+                       }
+                       
+                   } catch (error) {
+                       console.error(`    Failed to extract ${component} ${spec}:`, error.message);
+                       locationResults.componentResults[component][spec] = { error: error.message };
+                   }
+               }
+           }
+           
+           // Validate results
+           const hasValidRates = Object.values(locationResults.componentResults).some(comp =>
+               Object.values(comp).some(spec => 
+                   typeof spec === 'number' || 
+                   (typeof spec === 'object' && !spec.error)
+               )
+           );
+           
+           if (hasValidRates) {
+               extractionResults.successful.push(locationResults);
+           } else {
+               extractionResults.failed.push(locationResults);
+           }
+       }
+       
+       console.log(`\nExtraction Results Summary:`);
+       console.log(`Successful locations: ${extractionResults.successful.length}`);
+       console.log(`Failed locations: ${extractionResults.failed.length}`);
+       
+       return extractionResults;
+   }
+
+6. Implement enhanced component rate extraction:
+
+   async function extractComponentRate(city, component, specification, layoutType, dataSource) {
+       console.log(`Extracting rate: ${city}-${component}-${specification}-${layoutType}`);
+       
+       try {
+           // Load the appropriate workbook
+           const fileData = await window.fs.readFile(dataSource.file);
+           const workbook = XLSX.read(fileData, {
+               cellStyles: true,
+               cellFormulas: true,
+               cellDates: true,
+               cellNF: true,
+               sheetStubs: true
+           });
+           
+           // Get the appropriate sheet
+           let targetSheet;
+           if (component === 'Technology') {
+               // Technology has layout-specific sheets
+               const sheetMap = {
+                   'Activity': 'Table 1_Activity BYOB Sqm',
+                   'Team': 'Table 2_Team BYOB Sqm', 
+                   'Event': 'Table 3_Event BYOB Sqm'
+               };
+               targetSheet = workbook.Sheets[sheetMap[layoutType]] || workbook.Sheets['TECH'];
+           } else {
+               // Use the sheet specified in dataSource or first available
+               targetSheet = workbook.Sheets[dataSource.sheet] || 
+                            workbook.Sheets[Object.keys(workbook.Sheets)[0]];
+           }
+           
+           if (!targetSheet) {
+               throw new Error(`Sheet not found for ${component}`);
+           }
+           
+           const sheetData = XLSX.utils.sheet_to_json(targetSheet, {header: 1});
+           
+           // Find the city's data row
+           const cityRow = sheetData.find(row => {
+               return row[2] && row[2].toString().toLowerCase().includes(city.toLowerCase());
+           });
+           
+           if (!cityRow) {
+               throw new Error(`City ${city} not found in ${component} data`);
+           }
+           
+           // Determine rate column based on specification
+           let rateColumnIndex;
+           const specMapping = {
+               'Low': 4,    // Column E
+               'Medium': 5, // Column F  
+               'High': 6    // Column G
+           };
+           
+           rateColumnIndex = specMapping[specification];
+           
+           // For layout-specific data (like Fitout), adjust column index
+           if (component === 'Fitout' && layoutType !== 'Activity') {
+               if (layoutType === 'Team') {
+                   rateColumnIndex += 3; // Shift to Team columns
+               } else if (layoutType === 'Event') {
+                   rateColumnIndex = 10; // Event column
+               }
+           }
+           
+           const rate = cityRow[rateColumnIndex];
+           
+           if (!rate || rate <= 0) {
+               throw new Error(`Invalid rate: ${rate} for ${city}-${component}-${specification}`);
+           }
+           
+           console.log(`Rate extracted: $${rate}/sqm`);
+           return rate;
+           
+       } catch (error) {
+           console.error(`Rate extraction failed:`, error);
+           throw error;
+       }
+   }
+```
+
+### Step 4: Cross-Component Rate Validation
+```
+7. Validate rate consistency across components:
+
+   function validateGlobalRateConsistency(extractionResults) {
+       console.log("=== VALIDATING GLOBAL RATE CONSISTENCY ===");
+       
+       const consistencyAnalysis = {
+           rateRanges: {},
+           outliers: [],
+           missingRates: [],
+           averagesByRegion: {}
+       };
+       
+       // Analyze rate ranges by component and specification
+       const allRates = {
+           Technology: { Low: [], Medium: [], High: [] },
+           Fitout: { Low: [], Medium: [], High: [] },
+           Furniture: { Low: [], Medium: [], High: [] }
+       };
+       
+       extractionResults.successful.forEach(location => {
+           const region = location.region;
+           
+           if (!consistencyAnalysis.averagesByRegion[region]) {
+               consistencyAnalysis.averagesByRegion[region] = {
+                   Technology: { Low: [], Medium: [], High: [] },
+                   Fitout: { Low: [], Medium: [], High: [] },
+                   Furniture: { Low: [], Medium: [], High: [] }
+               };
+           }
+           
+           Object.entries(location.componentResults).forEach(([component, specs]) => {
+               Object.entries(specs).forEach(([spec, rate]) => {
+                   if (typeof rate === 'number' && rate > 0) {
+                       allRates[component][spec].push(rate);
+                       consistencyAnalysis.averagesByRegion[region][component][spec].push(rate);
+                   } else if (component === 'Technology' && typeof rate === 'object') {
+                       // Handle layout-specific Technology rates
+                       Object.values(rate).forEach(layoutRate => {
+                           if (typeof layoutRate === 'number' && layoutRate > 0) {
+                               allRates[component][spec].push(layoutRate);
+                               consistencyAnalysis.averagesByRegion[region][component][spec].push(layoutRate);
+                           }
+                       });
+                   }
+               });
+           });
+       });
+       
+       // Calculate global statistics
+       Object.entries(allRates).forEach(([component, specs]) => {
+           consistencyAnalysis.rateRanges[component] = {};
+           Object.entries(specs).forEach(([spec, rates]) => {
+               if (rates.length > 0) {
+                   const sortedRates = rates.sort((a, b) => a - b);
+                   consistencyAnalysis.rateRanges[component][spec] = {
+                       min: sortedRates[0],
+                       max: sortedRates[sortedRates.length - 1],
+                       average: rates.reduce((sum, rate) => sum + rate, 0) / rates.length,
+                       median: sortedRates[Math.floor(sortedRates.length / 2)],
+                       count: rates.length
+                   };
+               }
+           });
+       });
+       
+       // Calculate regional averages
+       Object.entries(consistencyAnalysis.averagesByRegion).forEach(([region, components]) => {
+           Object.entries(components).forEach(([component, specs]) => {
+               Object.entries(specs).forEach(([spec, rates]) => {
+                   if (rates.length > 0) {
+                       consistencyAnalysis.averagesByRegion[region][component][spec] = {
+                           average: rates.reduce((sum, rate) => sum + rate, 0) / rates.length,
+                           count: rates.length
+                       };
+                   } else {
+                       consistencyAnalysis.averagesByRegion[region][component][spec] = null;
+                   }
+               });
+           });
+       });
+       
+       console.log("Rate Ranges by Component:", consistencyAnalysis.rateRanges);
+       console.log("Regional Averages:", consistencyAnalysis.averagesByRegion);
+       
+       return consistencyAnalysis;
+   }
+
+8. Identify and flag rate outliers:
+
+   function identifyRateOutliers(extractionResults, consistencyAnalysis) {
+       console.log("=== IDENTIFYING RATE OUTLIERS ===");
+       
+       const outliers = [];
+       
+       extractionResults.successful.forEach(location => {
+           Object.entries(location.componentResults).forEach(([component, specs]) => {
+               Object.entries(specs).forEach(([spec, rate]) => {
+                   if (typeof rate === 'number' && rate > 0) {
+                       const globalStats = consistencyAnalysis.rateRanges[component][spec];
+                       
+                       if (globalStats) {
+                           const average = globalStats.average;
+                           const standardDeviation = Math.sqrt(
+                               extractionResults.successful
+                                   .flatMap(loc => {
+                                       const locRate = loc.componentResults[component]?.[spec];
+                                       return typeof locRate === 'number' ? [locRate] : [];
+                                   })
+                                   .reduce((sum, r) => sum + Math.pow(r - average, 2), 0) /
+                               globalStats.count
+                           );
+                           
+                           // Flag as outlier if more than 2 standard deviations from mean
+                           if (Math.abs(rate - average) > 2 * standardDeviation) {
+                               outliers.push({
+                                   location: `${location.country}-${location.city}`,
+                                   component: component,
+                                   specification: spec,
+                                   rate: rate,
+                                   average: average,
+                                   deviation: Math.abs(rate - average) / standardDeviation
+                               });
+                           }
+                       }
+                   }
+               });
+           });
+       });
+       
+       console.log(`Found ${outliers.length} rate outliers:`);
+       outliers.forEach(outlier => {
+           console.log(`  ${outlier.location}: ${outlier.component} ${outlier.specification} = $${outlier.rate} (${outlier.deviation.toFixed(2)} std dev from mean)`);
+       });
+       
+       return outliers;
+   }
+```
+
+## Phase 3: Global Calculation Testing
+
+### Step 5: Multi-Location Calculation Validation
+```
+9. Test calculations across multiple global locations:
+
+   async function testGlobalCalculations(locationMapping) {
+       console.log("=== TESTING GLOBAL CALCULATIONS ===");
+       
+       const calculationTests = [];
+       const testScenarios = [
+           { scope: 'Complete Package', specs: { fitout: 'High', furniture: 'High', technology: 'High' } },
+           { scope: 'Complete Package', specs: { fitout: 'Medium', furniture: 'Medium', technology: 'Medium' } },
+           { scope: 'Technology Only', specs: { technology: 'High' } },
+           { scope: 'Fitout Only', specs: { fitout: 'Medium' } }
+       ];
+       
+       // Test representative locations from each region
+       const testLocations = selectRepresentativeLocations(locationMapping);
+       
+       for (const location of testLocations) {
+           console.log(`\n--- Testing calculations for ${location.country}-${location.city} ---`);
+           
+           for (const scenario of testScenarios) {
+               try {
+                   const testInputs = {
+                       location: location.city,
+                       area: 5000,
+                       scope: scenario.scope,
+                       layoutType: 'Activity',
+                       ...scenario.specs
+                   };
+                   
+                   console.log(`  Testing scenario: ${scenario.scope}`);
+                   const result = await calculateBudgetForLocation(testInputs);
+                   
+                   calculationTests.push({
+                       location: `${location.country}-${location.city}`,
+                       region: location.region,
+                       scenario: scenario.scope,
+                       success: true,
+                       result: result,
+                       totalCost: result.totalCost,
+                       ratePerSqm: result.breakdown.ratePerSqm
+                   });
+                   
+                   console.log(`    ✅ Success: Total $${result.totalCost.toLocaleString()}`);
+                   
+               } catch (error) {
+                   console.error(`    ❌ Failed: ${error.message}`);
+                   calculationTests.push({
+                       location: `${location.country}-${location.city}`,
+                       region: location.region,
+                       scenario: scenario.scope,
+                       success: false,
+                       error: error.message
+                   });
+               }
+           }
+       }
+       
+       return calculationTests;
+   }
+
+10. Select representative locations for testing:
+
+    function selectRepresentativeLocations(locationMapping) {
+        console.log("=== SELECTING REPRESENTATIVE TEST LOCATIONS ===");
+        
+        const locationsByRegion = {};
+        
+        // Group locations by region
+        Object.values(locationMapping).forEach(location => {
+            if (!locationsByRegion[location.region]) {
+                locationsByRegion[location.region] = [];
+            }
+            locationsByRegion[location.region].push(location);
+        });
+        
+        const representativeLocations = [];
+        
+        // Select 2-3 locations per region
+        Object.entries(locationsByRegion).forEach(([region, locations]) => {
+            console.log(`Selecting locations from ${region} region (${locations.length} available)`);
+            
+            // Prioritize major cities and complete data coverage
+            const sortedLocations = locations.sort((a, b) => {
+                const aDataCount = Object.keys(a.dataSources).length;
+                const bDataCount = Object.keys(b.dataSources).length;
+                return bDataCount - aDataCount; // Sort by data completeness
+            });
+            
+            // Take top 2-3 from each region
+            const selectedCount = Math.min(3, sortedLocations.length);
+            for (let i = 0; i < selectedCount; i++) {
+                representativeLocations.push(sortedLocations[i]);
+                console.log(`  Selected: ${sortedLocations[i].country}-${sortedLocations[i].city}`);
+            }
+        });
+        
+        return representativeLocations;
+    }
+
+11. Generate comprehensive global validation report:
+
+    function generateGlobalValidationReport(
+        locationInventory,
+        extractionResults, 
+        consistencyAnalysis,
+        calculationTests
+    ) {
+        console.log("=== GENERATING COMPREHENSIVE GLOBAL VALIDATION REPORT ===");
+        
+        const report = {
+            summary: {
+                totalLocations: locationInventory.totalLocations,
+                totalCountries: locationInventory.countries.length,
+                totalCities: locationInventory.cities.length,
+                totalRegions: locationInventory.regions.length,
+                successfulExtractions: extractionResults.successful.length,
+                failedExtractions: extractionResults.failed.length,
+                extractionSuccessRate: Math.round((extractionResults.successful.length / locationInventory.totalLocations) * 100),
+                calculationSuccessRate: Math.round((calculationTests.filter(t => t.success).length / calculationTests.length) * 100)
+            },
+            regionalBreakdown: {},
+            dataQuality: {
+                rateRanges: consistencyAnalysis.rateRanges,
+                outliers: identifyRateOutliers(extractionResults, consistencyAnalysis)
+            },
+            recommendations: []
+        };
+        
+        // Regional breakdown
+        locationInventory.regions.forEach(region => {
+            const regionLocations = Object.values(locationMapping).filter(loc => loc.region === region);
+            const regionExtractions = extractionResults.successful.filter(res => res.region === region);
+            const regionCalculations = calculationTests.filter(test => test.region === region && test.success);
+            
+            report.regionalBreakdown[region] = {
+                totalLocations: regionLocations.length,
+                successfulExtractions: regionExtractions.length,
+                successfulCalculations: regionCalculations.length,
+                extractionRate: Math.round((regionExtractions.length / regionLocations.length) * 100),
+                averageRates: consistencyAnalysis.averagesByRegion[region]
+            };
+        });
+        
+        // Generate recommendations
+        if (report.summary.extractionSuccessRate < 95) {
+            report.recommendations.push(`Extraction success rate (${report.summary.extractionSuccessRate}%) needs improvement. Review failed locations.`);
+        }
+        
+        if (report.summary.calculationSuccessRate < 95) {
+            report.recommendations.push(`Calculation success rate (${report.summary.calculationSuccessRate}%) needs improvement. Debug calculation engine.`);
+        }
+        
+        if (report.dataQuality.outliers.length > 0) {
+            report.recommendations.push(`${report.dataQuality.outliers.length} rate outliers detected. Review data quality for flagged locations.`);
+        }
+        
+        // Print comprehensive report
+        console.log("\n" + "=".repeat(60));
+        console.log("COMPREHENSIVE GLOBAL CBRE VALIDATION REPORT");
+        console.log("=".repeat(60));
+        
+        console.log("\n📊 GLOBAL SUMMARY:");
+        console.log(`Total Locations Covered: ${report.summary.totalLocations}`);
+        console.log(`Countries: ${report.summary.totalCountries}`);
+        console.log(`Cities: ${report.summary.totalCities}`);
+        console.log(`Regions: ${report.summary.totalRegions}`);
+        console.log(`Data Extraction Success Rate: ${report.summary.extractionSuccessRate}%`);
+        console.log(`Calculation Success Rate: ${report.summary.calculationSuccessRate}%`);
+        
+        console.log("\n🌍 REGIONAL BREAKDOWN:");
+        Object.entries(report.regionalBreakdown).forEach(([region, data]) => {
+            console.log(`\n${region}:`);
+            console.log(`  Locations: ${data.totalLocations}`);
+            console.log(`  Extraction Success: ${data.extractionRate}%`);
+            console.log(`  Calculation Tests: ${data.successfulCalculations}`);
+        });
+        
+        console.log("\n📈 DATA QUALITY:");
+        Object.entries(report.dataQuality.rateRanges).forEach(([component, specs]) => {
+            console.log(`\n${component} Rates:`);
+            Object.entries(specs).forEach(([spec, stats]) => {
+                console.log(`  ${spec}: $${stats.min} - $${stats.max} (avg: $${Math.round(stats.average)})`);
+            });
+        });
+        
+        if (report.dataQuality.outliers.length > 0) {
+            console.log(`\n⚠️  ${report.dataQuality.outliers.length} Rate Outliers Detected`);
+        }
+        
+        if (report.recommendations.length > 0) {
+            console.log("\n🔧 RECOMMENDATIONS:");
+            report.recommendations.forEach((rec, index) => {
+                console.log(`${index + 1}. ${rec}`);
+            });
+        }
+        
+        const overallHealth = (report.summary.extractionSuccessRate + report.summary.calculationSuccessRate) / 2;
+        console.log(`\n🎯 OVERALL SYSTEM HEALTH: ${Math.round(overallHealth)}%`);
+        
+        if (overallHealth >= 95) {
+            console.log("🎉 EXCELLENT: Global CBRE data validation successful!");
+        } else if (overallHealth >= 85) {
+            console.log("✅ GOOD: Minor issues to address");
+        } else {
+            console.log("⚠️  NEEDS ATTENTION: Significant issues require resolution");
+        }
+        
+        return report;
+    }
+```
+
+### Step 6: Final Global System Validation
+```
+12. Run complete global validation sequence:
+
+    async function runCompleteGlobalValidation() {
+        console.log("🚀 STARTING COMPLETE GLOBAL CBRE VALIDATION");
+        console.log("This comprehensive test covers all countries and cities in CBRE data sources");
+        
+        try {
+            // Step 1: Discover all locations
+            const locationInventory = await discoverAllCBRELocations();
+            
+            // Step 2: Create location mapping
+            const locationMapping = createLocationDataMapping(locationInventory);
+            
+            // Step 3: Analyze regional coverage
+            const regionalAnalysis = analyzeRegionalCoverage(locationMapping);
+            
+            // Step 4: Identify data gaps
+            const dataGaps = identifyDataGaps(locationMapping);
+            
+            // Step 5: Test global rate extraction
+            const extractionResults = await testGlobalRateExtraction(locationMapping);
+            
+            // Step 6: Validate rate consistency
+            const consistencyAnalysis = validateGlobalRateConsistency(extractionResults);
+            
+            // Step 7: Test global calculations
+            const calculationTests = await testGlobalCalculations(locationMapping);
+            
+            // Step 8: Generate comprehensive report
+            const finalReport = generateGlobalValidationReport(
+                locationInventory,
+                extractionResults,
+                consistencyAnalysis,
+                calculationTests
+            );
+            
+            console.log("\n✅ COMPLETE GLOBAL VALIDATION FINISHED");
+            return finalReport;
+            
+        } catch (error) {
+            console.error("❌ GLOBAL VALIDATION FAILED:", error);
+            throw error;
+        }
+    }
+
+    // Execute the complete validation
+    const globalValidationResults = await runCompleteGlobalValidation();
+```
+
+**Success Criteria**: 
+- All countries and cities in CBRE data sources discovered and mapped
+- Data extraction tested and validated for every available location
+- Rate consistency validated across all regions (EMEA, Americas, APAC)
+- Calculation engine tested with multiple locations and scenarios
+- Comprehensive global report with >95% success rate across all locations
+- Regional breakdowns show consistent data quality
+- All outliers identified and flagged for review
+
+**Priority**: CRITICAL - This ensures the CBRE workflow has complete global coverage and accuracy, not just London-specific validation.
+
+Execute these instructions to achieve comprehensive global validation across all CBRE data sources and locations.
