@@ -1,375 +1,342 @@
-// CBRE Data Extraction Debugging and Validation Script
-// Following the comprehensive debugging protocol
+// CBRE Data Extraction Emergency Debug Protocol
+// Systematic verification of data extraction accuracy
 
 import fs from 'fs';
 import path from 'path';
-import xlsx from 'xlsx';
+import XLSX from 'xlsx';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-console.log("=== CBRE DATA SOURCE INVENTORY ===");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-const cbreDataSources = {
-    techOnlyFile: "attached_assets/CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only_1752159678272.xlsx", 
-    fitoutOnlyFile: "attached_assets/CBRE Fit Out Guide Cost Data_Fitout Only_1752159678271.xlsx",
-    furnitureOnlyFile: "attached_assets/CBRE Fit Out Guide Cost Data_Furniture Only_1752159678271.xlsx",
-    // Also check existing files
-    existingTechFile: "attached_assets/CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx",
-    existingFitoutFile: "attached_assets/CBRE Fit Out Guide Cost Data_Fitout Only.xlsx",
-    existingFurnitureFile: "attached_assets/CBRE Fit Out Guide Cost Data_Furniture Only(1).xlsx"
-};
+console.log("=== CBRE DATA EXTRACTION EMERGENCY DEBUG ===");
 
-// Phase 1: Complete CBRE File Structure Analysis
 async function analyzeCBREFileStructures() {
-    console.log("\n=== ANALYZING ALL CBRE DATA FILES ===");
+    console.log("\n=== PHASE 1: FILE ACCESS VERIFICATION ===");
     
-    for (const [fileType, fileName] of Object.entries(cbreDataSources)) {
-        console.log(`\n=== ANALYZING ${fileType.toUpperCase()}: ${fileName} ===`);
-        
+    const expectedFiles = [
+        'attached_assets/CBRE Fit Out Guide Cost Data_Fitout Only.xlsx',
+        'attached_assets/CBRE Fit Out Guide Cost Data_Furniture Only.xlsx', 
+        'attached_assets/CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only.xlsx'
+    ];
+    
+    const fileResults = {};
+    
+    for (const filePath of expectedFiles) {
         try {
-            if (!fs.existsSync(fileName)) {
-                console.log(`❌ File not found: ${fileName}`);
+            console.log(`\nTesting: ${filePath}`);
+            
+            // Check file existence
+            if (!fs.existsSync(filePath)) {
+                console.error(`❌ File does not exist: ${filePath}`);
+                fileResults[filePath] = { accessible: false, error: 'File not found' };
                 continue;
             }
             
-            const fileData = fs.readFileSync(fileName);
-            const workbook = xlsx.read(fileData, {
-                cellStyles: true,
-                cellFormulas: true,
-                cellDates: true,
-                cellNF: true,
-                sheetStubs: true
-            });
+            // Get file stats
+            const stats = fs.statSync(filePath);
+            console.log(`✅ File exists: ${stats.size} bytes`);
             
-            console.log(`✅ Sheets in ${fileName}:`, workbook.SheetNames);
+            // Try to read with XLSX
+            const workbook = XLSX.readFile(filePath);
+            const sheetNames = workbook.SheetNames;
             
-            // Analyze each sheet
-            workbook.SheetNames.forEach(sheetName => {
-                const sheet = workbook.Sheets[sheetName];
-                const range = sheet['!ref'];
-                console.log(`  📊 Sheet "${sheetName}": Range ${range}`);
-                
-                // Sample first few rows
-                const sheetData = xlsx.utils.sheet_to_json(sheet, {header: 1});
-                console.log(`  📝 First 3 rows:`, sheetData.slice(0, 3));
-                
-                // Look for London data specifically
-                const londonRows = sheetData.filter((row, index) => {
-                    if (index < 3) return false; // Skip headers
-                    return row.some(cell => 
-                        cell && cell.toString().toLowerCase().includes('london') ||
-                        cell && cell.toString().toLowerCase().includes('kingdom')
-                    );
-                });
-                
-                if (londonRows.length > 0) {
-                    console.log(`  🇬🇧 London data found in ${sheetName}:`, londonRows);
-                }
-            });
+            console.log(`✅ Excel readable: ${sheetNames.length} sheets`);
+            console.log(`   Sheets: ${sheetNames.join(', ')}`);
+            
+            fileResults[filePath] = {
+                accessible: true,
+                size: stats.size,
+                sheetCount: sheetNames.length,
+                sheets: sheetNames
+            };
             
         } catch (error) {
-            console.error(`❌ Error reading ${fileName}:`, error.message);
-        }
-    }
-}
-
-// Phase 2: Technology Data Deep Analysis
-async function analyzeTechnologyDataStructure() {
-    console.log("\n=== TECHNOLOGY DATA STRUCTURE ANALYSIS ===");
-    
-    // Check both existing and new tech files
-    const techFiles = [
-        cbreDataSources.techOnlyFile,
-        cbreDataSources.existingTechFile
-    ];
-    
-    for (const techFile of techFiles) {
-        if (!fs.existsSync(techFile)) {
-            console.log(`❌ Tech file not found: ${techFile}`);
-            continue;
-        }
-        
-        console.log(`\n--- ANALYZING TECH FILE: ${techFile} ---`);
-        
-        try {
-            const fileData = fs.readFileSync(techFile);
-            const techWorkbook = xlsx.read(fileData, {
-                cellStyles: true,
-                cellFormulas: true,
-                cellDates: true,
-                cellNF: true,
-                sheetStubs: true
-            });
-            
-            console.log("Technology file sheets:", techWorkbook.SheetNames);
-            
-            // Analyze each sheet in detail
-            techWorkbook.SheetNames.forEach(sheetName => {
-                console.log(`\n--- TECH SHEET: ${sheetName} ---`);
-                const sheet = techWorkbook.Sheets[sheetName];
-                const sheetData = xlsx.utils.sheet_to_json(sheet, {header: 1});
-                
-                // Find London data specifically
-                const londonRows = sheetData.filter((row, index) => {
-                    if (index < 3) return false; // Skip headers
-                    return row.some(cell => 
-                        cell && (
-                            cell.toString().toLowerCase().includes('london') ||
-                            cell.toString().toLowerCase().includes('kingdom')
-                        )
-                    );
-                });
-                
-                if (londonRows.length > 0) {
-                    console.log(`🇬🇧 London tech data found in ${sheetName}:`);
-                    londonRows.forEach((row, index) => {
-                        console.log(`  Row ${index + 1}:`, {
-                            Country: row[0],
-                            City: row[1],
-                            Region: row[2],
-                            ActivityLow: row[4],
-                            ActivityMed: row[5],
-                            ActivityHigh: row[6],
-                            TeamLow: row[7],
-                            TeamMed: row[8],
-                            TeamHigh: row[9]
-                        });
-                    });
-                }
-                
-                // Check for header structure
-                if (sheetData.length > 3) {
-                    console.log(`📋 Headers in ${sheetName}:`);
-                    console.log("Row 1:", sheetData[0]);
-                    console.log("Row 2:", sheetData[1]); 
-                    console.log("Row 3:", sheetData[2]);
-                    if (sheetData[3]) console.log("Row 4:", sheetData[3]);
-                }
-            });
-        } catch (error) {
-            console.error(`❌ Error analyzing tech file ${techFile}:`, error.message);
-        }
-    }
-}
-
-// Phase 3: Fitout Data Analysis
-async function analyzeFitoutDataStructure() {
-    console.log("\n=== FITOUT DATA STRUCTURE ANALYSIS ===");
-    
-    const fitoutFiles = [
-        cbreDataSources.fitoutOnlyFile,
-        cbreDataSources.existingFitoutFile
-    ];
-    
-    for (const fitoutFile of fitoutFiles) {
-        if (!fs.existsSync(fitoutFile)) {
-            console.log(`❌ Fitout file not found: ${fitoutFile}`);
-            continue;
-        }
-        
-        console.log(`\n--- ANALYZING FITOUT FILE: ${fitoutFile} ---`);
-        
-        try {
-            const fileData = fs.readFileSync(fitoutFile);
-            const fitoutWorkbook = xlsx.read(fileData, {
-                cellStyles: true,
-                cellFormulas: true,
-                cellDates: true,
-                cellNF: true,
-                sheetStubs: true
-            });
-            
-            console.log("Fitout file sheets:", fitoutWorkbook.SheetNames);
-            
-            // Analyze each sheet for London data
-            fitoutWorkbook.SheetNames.forEach(sheetName => {
-                console.log(`\n--- FITOUT SHEET: ${sheetName} ---`);
-                const sheet = fitoutWorkbook.Sheets[sheetName];
-                const sheetData = xlsx.utils.sheet_to_json(sheet, {header: 1});
-                
-                // Find London data and rate structure
-                const londonRows = sheetData.filter((row, index) => {
-                    if (index < 3) return false; // Skip headers
-                    return row.some(cell => 
-                        cell && (
-                            cell.toString().toLowerCase().includes('london') ||
-                            cell.toString().toLowerCase().includes('kingdom')
-                        )
-                    );
-                });
-                
-                if (londonRows.length > 0) {
-                    console.log(`🇬🇧 London fitout data in ${sheetName}:`);
-                    
-                    // Extract specific rates for London
-                    londonRows.forEach((row, index) => {
-                        console.log(`  London row ${index + 1}:`, {
-                            Country: row[0],
-                            City: row[1],
-                            Region: row[2], 
-                            ActivityLow: row[3],
-                            ActivityMedium: row[4],
-                            ActivityHigh: row[5],
-                            TeamLow: row[6],
-                            TeamMedium: row[7], 
-                            TeamHigh: row[8],
-                            EventLow: row[9],
-                            EventMedium: row[10],
-                            EventHigh: row[11]
-                        });
-                    });
-                }
-                
-                // Sample header structure
-                if (sheetData.length > 2) {
-                    console.log(`📋 Headers in ${sheetName}:`);
-                    console.log("Row 1:", sheetData[0]);
-                    console.log("Row 2:", sheetData[1]);
-                    if (sheetData[2]) console.log("Row 3:", sheetData[2]);
-                }
-            });
-        } catch (error) {
-            console.error(`❌ Error analyzing fitout file ${fitoutFile}:`, error.message);
-        }
-    }
-}
-
-// Phase 4: Furniture Data Analysis
-async function analyzeFurnitureDataStructure() {
-    console.log("\n=== FURNITURE DATA STRUCTURE ANALYSIS ===");
-    
-    const furnitureFiles = [
-        cbreDataSources.furnitureOnlyFile,
-        cbreDataSources.existingFurnitureFile
-    ];
-    
-    for (const furnitureFile of furnitureFiles) {
-        if (!fs.existsSync(furnitureFile)) {
-            console.log(`❌ Furniture file not found: ${furnitureFile}`);
-            continue;
-        }
-        
-        console.log(`\n--- ANALYZING FURNITURE FILE: ${furnitureFile} ---`);
-        
-        try {
-            const fileData = fs.readFileSync(furnitureFile);
-            const furnitureWorkbook = xlsx.read(fileData, {
-                cellStyles: true,
-                cellFormulas: true,
-                cellDates: true,
-                cellNF: true,
-                sheetStubs: true
-            });
-            
-            console.log("Furniture file sheets:", furnitureWorkbook.SheetNames);
-            
-            // Find London furniture rates
-            furnitureWorkbook.SheetNames.forEach(sheetName => {
-                console.log(`\n--- FURNITURE SHEET: ${sheetName} ---`);
-                const sheet = furnitureWorkbook.Sheets[sheetName];
-                const sheetData = xlsx.utils.sheet_to_json(sheet, {header: 1});
-                
-                const londonRows = sheetData.filter((row, index) => {
-                    if (index < 3) return false; // Skip headers
-                    return row.some(cell => 
-                        cell && (
-                            cell.toString().toLowerCase().includes('london') ||
-                            cell.toString().toLowerCase().includes('kingdom')
-                        )
-                    );
-                });
-                
-                if (londonRows.length > 0) {
-                    console.log(`🇬🇧 London furniture data in ${sheetName}:`);
-                    londonRows.forEach((row, index) => {
-                        console.log(`  Row ${index + 1}:`, {
-                            Country: row[0],
-                            City: row[1],
-                            Region: row[2],
-                            ActivityLow: row[3],
-                            ActivityMed: row[4],
-                            ActivityHigh: row[5],
-                            TeamLow: row[6],
-                            TeamMed: row[7],
-                            TeamHigh: row[8],
-                            EventLow: row[9],
-                            EventMed: row[10],
-                            EventHigh: row[11]
-                        });
-                    });
-                }
-                
-                // Sample headers
-                if (sheetData.length > 2) {
-                    console.log(`📋 Headers in ${sheetName}:`);
-                    console.log("Row 1:", sheetData[0]);
-                    console.log("Row 2:", sheetData[1]);
-                    if (sheetData[2]) console.log("Row 3:", sheetData[2]);
-                }
-            });
-        } catch (error) {
-            console.error(`❌ Error analyzing furniture file ${furnitureFile}:`, error.message);
-        }
-    }
-}
-
-// Phase 5: Data Validation Summary
-async function generateValidationSummary() {
-    console.log("\n=== CBRE DATA VALIDATION SUMMARY ===");
-    
-    const summary = {
-        filesAnalyzed: Object.keys(cbreDataSources).length,
-        filesFound: 0,
-        londonDataFound: {
-            technology: false,
-            fitout: false,
-            furniture: false
-        },
-        recommendations: []
-    };
-    
-    // Count existing files
-    for (const fileName of Object.values(cbreDataSources)) {
-        if (fs.existsSync(fileName)) {
-            summary.filesFound++;
+            console.error(`❌ Error accessing ${filePath}: ${error.message}`);
+            fileResults[filePath] = {
+                accessible: false,
+                error: error.message
+            };
         }
     }
     
-    console.log("📊 Files Analysis Summary:");
-    console.log(`  Total files configured: ${summary.filesAnalyzed}`);
-    console.log(`  Files found: ${summary.filesFound}`);
-    console.log(`  Missing files: ${summary.filesAnalyzed - summary.filesFound}`);
-    
-    // Generate recommendations
-    if (summary.filesFound < summary.filesAnalyzed) {
-        summary.recommendations.push("Upload missing CBRE data files");
-    }
-    
-    console.log("\n📋 Recommendations:");
-    summary.recommendations.forEach((rec, index) => {
-        console.log(`  ${index + 1}. ${rec}`);
+    console.log("\n=== FILE ACCESS SUMMARY ===");
+    Object.entries(fileResults).forEach(([file, result]) => {
+        const fileName = file.split('/').pop();
+        if (result.accessible) {
+            console.log(`✅ ${fileName}: ${result.size} bytes, ${result.sheetCount} sheets`);
+        } else {
+            console.log(`❌ ${fileName}: ${result.error}`);
+        }
     });
     
-    return summary;
+    const accessibleCount = Object.values(fileResults).filter(r => r.accessible).length;
+    console.log(`\nAccessible files: ${accessibleCount}/${expectedFiles.length}`);
+    
+    if (accessibleCount === 0) {
+        throw new Error("CRITICAL: No CBRE files are accessible");
+    }
+    
+    return fileResults;
 }
 
-// Main execution function
-async function runCBREDataDebugging() {
-    console.log("🚀 Starting CBRE Data Extraction Debugging Process");
-    console.log("=" .repeat(60));
+async function analyzeTechnologyDataStructure() {
+    console.log("\n=== PHASE 2: TECHNOLOGY DATA STRUCTURE ANALYSIS ===");
+    
+    const techFile = 'attached_assets/CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only.xlsx';
+    
+    if (!fs.existsSync(techFile)) {
+        console.error("❌ Technology file not found");
+        return;
+    }
     
     try {
-        await analyzeCBREFileStructures();
-        await analyzeTechnologyDataStructure();
-        await analyzeFitoutDataStructure();
-        await analyzeFurnitureDataStructure();
-        await generateValidationSummary();
+        const workbook = XLSX.readFile(techFile);
+        console.log(`Technology file sheets: ${workbook.SheetNames.join(', ')}`);
         
-        console.log("\n✅ CBRE Data Debugging Complete");
-        console.log("=" .repeat(60));
+        // Analyze first sheet structure
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+        
+        console.log(`\nFirst sheet analysis (${workbook.SheetNames[0]}):`);
+        console.log(`Total rows: ${data.length}`);
+        
+        // Show first 5 rows
+        console.log("\nFirst 5 rows:");
+        data.slice(0, 5).forEach((row, index) => {
+            console.log(`Row ${index}:`, row);
+        });
+        
+        // Look for London data specifically
+        console.log("\n=== LONDON TECHNOLOGY DATA SEARCH ===");
+        let londonFound = false;
+        
+        data.forEach((row, index) => {
+            if (Array.isArray(row)) {
+                const rowString = row.join(' ').toLowerCase();
+                if (rowString.includes('london') || rowString.includes('united kingdom')) {
+                    console.log(`Found London data at row ${index}:`, row);
+                    londonFound = true;
+                }
+            }
+        });
+        
+        if (!londonFound) {
+            console.log("❌ No London data found in technology file");
+        }
+        
+        return { sheets: workbook.SheetNames, rowCount: data.length, hasLondon: londonFound };
         
     } catch (error) {
-        console.error("❌ CBRE Data Debugging Failed:", error);
+        console.error(`❌ Error analyzing technology file: ${error.message}`);
+        return null;
     }
 }
 
-// Execute the debugging process
+async function analyzeFitoutDataStructure() {
+    console.log("\n=== PHASE 3: FITOUT DATA STRUCTURE ANALYSIS ===");
+    
+    const fitoutFile = 'attached_assets/CBRE Fit Out Guide Cost Data_Fitout Only.xlsx';
+    
+    if (!fs.existsSync(fitoutFile)) {
+        console.error("❌ Fitout file not found");
+        return;
+    }
+    
+    try {
+        const workbook = XLSX.readFile(fitoutFile);
+        console.log(`Fitout file sheets: ${workbook.SheetNames.join(', ')}`);
+        
+        // Analyze Team BYOB Sqm sheet specifically (where London Team High should be)
+        const teamSheet = workbook.Sheets['Table 2_Team BYOB Sqm'];
+        if (!teamSheet) {
+            console.error("❌ Team BYOB Sqm sheet not found");
+            return;
+        }
+        
+        const data = XLSX.utils.sheet_to_json(teamSheet, { header: 1 });
+        console.log(`\nTeam sheet analysis:`);
+        console.log(`Total rows: ${data.length}`);
+        
+        // Show header structure
+        console.log("\nFirst 5 rows:");
+        data.slice(0, 5).forEach((row, index) => {
+            console.log(`Row ${index}:`, row);
+        });
+        
+        // Search for London Team High data
+        console.log("\n=== LONDON TEAM HIGH FITOUT SEARCH ===");
+        let londonTeamHigh = null;
+        
+        data.forEach((row, index) => {
+            if (Array.isArray(row)) {
+                const rowString = row.join(' ').toLowerCase();
+                if (rowString.includes('london') || rowString.includes('united kingdom')) {
+                    console.log(`Found London at row ${index}:`, row);
+                    londonTeamHigh = row;
+                }
+            }
+        });
+        
+        if (londonTeamHigh) {
+            console.log("✅ London Team data found");
+            // Expected: Team High should be around $2,617.63/sqm
+            console.log("Expected Team High rate: ~$2,617.63/sqm");
+            console.log("Checking if High specification column contains this value...");
+        } else {
+            console.log("❌ No London data found in fitout file");
+        }
+        
+        return { sheets: workbook.SheetNames, rowCount: data.length, londonData: londonTeamHigh };
+        
+    } catch (error) {
+        console.error(`❌ Error analyzing fitout file: ${error.message}`);
+        return null;
+    }
+}
+
+async function analyzeFurnitureDataStructure() {
+    console.log("\n=== PHASE 4: FURNITURE DATA STRUCTURE ANALYSIS ===");
+    
+    const furnitureFile = 'attached_assets/CBRE Fit Out Guide Cost Data_Furniture Only.xlsx';
+    
+    if (!fs.existsSync(furnitureFile)) {
+        console.error("❌ Furniture file not found");
+        return;
+    }
+    
+    try {
+        const workbook = XLSX.readFile(furnitureFile);
+        console.log(`Furniture file sheets: ${workbook.SheetNames.join(', ')}`);
+        
+        // Analyze Team BYOB Sqm sheet
+        const teamSheet = workbook.Sheets['Table 2_Team BYOB Sqm'];
+        if (!teamSheet) {
+            console.error("❌ Team BYOB Sqm sheet not found");
+            return;
+        }
+        
+        const data = XLSX.utils.sheet_to_json(teamSheet, { header: 1 });
+        console.log(`\nFurniture Team sheet analysis:`);
+        console.log(`Total rows: ${data.length}`);
+        
+        // Search for London Team High furniture data
+        console.log("\n=== LONDON TEAM HIGH FURNITURE SEARCH ===");
+        let londonFurnitureData = null;
+        
+        data.forEach((row, index) => {
+            if (Array.isArray(row)) {
+                const rowString = row.join(' ').toLowerCase();
+                if (rowString.includes('london') || rowString.includes('united kingdom')) {
+                    console.log(`Found London furniture at row ${index}:`, row);
+                    londonFurnitureData = row;
+                }
+            }
+        });
+        
+        if (londonFurnitureData) {
+            console.log("✅ London furniture data found");
+            // Expected: Team High should be around $489.38/sqm
+            console.log("Expected Team High furniture rate: ~$489.38/sqm");
+        } else {
+            console.log("❌ No London furniture data found");
+        }
+        
+        return { sheets: workbook.SheetNames, rowCount: data.length, londonData: londonFurnitureData };
+        
+    } catch (error) {
+        console.error(`❌ Error analyzing furniture file: ${error.message}`);
+        return null;
+    }
+}
+
+async function generateValidationSummary() {
+    console.log("\n=== VALIDATION SUMMARY ===");
+    
+    try {
+        // Get current system calculation for London Team High
+        console.log("Fetching current system calculation for London Team High...");
+        
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch('http://localhost:5000/api/calculate-budget', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                project: {
+                    name: "Debug Test",
+                    country: "United Kingdom",
+                    city: "London",
+                    totalArea: 1000,
+                    areaUnit: "sqm",
+                    currency: "USD"
+                },
+                budget: {
+                    scope: "Complete",
+                    specification: "High",
+                    layout: "Team",
+                    primaryDataSource: "CBRE"
+                }
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            console.log("\n=== CURRENT SYSTEM OUTPUT ===");
+            console.log(`Technology: $${(result.technologyCost / 1000).toFixed(2)}/sqm`);
+            console.log(`Fitout: $${(result.fitoutCost / 1000).toFixed(2)}/sqm`);
+            console.log(`Furniture: $${(result.furnitureCost / 1000).toFixed(2)}/sqm`);
+            console.log(`Total: $${(result.totalCost / 1000).toFixed(2)}/sqm`);
+            
+            console.log("\n=== EXPECTED RATES (from previous validation) ===");
+            console.log("Technology: $396.91/sqm");
+            console.log("Fitout: $2,617.63/sqm");
+            console.log("Furniture: $489.38/sqm");
+            
+            console.log("\n=== ACCURACY CHECK ===");
+            const techAccurate = Math.abs((result.technologyCost / 1000) - 396.91) < 1;
+            const fitoutAccurate = Math.abs((result.fitoutCost / 1000) - 2617.63) < 1;
+            const furnitureAccurate = Math.abs((result.furnitureCost / 1000) - 489.38) < 1;
+            
+            console.log(`Technology accurate: ${techAccurate ? '✅' : '❌'}`);
+            console.log(`Fitout accurate: ${fitoutAccurate ? '✅' : '❌'}`);
+            console.log(`Furniture accurate: ${furnitureAccurate ? '✅' : '❌'}`);
+            
+            const overallAccuracy = techAccurate && fitoutAccurate && furnitureAccurate;
+            console.log(`\nOverall data extraction accuracy: ${overallAccuracy ? '✅ CORRECT' : '❌ INCORRECT'}`);
+            
+            if (!overallAccuracy) {
+                console.log("\n⚠️ DISCREPANCY DETECTED - Further investigation needed");
+            }
+            
+        } else {
+            console.log("❌ Failed to fetch current system calculation");
+        }
+        
+    } catch (error) {
+        console.error(`❌ Error in validation summary: ${error.message}`);
+    }
+}
+
+async function runCBREDataDebugging() {
+    try {
+        console.log("Starting comprehensive CBRE data extraction debug...");
+        
+        const fileAccess = await analyzeCBREFileStructures();
+        const techAnalysis = await analyzeTechnologyDataStructure();
+        const fitoutAnalysis = await analyzeFitoutDataStructure();
+        const furnitureAnalysis = await analyzeFurnitureDataStructure();
+        
+        await generateValidationSummary();
+        
+        console.log("\n=== DEBUG COMPLETE ===");
+        console.log("All phases completed. Check output above for discrepancies.");
+        
+    } catch (error) {
+        console.error(`❌ Critical error in debugging: ${error.message}`);
+    }
+}
+
+// Execute debug protocol
 runCBREDataDebugging();

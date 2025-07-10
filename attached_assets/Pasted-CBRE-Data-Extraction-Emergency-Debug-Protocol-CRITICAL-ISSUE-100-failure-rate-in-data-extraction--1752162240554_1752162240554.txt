@@ -1,0 +1,55 @@
+CBRE Data Extraction Emergency Debug Protocol
+CRITICAL ISSUE: 100% failure rate in data extraction. The system is providing false confirmations while extracting incorrect data.
+Objective: Create a systematic, step-by-step debugging approach to fix CBRE data extraction from the ground up.
+Specific Instructions for REPLIT:
+Phase 1: Basic File Access Verification
+Step 1: Verify File Existence and Basic Reading
+1. First, confirm the exact files are accessible:
+
+   async function verifyFileAccess() {
+       console.log("=== STEP 1: BASIC FILE ACCESS VERIFICATION ===");
+       
+       const expectedFiles = [
+           'CBRE Fit Out Guide Cost Data_Fitout Only.xlsx',
+           'CBRE Fit Out Guide Cost Data_Furniture Only.xlsx', 
+           'CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only.xlsx'
+       ];
+       
+       const fileAccessResults = {};
+       
+       for (const fileName of expectedFiles) {
+           try {
+               console.log(`Testing access to: ${fileName}`);
+               const fileData = await window.fs.readFile(fileName);
+               
+               fileAccessResults[fileName] = {
+                   accessible: true,
+                   size: fileData.length,
+                   type: typeof fileData
+               };
+               
+               console.log(`✅ ${fileName}: Accessible (${fileData.length} bytes)`);
+               
+           } catch (error) {
+               fileAccessResults[fileName] = {
+                   accessible: false,
+                   error: error.message
+               };
+               
+               console.error(`❌ ${fileName}: ${error.message}`);
+           }
+       }
+       
+       console.log("\nFile Access Summary:", fileAccessResults);
+       
+       // Stop here if any files are inaccessible
+       const allAccessible = Object.values(fileAccessResults).every(result => result.accessible);
+       if (!allAccessible) {
+           throw new Error("Some CBRE files are not accessible. Fix file access before proceeding.");
+       }
+       
+       return fileAccessResults;
+   }
+   
+   // Execute this step first
+   const fileAccess = await verifyFileAccess();
