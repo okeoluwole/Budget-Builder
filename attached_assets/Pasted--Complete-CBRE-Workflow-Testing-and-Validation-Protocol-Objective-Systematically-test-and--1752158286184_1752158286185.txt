@@ -1,0 +1,517 @@
+## Complete CBRE Workflow Testing and Validation Protocol
+
+**Objective**: Systematically test and validate every step of the CBRE workflow to ensure 100% accuracy and functionality.
+
+**Current Issue**: "No cost data available for the selected location" indicates fundamental data access problems that need comprehensive resolution.
+
+**Specific Instructions for REPLIT**:
+
+## Phase 1: Data Source Foundation Testing
+
+### Step 1: CBRE Data Source Validation
+```
+1. Test all CBRE data files are properly loaded and accessible:
+
+   // Add comprehensive data validation at application startup:
+   console.log("=== CBRE DATA SOURCE VALIDATION ===");
+   
+   // Test Fitout data access:
+   console.log("Fitout data loaded:", typeof fitoutData);
+   console.log("Fitout sample rates:", fitoutData?.London || "NOT FOUND");
+   
+   // Test Furniture data access:
+   console.log("Furniture data loaded:", typeof furnitureData);
+   console.log("Furniture sample rates:", furnitureData?.London || "NOT FOUND");
+   
+   // Test Technology data access:
+   console.log("Technology data loaded:", typeof technologyData);
+   console.log("Technology sample rates:", technologyData?.London || "NOT FOUND");
+   
+   // Test location availability:
+   const availableLocations = getAllAvailableLocations();
+   console.log("Available locations:", availableLocations);
+   console.log("London available:", availableLocations.includes("London"));
+
+2. Create data integrity verification function:
+   
+   function validateCBREDataIntegrity() {
+       const requiredLocations = ["London", "New York", "Singapore"];
+       const requiredComponents = ["Fitout", "Furniture", "Technology"];
+       const requiredSpecLevels = ["Low", "Medium", "High"];
+       
+       let validationResults = {
+           locationsValid: true,
+           componentsValid: true,
+           ratesValid: true,
+           errors: []
+       };
+       
+       // Test each combination
+       requiredLocations.forEach(location => {
+           requiredComponents.forEach(component => {
+               requiredSpecLevels.forEach(specLevel => {
+                   try {
+                       const rate = getCBRERate(location, component, specLevel);
+                       if (!rate || rate <= 0) {
+                           validationResults.errors.push(`Missing rate: ${location}-${component}-${specLevel}`);
+                           validationResults.ratesValid = false;
+                       }
+                   } catch (error) {
+                       validationResults.errors.push(`Error accessing: ${location}-${component}-${specLevel}: ${error.message}`);
+                   }
+               });
+           });
+       });
+       
+       return validationResults;
+   }
+```
+
+## Phase 2: Individual Step Testing
+
+### Step 2: Data Source Selection Testing
+```
+3. Test Data Source Selection step:
+
+   function testDataSourceSelection() {
+       console.log("=== TESTING DATA SOURCE SELECTION ===");
+       
+       // Test CBRE selection:
+       selectDataSource("CBRE");
+       console.log("CBRE selected:", getCurrentDataSource());
+       console.log("CBRE data accessible:", typeof CBREData !== 'undefined');
+       
+       // Test data source persistence:
+       const selectedSource = getSelectedDataSource();
+       console.log("Data source persisted:", selectedSource === "CBRE");
+       
+       // Test navigation to next step:
+       const canProceed = canProceedToProjectSetup();
+       console.log("Can proceed to Project Setup:", canProceed);
+       
+       return selectedSource === "CBRE" && canProceed;
+   }
+
+4. Validate data source metadata:
+   
+   function validateDataSourceMetadata() {
+       const metadata = getCBREMetadata();
+       console.log("CBRE Metadata:", metadata);
+       
+       const requiredFields = ["version", "date", "regions", "specifications"];
+       const hasAllFields = requiredFields.every(field => metadata.hasOwnProperty(field));
+       
+       console.log("Metadata complete:", hasAllFields);
+       return hasAllFields;
+   }
+```
+
+### Step 3: Project Setup Testing
+```
+5. Test Project Setup step with comprehensive validation:
+
+   function testProjectSetup() {
+       console.log("=== TESTING PROJECT SETUP ===");
+       
+       const testProject = {
+           name: "Test London Office",
+           location: "London, United Kingdom", 
+           area: 5000,
+           currency: "USD",
+           inflationRate: 2.5
+       };
+       
+       // Test input validation:
+       console.log("Testing project input validation...");
+       const validationResult = validateProjectInputs(testProject);
+       console.log("Project validation result:", validationResult);
+       
+       // Test location lookup:
+       console.log("Testing location data lookup...");
+       const locationData = getLocationData(testProject.location);
+       console.log("Location data found:", locationData);
+       console.log("Location has cost data:", locationData?.hasCostData);
+       
+       // Test area validation:
+       const areaValid = testProject.area > 0 && testProject.area < 1000000;
+       console.log("Area validation:", areaValid);
+       
+       // Test currency support:
+       const currencySupported = ["USD", "GBP", "EUR"].includes(testProject.currency);
+       console.log("Currency supported:", currencySupported);
+       
+       return validationResult.isValid && locationData && areaValid && currencySupported;
+   }
+
+6. Test location-specific data availability:
+   
+   function testLocationDataAvailability(location) {
+       console.log(`Testing data availability for: ${location}`);
+       
+       const fitoutRates = getFitoutRatesForLocation(location);
+       const furnitureRates = getFurnitureRatesForLocation(location);  
+       const technologyRates = getTechnologyRatesForLocation(location);
+       
+       console.log("Fitout rates available:", !!fitoutRates);
+       console.log("Furniture rates available:", !!furnitureRates);
+       console.log("Technology rates available:", !!technologyRates);
+       
+       return fitoutRates && furnitureRates && technologyRates;
+   }
+```
+
+### Step 4: Scope Selection Testing
+```
+7. Test all scope selection options:
+
+   function testScopeSelection() {
+       console.log("=== TESTING SCOPE SELECTION ===");
+       
+       const scopes = ["Fitout Only", "Furniture Only", "Technology Only", "Complete Package"];
+       
+       scopes.forEach(scope => {
+           console.log(`Testing scope: ${scope}`);
+           
+           selectScope(scope);
+           const selectedScope = getCurrentScope();
+           console.log(`Scope selected correctly: ${selectedScope === scope}`);
+           
+           const expectedComponents = getExpectedComponents(scope);
+           const actualComponents = getSelectedComponents();
+           console.log(`Components match expected: ${JSON.stringify(expectedComponents)} vs ${JSON.stringify(actualComponents)}`);
+           
+           const canProceedToSpec = canProceedToSpecification();
+           console.log(`Can proceed to specification: ${canProceedToSpec}`);
+       });
+   }
+
+8. Validate component inclusion logic:
+   
+   function validateComponentInclusion() {
+       const testCases = [
+           { scope: "Fitout Only", expected: ["Fitout"] },
+           { scope: "Furniture Only", expected: ["Furniture"] },
+           { scope: "Technology Only", expected: ["Technology"] }, 
+           { scope: "Complete Package", expected: ["Fitout", "Furniture", "Technology", "Professional Fees"] }
+       ];
+       
+       testCases.forEach(testCase => {
+           selectScope(testCase.scope);
+           const actualComponents = getSelectedComponents();
+           const matches = testCase.expected.every(comp => actualComponents.includes(comp)) &&
+                          actualComponents.every(comp => testCase.expected.includes(comp));
+           console.log(`${testCase.scope} components correct: ${matches}`);
+       });
+   }
+```
+
+### Step 5: Specification Testing
+```
+9. Test specification selection for each component:
+
+   function testSpecificationSelection() {
+       console.log("=== TESTING SPECIFICATION SELECTION ===");
+       
+       const specifications = ["Bronze", "Silver", "Gold"];
+       const components = ["Fitout", "Furniture", "Technology"];
+       
+       // Test Complete Package with mixed specifications:
+       selectScope("Complete Package");
+       
+       const testSpecs = {
+           fitout: "Silver",
+           furniture: "Gold", 
+           technology: "Bronze"
+       };
+       
+       // Set specifications:
+       setFitoutSpecification(testSpecs.fitout);
+       setFurnitureSpecification(testSpecs.furniture);
+       setTechnologySpecification(testSpecs.technology);
+       
+       // Verify specifications are set:
+       console.log("Fitout spec set:", getFitoutSpecification() === testSpecs.fitout);
+       console.log("Furniture spec set:", getFurnitureSpecification() === testSpecs.furniture);
+       console.log("Technology spec set:", getTechnologySpecification() === testSpecs.technology);
+       
+       // Test Professional Fees has no specification:
+       const profFeesHasSpec = professionalFeesHasSpecification();
+       console.log("Professional Fees correctly has no specification:", !profFeesHasSpec);
+       
+       return true;
+   }
+
+10. Test specification-rate mapping:
+    
+    function testSpecificationRateMapping() {
+        const location = "London, United Kingdom";
+        const testMappings = [
+            { component: "Fitout", spec: "Silver", expectedRate: 2248 },
+            { component: "Furniture", spec: "Gold", expectedRate: 259 },
+            { component: "Technology", spec: "Bronze", expectedRate: 354 }
+        ];
+        
+        testMappings.forEach(mapping => {
+            const rate = getComponentRate(location, mapping.component, mapping.spec);
+            console.log(`${mapping.component} ${mapping.spec} rate: ${rate} (expected: ${mapping.expectedRate})`);
+            const rateMatch = Math.abs(rate - mapping.expectedRate) < 10; // Allow small variance
+            console.log(`Rate mapping correct: ${rateMatch}`);
+        });
+    }
+```
+
+## Phase 3: Calculation Engine Testing
+
+### Step 6: Budget Calculation Testing
+```
+11. Test individual component calculations:
+
+    function testIndividualCalculations() {
+        console.log("=== TESTING INDIVIDUAL CALCULATIONS ===");
+        
+        const testInputs = {
+            location: "London, United Kingdom",
+            area: 5000,
+            currency: "USD"
+        };
+        
+        // Test Fitout calculation:
+        const fitoutCost = calculateFitoutCost({
+            ...testInputs,
+            specification: "Silver"
+        });
+        console.log("Fitout calculation result:", fitoutCost);
+        console.log("Fitout cost valid:", typeof fitoutCost === 'number' && fitoutCost > 0);
+        
+        // Test Furniture calculation:
+        const furnitureCost = calculateFurnitureCost({
+            ...testInputs,
+            specification: "Gold"
+        });
+        console.log("Furniture calculation result:", furnitureCost);
+        console.log("Furniture cost valid:", typeof furnitureCost === 'number' && furnitureCost > 0);
+        
+        // Test Technology calculation:
+        const technologyCost = calculateTechnologyCost({
+            ...testInputs,
+            specification: "Bronze",
+            layout: "Activity"
+        });
+        console.log("Technology calculation result:", technologyCost);
+        console.log("Technology cost valid:", typeof technologyCost === 'number' && technologyCost > 0);
+        
+        // Test Professional Fees calculation:
+        const totalOtherCosts = fitoutCost + furnitureCost + technologyCost;
+        const professionalFees = calculateProfessionalFees(totalOtherCosts);
+        console.log("Professional Fees calculation result:", professionalFees);
+        console.log("Professional Fees valid:", typeof professionalFees === 'number' && professionalFees > 0);
+        
+        return fitoutCost && furnitureCost && technologyCost && professionalFees;
+    }
+
+12. Test Complete Package integration:
+    
+    function testCompletePackageCalculation() {
+        console.log("=== TESTING COMPLETE PACKAGE CALCULATION ===");
+        
+        const completeInputs = {
+            location: "London, United Kingdom",
+            area: 5000,
+            currency: "USD",
+            scope: "Complete Package",
+            fitoutSpec: "Silver",
+            furnitureSpec: "Gold",
+            technologySpec: "Bronze",
+            layout: "Activity"
+        };
+        
+        try {
+            const result = calculateCompletePackage(completeInputs);
+            console.log("Complete Package result:", result);
+            
+            // Validate result structure:
+            const hasRequiredFields = result.totalCost && result.components && result.breakdown;
+            console.log("Result has required fields:", hasRequiredFields);
+            
+            // Validate component count:
+            const hasAllComponents = result.components.length === 4;
+            console.log("Has all 4 components:", hasAllComponents);
+            
+            // Validate total matches sum:
+            const componentSum = result.components.reduce((sum, comp) => sum + comp.cost, 0);
+            const totalMatches = Math.abs(result.totalCost - componentSum) < 1;
+            console.log("Total matches component sum:", totalMatches);
+            
+            return hasRequiredFields && hasAllComponents && totalMatches;
+            
+        } catch (error) {
+            console.error("Complete Package calculation failed:", error);
+            return false;
+        }
+    }
+```
+
+## Phase 4: End-to-End Workflow Testing
+
+### Step 7: Complete Workflow Testing
+```
+13. Test complete CBRE workflow end-to-end:
+
+    function testCompleteWorkflow() {
+        console.log("=== TESTING COMPLETE CBRE WORKFLOW ===");
+        
+        try {
+            // Step 1: Data Source Selection
+            console.log("Step 1: Selecting CBRE data source...");
+            selectDataSource("CBRE");
+            const step1Success = getCurrentDataSource() === "CBRE";
+            console.log("Step 1 success:", step1Success);
+            
+            // Step 2: Project Setup
+            console.log("Step 2: Setting up project...");
+            const projectData = {
+                name: "End-to-End Test Project",
+                location: "London, United Kingdom",
+                area: 5000,
+                currency: "USD",
+                inflationRate: 2.5
+            };
+            setProjectData(projectData);
+            const step2Success = validateProjectData();
+            console.log("Step 2 success:", step2Success);
+            
+            // Step 3: Scope Selection
+            console.log("Step 3: Selecting Complete Package scope...");
+            selectScope("Complete Package");
+            const step3Success = getCurrentScope() === "Complete Package";
+            console.log("Step 3 success:", step3Success);
+            
+            // Step 4: Specification
+            console.log("Step 4: Setting specifications...");
+            setFitoutSpecification("Silver");
+            setFurnitureSpecification("Gold");
+            setTechnologySpecification("Bronze");
+            const step4Success = allSpecificationsSet();
+            console.log("Step 4 success:", step4Success);
+            
+            // Step 5: Budget Calculation
+            console.log("Step 5: Calculating budget...");
+            const budgetResult = calculateFinalBudget();
+            const step5Success = budgetResult && budgetResult.totalCost > 0;
+            console.log("Step 5 success:", step5Success);
+            console.log("Final budget result:", budgetResult);
+            
+            const workflowSuccess = step1Success && step2Success && step3Success && step4Success && step5Success;
+            console.log("=== COMPLETE WORKFLOW SUCCESS:", workflowSuccess, "===");
+            
+            return workflowSuccess;
+            
+        } catch (error) {
+            console.error("Workflow failed with error:", error);
+            return false;
+        }
+    }
+
+14. Test error handling and edge cases:
+    
+    function testErrorHandling() {
+        console.log("=== TESTING ERROR HANDLING ===");
+        
+        // Test invalid location:
+        try {
+            const invalidResult = calculateBudget({
+                location: "Invalid Location",
+                area: 5000,
+                scope: "Complete Package"
+            });
+            console.log("Invalid location handled:", !invalidResult);
+        } catch (error) {
+            console.log("Invalid location error caught:", error.message);
+        }
+        
+        // Test zero area:
+        try {
+            const zeroAreaResult = calculateBudget({
+                location: "London, United Kingdom",
+                area: 0,
+                scope: "Complete Package"
+            });
+            console.log("Zero area handled:", !zeroAreaResult);
+        } catch (error) {
+            console.log("Zero area error caught:", error.message);
+        }
+        
+        // Test missing specifications:
+        try {
+            const missingSpecResult = calculateBudget({
+                location: "London, United Kingdom", 
+                area: 5000,
+                scope: "Complete Package"
+                // Missing specifications
+            });
+            console.log("Missing specifications handled:", !missingSpecResult);
+        } catch (error) {
+            console.log("Missing specifications error caught:", error.message);
+        }
+    }
+```
+
+## Phase 5: Final Validation and Documentation
+
+### Step 8: Comprehensive Testing Report
+```
+15. Create comprehensive testing report:
+
+    function generateTestingReport() {
+        console.log("=== COMPREHENSIVE TESTING REPORT ===");
+        
+        const testResults = {
+            dataSourceValidation: validateCBREDataIntegrity(),
+            dataSourceSelection: testDataSourceSelection(),
+            projectSetup: testProjectSetup(),
+            scopeSelection: testScopeSelection(),
+            specificationSelection: testSpecificationSelection(),
+            individualCalculations: testIndividualCalculations(),
+            completePackageCalculation: testCompletePackageCalculation(),
+            completeWorkflow: testCompleteWorkflow(),
+            errorHandling: testErrorHandling()
+        };
+        
+        console.log("=== FINAL TEST RESULTS ===");
+        Object.entries(testResults).forEach(([testName, result]) => {
+            console.log(`${testName}: ${result ? 'PASS' : 'FAIL'}`);
+        });
+        
+        const allTestsPassed = Object.values(testResults).every(result => result === true);
+        console.log(`=== OVERALL RESULT: ${allTestsPassed ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'} ===`);
+        
+        return testResults;
+    }
+
+16. Run complete test suite:
+    
+    // Execute all tests in sequence:
+    function runCompleteTestSuite() {
+        console.log("Starting complete CBRE workflow testing...");
+        
+        const report = generateTestingReport();
+        
+        if (report.dataSourceValidation.ratesValid === false) {
+            console.error("CRITICAL: Data source validation failed");
+            console.error("Errors:", report.dataSourceValidation.errors);
+        }
+        
+        return report;
+    }
+```
+
+**Success Criteria**: 
+- All individual tests pass
+- Complete workflow executes without errors
+- Budget calculations return accurate results matching CBRE data
+- Error handling works for edge cases
+- All component calculations integrate properly
+
+**Priority**: CRITICAL - This ensures the entire CBRE workflow is production-ready and accurate.
+
+Execute these tests systematically, fix any failures immediately, and ensure 100% pass rate before considering the CBRE workflow complete.

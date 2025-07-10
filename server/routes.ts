@@ -14,6 +14,149 @@ import chatRoutes from './routes/chat';
 import { importCurrencyRatesFromExcel, getAllCurrencyRates } from './utils/currencyImport';
 import * as openaiUtil from './utils/openai';
 import { validateDataset, getDatasetValidationWarnings } from './utils/datasetValidator';
+import { eq } from 'drizzle-orm';
+
+// Server-side budget calculation function
+async function performServerSideBudgetCalculation(project: any, budget: any, budgetStructure: any) {
+  console.log("=== SERVER-SIDE BUDGET CALCULATION ===");
+  console.log("Project:", project);
+  console.log("Budget:", budget);
+  
+  try {
+    const scope = budget.scope || 'Fitout';
+    const specification = budget.specification || 'Medium';
+    const layout = budget.layout || 'Activity';
+    const primaryDataSource = budget.primaryDataSource || 'CBRE';
+    
+    console.log(`Calculating for: ${project.city}, ${project.country} - ${scope} - ${specification} - ${layout}`);
+    
+    if (primaryDataSource === 'CBRE') {
+      // Handle CBRE calculation directly from database
+      let totalCost = 0;
+      let costsBreakdown: { [key: string]: number } = {};
+      
+      // Get appropriate cost data based on scope
+      if (scope === 'Fitout' || scope === 'Complete') {
+        // Fetch fitout costs from database
+        const fitoutData = await db.select().from(fitoutCosts);
+        console.log(`Found ${fitoutData.length} fitout cost records`);
+        
+        // Find matching location (exact match first, then partial)
+        let locationRecord = fitoutData.find(record => 
+          record.city?.toLowerCase() === project.city.toLowerCase() &&
+          record.country?.toLowerCase() === project.country.toLowerCase()
+        );
+        
+        if (!locationRecord) {
+          locationRecord = fitoutData.find(record => 
+            record.city?.toLowerCase().includes(project.city.toLowerCase()) ||
+            record.country?.toLowerCase().includes(project.country.toLowerCase())
+          );
+        }
+        
+        if (locationRecord) {
+          console.log("Found matching location record:", locationRecord);
+          
+          // Build the field name based on layout, specification, and area unit
+          const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
+          const specLevel = specification === 'Low' ? 'Low' : 
+                          specification === 'High' ? 'High' : 'Medium';
+          const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
+          
+          const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
+          console.log(`Looking for field: ${fieldName}`);
+          
+          // Get the rate from the database record
+          const rate = parseFloat(locationRecord[fieldName] as string);
+          
+          if (rate && !isNaN(rate)) {
+            const fitoutCost = rate * project.totalArea;
+            totalCost += fitoutCost;
+            costsBreakdown['FITOUT COSTS'] = fitoutCost;
+            
+            console.log(`Fitout calculation: ${rate} × ${project.totalArea} = ${fitoutCost}`);
+          } else {
+            console.error(`Invalid rate found for field ${fieldName}:`, locationRecord[fieldName]);
+          }
+        } else {
+          console.error("No location record found for:", project.city, project.country);
+        }
+      }
+      
+      if (scope === 'technology' || scope === 'Complete') {
+        // Fetch technology costs from database
+        const techData = await db.select().from(technologyCosts);
+        console.log(`Found ${techData.length} technology cost records`);
+        
+        // Find matching location (exact match first, then partial)
+        let locationRecord = techData.find(record => 
+          record.city?.toLowerCase() === project.city.toLowerCase() &&
+          record.country?.toLowerCase() === project.country.toLowerCase()
+        );
+        
+        if (!locationRecord) {
+          locationRecord = techData.find(record => 
+            record.city?.toLowerCase().includes(project.city.toLowerCase()) ||
+            record.country?.toLowerCase().includes(project.country.toLowerCase())
+          );
+        }
+        
+        if (locationRecord) {
+          console.log("Found matching tech location record:", locationRecord);
+          
+          // Build the field name based on layout, specification, and area unit
+          const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
+          const specLevel = specification === 'Low' ? 'Low' : 
+                          specification === 'High' ? 'High' : 'Medium';
+          const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
+          
+          const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
+          console.log(`Looking for tech field: ${fieldName}`);
+          
+          // Get the rate from the database record
+          const rate = parseFloat(locationRecord[fieldName] as string);
+          
+          if (rate && !isNaN(rate)) {
+            const techCost = rate * project.totalArea;
+            totalCost += techCost;
+            costsBreakdown['TECHNOLOGY COSTS'] = techCost;
+            
+            console.log(`Technology calculation: ${rate} × ${project.totalArea} = ${techCost}`);
+          } else {
+            console.error(`Invalid tech rate found for field ${fieldName}:`, locationRecord[fieldName]);
+          }
+        }
+      }
+      
+      if (totalCost > 0) {
+        return {
+          totalCost,
+          fitoutCost: costsBreakdown['FITOUT COSTS'] || 0,
+          furnitureCost: costsBreakdown['FURNITURE COSTS'] || 0,
+          technologyCost: costsBreakdown['TECHNOLOGY COSTS'] || 0,
+          costsBreakdown,
+          rawUnitCost: totalCost / project.totalArea,
+          adjustedUnitCost: totalCost / project.totalArea,
+          areaUnit: project.areaUnit,
+          datasetInfo: {
+            source: 'CBRE',
+            location: `${project.city}, ${project.country}`,
+            specification,
+            layout
+          }
+        };
+      } else {
+        throw new Error(`No cost data available for ${project.city}, ${project.country} with ${specification} specification and ${layout} layout`);
+      }
+    } else {
+      throw new Error(`Data source ${primaryDataSource} not supported in server-side calculation`);
+    }
+    
+  } catch (error) {
+    console.error("Server-side calculation error:", error);
+    throw error;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes with /api prefix
@@ -935,6 +1078,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         message: 'Failed to initialize database',
         error: error.message
+      });
+    }
+  });
+
+  // Budget calculation endpoint
+  app.post('/api/calculate-budget', async (req, res) => {
+    try {
+      const { project, budget } = req.body;
+      
+      console.log("=== BUDGET CALCULATION API ENDPOINT ===");
+      console.log("Project:", project);
+      console.log("Budget:", budget);
+      
+      // Validate required fields
+      if (!project || !budget) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: project and budget are required',
+          received: { project: !!project, budget: !!budget }
+        });
+      }
+      
+      if (!project.country || !project.city || !project.totalArea) {
+        return res.status(400).json({ 
+          message: 'Missing required project fields: country, city, and totalArea are required',
+          received: { 
+            country: !!project.country, 
+            city: !!project.city, 
+            totalArea: !!project.totalArea 
+          }
+        });
+      }
+      
+      if (!budget.specification || !budget.scope) {
+        return res.status(400).json({ 
+          message: 'Missing required budget fields: specification and scope are required',
+          received: { 
+            specification: !!budget.specification, 
+            scope: !!budget.scope 
+          }
+        });
+      }
+      
+      // Get budget template structure for calculation
+      const budgetTemplateRecords = await db.select().from(budgetTemplates);
+      let budgetStructure = [];
+      
+      if (budgetTemplateRecords.length > 0) {
+        budgetStructure = budgetTemplateRecords[0].structure;
+      } else {
+        // Fallback to JSON file
+        const dataPath = path.join(process.cwd(), 'data', 'budget_template_structure.json');
+        if (fs.existsSync(dataPath)) {
+          budgetStructure = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+        }
+      }
+      
+      // Perform server-side budget calculation without API calls for CBRE
+      if (budget.primaryDataSource === 'CBRE') {
+        const result = await performServerSideBudgetCalculation(project, budget, budgetStructure);
+        console.log("Server-side calculation result:", result);
+        res.json(result);
+        return;
+      }
+      
+      // For other data sources, fall back to client-side calculator
+      const { calculateBudget } = await import('../client/src/utils/budgetCalculator');
+      const result = await calculateBudget({
+        project,
+        budget,
+        budgetStructure
+      });
+      
+      console.log("Budget calculation result:", result);
+      
+      res.json(result);
+      
+    } catch (error: any) {
+      console.error('Budget calculation API error:', error);
+      res.status(500).json({ 
+        message: 'Budget calculation failed', 
+        error: error.message,
+        stack: error.stack
       });
     }
   });
