@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import NewBudget from "@/pages/new-budget";
 import BudgetDetails from "@/pages/budget-details";
+import Budgets from "@/pages/budgets";
 import Projects from "@/pages/projects";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
@@ -20,6 +21,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/budgets" component={Budgets} />
       <Route path="/new-budget" component={NewBudget} />
       <Route path="/budget/:id" component={BudgetDetails} />
       <Route path="/projects" component={Projects} />

@@ -58,6 +58,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           </div>
         </Link>
         
+        <Link href="/budgets">
+          <div 
+            className={`px-4 py-3 flex items-center text-sm font-medium cursor-pointer ${
+              isActive('/budgets') 
+                ? 'text-primary bg-blue-50 border-l-4 border-primary' 
+                : 'text-gray-600 hover:bg-blue-50 hover:text-primary'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className={`mr-3 text-xl h-5 w-5 ${isActive('/budgets') ? 'text-primary' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Budgets
+          </div>
+        </Link>
+        
         <Link href="/reports">
           <div 
             className={`px-4 py-3 flex items-center text-sm font-medium cursor-pointer ${
