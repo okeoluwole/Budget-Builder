@@ -83,7 +83,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
         }
       }
       
-      if (scope === 'technology' || scope === 'Complete') {
+      if (scope === 'Technology' || scope === 'Complete') {
         // Fetch technology costs from database
         const techData = await db.select().from(technologyCosts);
         console.log(`Found ${techData.length} technology cost records`);
@@ -226,7 +226,18 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
         }
       }
       
-      if (totalCost > 0) {
+      // Check if we have any valid calculations for the requested scope
+      const hasValidData = (scope === 'Technology' && costsBreakdown['TECHNOLOGY COSTS']) ||
+                           (scope === 'Fitout' && costsBreakdown['FITOUT COSTS']) ||
+                           (scope === 'Furniture' && costsBreakdown['FURNITURE COSTS']) ||
+                           (scope === 'Complete' && Object.keys(costsBreakdown).length > 0);
+      
+      // For single-component scopes, use the component total as the main total cost
+      if (hasValidData && scope !== 'Complete') {
+        totalCost = costsBreakdown['TECHNOLOGY COSTS'] || costsBreakdown['FITOUT COSTS'] || costsBreakdown['FURNITURE COSTS'] || 0;
+      }
+      
+      if (totalCost > 0 || hasValidData) {
         return {
           totalCost,
           fitoutCost: costsBreakdown['FITOUT COSTS'] || 0,
