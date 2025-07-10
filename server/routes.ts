@@ -59,8 +59,8 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           
           // Build the field name based on layout, specification, and area unit
           const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
-          const specLevel = specification === 'Low' ? 'Low' : 
-                          specification === 'High' ? 'High' : 'Medium';
+          const specLevel = specification === 'Low' || specification === 'Bronze' ? 'Low' : 
+                          specification === 'High' || specification === 'Gold' ? 'High' : 'Medium';
           const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
           
           const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
@@ -106,8 +106,8 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           
           // Build the field name based on layout, specification, and area unit
           const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
-          const specLevel = specification === 'Low' ? 'Low' : 
-                          specification === 'High' ? 'High' : 'Medium';
+          const specLevel = specification === 'Low' || specification === 'Bronze' ? 'Low' : 
+                          specification === 'High' || specification === 'Gold' ? 'High' : 'Medium';
           const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
           
           const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
@@ -151,8 +151,8 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           
           // Build the field name based on layout, specification, and area unit
           const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
-          const specLevel = specification === 'Low' ? 'Low' : 
-                          specification === 'High' ? 'High' : 'Medium';
+          const specLevel = specification === 'Low' || specification === 'Bronze' ? 'Low' : 
+                          specification === 'High' || specification === 'Gold' ? 'High' : 'Medium';
           const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
           
           const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
@@ -177,11 +177,11 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           const regionRecord = furnitureData.find(record => 
             record.region === 'EMEA' && // Nigeria is EMEA region based on fitout data
             record.country !== 'COUNTRY' && // Skip header row
-            parseFloat(record[`${layout.toLowerCase()}${specification === 'Low' ? 'Low' : specification === 'High' ? 'High' : 'Medium'}${project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft'}`] as string) > 0
+            parseFloat(record[`${layout.toLowerCase()}${specification === 'Low' || specification === 'Bronze' ? 'Low' : specification === 'High' || specification === 'Gold' ? 'High' : 'Medium'}${project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft'}`] as string) > 0
           );
           
           if (regionRecord) {
-            const fieldName = `${layout.toLowerCase()}${specification === 'Low' ? 'Low' : specification === 'High' ? 'High' : 'Medium'}${project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft'}`;
+            const fieldName = `${layout.toLowerCase()}${specification === 'Low' || specification === 'Bronze' ? 'Low' : specification === 'High' || specification === 'Gold' ? 'High' : 'Medium'}${project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft'}`;
             const rate = parseFloat(regionRecord[fieldName] as string);
             
             if (rate && !isNaN(rate)) {
