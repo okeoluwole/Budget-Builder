@@ -1428,6 +1428,8 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           console.log("CBRE Breakdown Table - breakdown:", breakdown);
                           console.log("CBRE Breakdown Table - Object.keys(breakdown):", Object.keys(breakdown));
                           console.log("CBRE Breakdown Table - breakdown entries:", Object.entries(breakdown));
+                          console.log("CBRE Breakdown Table - totalCost:", totalCost);
+                          console.log("CBRE Breakdown Table - area:", area);
                           
                           // Create component mapping for CBRE data using actual server breakdown
                           const componentDisplayMap = {
@@ -1458,24 +1460,39 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           
                           // First try to use actual server breakdown
                           if (breakdown && Object.keys(breakdown).length > 0) {
-                            cbreComponentCosts = Object.entries(breakdown)
-                              .filter(([key, value]) => componentDisplayMap[key] && value > 0)
-                              .map(([key, amount]) => {
-                                const config = componentDisplayMap[key];
-                                const rate = amount / area;
-                                const percentage = (amount / totalCost) * 100;
-                                
-                                console.log(`${key}: $${amount} = $${Math.round(rate)}/sqm (${percentage.toFixed(1)}%)`);
-                                
-                                return {
-                                  name: config.displayName,
-                                  amount: amount,
-                                  rate: rate,
-                                  percentage: percentage,
-                                  color: config.color,
-                                  description: config.description
-                                };
+                            console.log("CBRE Breakdown Table - Using server breakdown with", Object.keys(breakdown).length, "components");
+                            
+                            const filteredEntries = Object.entries(breakdown)
+                              .filter(([key, value]) => {
+                                const hasMapping = !!componentDisplayMap[key];
+                                const isPositive = value > 0;
+                                console.log(`Filter check - ${key}: hasMapping=${hasMapping}, value=${value}, isPositive=${isPositive}`);
+                                return hasMapping && isPositive;
                               });
+                            
+                            console.log("CBRE Breakdown Table - Filtered entries:", filteredEntries.length);
+                            
+                            cbreComponentCosts = filteredEntries.map(([key, amount]) => {
+                              const config = componentDisplayMap[key];
+                              const rate = amount / area;
+                              const percentage = (amount / totalCost) * 100;
+                              
+                              console.log(`Creating component: ${key} -> ${config.displayName}`);
+                              console.log(`  Amount: $${amount}, Rate: $${Math.round(rate)}/sqm, Percentage: ${percentage.toFixed(1)}%`);
+                              
+                              return {
+                                name: config.displayName,
+                                amount: amount,
+                                rate: rate,
+                                percentage: percentage,
+                                color: config.color,
+                                description: config.description
+                              };
+                            });
+                            
+                            console.log("CBRE Breakdown Table - Final component costs array length:", cbreComponentCosts.length);
+                          } else {
+                            console.log("CBRE Breakdown Table - No valid breakdown data, keys:", Object.keys(breakdown));
                           } 
                           
                           // Fallback: use direct budget values if breakdown is empty
