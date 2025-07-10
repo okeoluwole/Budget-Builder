@@ -612,6 +612,67 @@ export const calculateBudget = async ({
       }
       
       console.log('====== JLL CALCULATION COMPLETE ======');
+    } else if ((budget as any).primaryDataSource === 'CBRE') {
+      // ====== CBRE CALCULATION: USE SERVER-SIDE API ======
+      console.log('====== CBRE CALCULATION: CALLING SERVER API ======');
+      
+      try {
+        // Call the server-side calculation API for CBRE data
+        const response = await apiRequest('POST', '/api/calculate-budget', {
+          project,
+          budget: {
+            ...budget,
+            primaryDataSource: 'CBRE'
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`Server calculation failed: ${errorData}`);
+        }
+        
+        const serverResult = await response.json();
+        console.log('Server-side CBRE calculation result:', serverResult);
+        
+        // Use server results directly
+        totalCost = serverResult.totalCost;
+        fitoutCost = serverResult.fitoutCost || 0;
+        furnitureCost = serverResult.furnitureCost || 0;
+        rawUnitCost = serverResult.rawUnitCost;
+        adjustedUnitCost = serverResult.adjustedUnitCost;
+        costsBreakdown = serverResult.costsBreakdown;
+        
+        // Create dataset info from server response
+        const datasetInfo = serverResult.datasetInfo || {
+          name: 'CBRE Global Fit-Out Cost Guide',
+          sheet: 'CBRE Data',
+          region: 'Global',
+          benchmark: `${budget.specification} Specification`
+        };
+        
+        console.log('====== CBRE CALCULATION COMPLETE ======');
+        
+        // Return CBRE results immediately
+        return {
+          totalCost,
+          fitoutCost,
+          furnitureCost,
+          technologyCost: serverResult.technologyCost || 0,
+          costsBreakdown,
+          rawUnitCost,
+          adjustedUnitCost,
+          areaUnit: serverResult.areaUnit || project.areaUnit,
+          localCurrencyCode: project.currency,
+          localCurrencyRate: undefined,
+          localCurrencyTotalCost: undefined,
+          localCurrencyCostsBreakdown: undefined,
+          datasetInfo
+        };
+        
+      } catch (error) {
+        console.error('CBRE server-side calculation failed:', error);
+        throw new Error(`CBRE calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     } else if ((budget as any).primaryDataSource === 'TT') {
       // Turner & Townsend 2025 Global Office Fit-Out Cost Guide calculation
       console.log('====== STARTING T&T 2025 CALCULATION ======');
@@ -678,6 +739,68 @@ export const calculateBudget = async ({
       
       console.log('====== T&T 2025 CALCULATION COMPLETE ======');
     } else {
+      // Default to CBRE server-side calculation for any unspecified or legacy data sources
+      console.log('====== DEFAULT CBRE CALCULATION: CALLING SERVER API ======');
+      
+      try {
+        // Call the server-side calculation API for CBRE data (default)
+        const response = await apiRequest('POST', '/api/calculate-budget', {
+          project,
+          budget: {
+            ...budget,
+            primaryDataSource: 'CBRE' // Default to CBRE
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`Server calculation failed: ${errorData}`);
+        }
+        
+        const serverResult = await response.json();
+        console.log('Server-side CBRE calculation result (default):', serverResult);
+        
+        // Use server results directly
+        totalCost = serverResult.totalCost;
+        fitoutCost = serverResult.fitoutCost || 0;
+        furnitureCost = serverResult.furnitureCost || 0;
+        rawUnitCost = serverResult.rawUnitCost;
+        adjustedUnitCost = serverResult.adjustedUnitCost;
+        costsBreakdown = serverResult.costsBreakdown;
+        
+        // Create dataset info from server response
+        const datasetInfo = serverResult.datasetInfo || {
+          name: 'CBRE Global Fit-Out Cost Guide',
+          sheet: 'CBRE Data',
+          region: 'Global',
+          benchmark: `${budget.specification} Specification`
+        };
+        
+        console.log('====== DEFAULT CBRE CALCULATION COMPLETE ======');
+        
+        // Return CBRE results immediately
+        return {
+          totalCost,
+          fitoutCost,
+          furnitureCost,
+          technologyCost: serverResult.technologyCost || 0,
+          costsBreakdown,
+          rawUnitCost,
+          adjustedUnitCost,
+          areaUnit: serverResult.areaUnit || project.areaUnit,
+          localCurrencyCode: project.currency,
+          localCurrencyRate: undefined,
+          localCurrencyTotalCost: undefined,
+          localCurrencyCostsBreakdown: undefined,
+          datasetInfo
+        };
+        
+      } catch (error) {
+        console.error('Default CBRE server-side calculation failed:', error);
+        throw new Error(`CBRE calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
+      // Legacy fallback code below (should not be reached)
       // Standard calculation for other data sources (CBRE, MMC)
     
       // Calculate fitout costs if scope is 'Fitout', 'Both', or 'Complete'
