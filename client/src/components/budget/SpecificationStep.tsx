@@ -75,8 +75,8 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
         // Fallback to default specs - use only if API fails completely
         setSpecifications([
           {
-            name: 'Bronze',
-            description: SPECIFICATION_DETAILS.Bronze.description,
+            name: 'Low (Bronze)',
+            description: "Standard specification with potential for future customization",
             walls: "Painted walls with minimal branding",
             partitions: {
               type: "Single glazed",
@@ -98,8 +98,8 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
             recommendedFor: "Standard office spaces with budget constraints"
           },
           {
-            name: 'Silver',
-            description: SPECIFICATION_DETAILS.Silver.description,
+            name: 'Medium (Silver)',
+            description: "Budget-conscious upgrade with more features and higher-grade materials",
             walls: "Feature walls with special finishes",
             partitions: {
               type: "Double glazed",
@@ -121,8 +121,8 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
             recommendedFor: "Enhanced office environments requiring more customization"
           },
           {
-            name: 'Gold',
-            description: SPECIFICATION_DETAILS.Gold.description,
+            name: 'High (Gold)',
+            description: "Agile, personalized, high-tech with premium finishes",
             walls: "Feature wall concepts throughout, extensive branding",
             partitions: {
               type: "Double glazed with high performance",
@@ -334,9 +334,6 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-4 text-xs text-gray-500">
-                      Cost Factor: <span className="font-semibold">{spec.partitions.costFactor.toFixed(1)}x</span>
-                    </div>
                   </div>
                 </div>
               );
@@ -458,9 +455,6 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-4 text-xs text-gray-500">
-                      Cost Factor: <span className="font-semibold">{spec.partitions.costFactor.toFixed(1)}x</span>
-                    </div>
                   </div>
                 </div>
               );
