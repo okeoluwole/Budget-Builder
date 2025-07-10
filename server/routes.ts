@@ -36,7 +36,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
       let costsBreakdown: { [key: string]: number } = {};
       
       // Get appropriate cost data based on scope
-      if (scope === 'Fitout' || scope === 'Complete') {
+      if (scope === 'Fitout' || scope === 'Complete' || scope === 'Complete Package') {
         // Fetch fitout costs from database
         const fitoutData = await db.select().from(fitoutCosts);
         console.log(`Found ${fitoutData.length} fitout cost records`);
@@ -83,7 +83,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
         }
       }
       
-      if (scope === 'Technology' || scope === 'Complete') {
+      if (scope === 'Technology' || scope === 'Complete' || scope === 'Complete Package') {
         // Fetch technology costs from database
         const techData = await db.select().from(technologyCosts);
         console.log(`Found ${techData.length} technology cost records`);
@@ -128,7 +128,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
         }
       }
 
-      if (scope === 'Furniture' || scope === 'Complete') {
+      if (scope === 'Furniture' || scope === 'Complete' || scope === 'Complete Package') {
         // Fetch furniture costs from database
         const furnitureData = await db.select().from(furnitureCosts);
         console.log(`Found ${furnitureData.length} furniture cost records`);
@@ -199,7 +199,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
       }
 
       // Add Professional Fees for Complete scope
-      if (scope === 'Complete') {
+      if (scope === 'Complete' || scope === 'Complete Package') {
         // Use professional fees from fitout data if available
         const fitoutData = await db.select().from(fitoutCosts);
         const locationRecord = fitoutData.find(record => 
@@ -230,10 +230,11 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
       const hasValidData = (scope === 'Technology' && costsBreakdown['TECHNOLOGY COSTS']) ||
                            (scope === 'Fitout' && costsBreakdown['FITOUT COSTS']) ||
                            (scope === 'Furniture' && costsBreakdown['FURNITURE COSTS']) ||
-                           (scope === 'Complete' && Object.keys(costsBreakdown).length > 0);
+                           (scope === 'Complete' && Object.keys(costsBreakdown).length > 0) ||
+                           (scope === 'Complete Package' && Object.keys(costsBreakdown).length > 0);
       
       // For single-component scopes, use the component total as the main total cost
-      if (hasValidData && scope !== 'Complete') {
+      if (hasValidData && scope !== 'Complete' && scope !== 'Complete Package') {
         totalCost = costsBreakdown['TECHNOLOGY COSTS'] || costsBreakdown['FITOUT COSTS'] || costsBreakdown['FURNITURE COSTS'] || 0;
       }
       
