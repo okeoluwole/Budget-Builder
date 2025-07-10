@@ -440,18 +440,70 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
       const area = state.project?.totalArea || 1;
       const currentDate = new Date().toISOString().split('T')[0];
       
-      // Calculate actual component costs based on results
-      const componentCosts = state.budget?.primaryDataSource === 'TT' ? [
-        { name: 'Construction', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
-        { name: 'Loose Furniture', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
-        { name: 'Audio-Visual', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
-        { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
-      ] : [
-        { name: 'Construction Costs', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
-        { name: 'Furniture Costs', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
-        { name: 'Technology Costs', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
-        { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
-      ];
+      // Calculate component costs based on actual scope selection
+      const calculateComponentCosts = () => {
+        const scope = state.budget?.scope;
+        const isTT = state.budget?.primaryDataSource === 'TT';
+        
+        if (scope === 'Fitout') {
+          return [{
+            name: isTT ? 'Construction' : 'Fitout Costs',
+            amount: totalCost || 0,
+            rate: (totalCost || 0) / area,
+            percentage: 100
+          }];
+        }
+        
+        if (scope === 'Furniture') {
+          return [{
+            name: isTT ? 'Loose Furniture' : 'Furniture Costs',
+            amount: totalCost || 0,
+            rate: (totalCost || 0) / area,
+            percentage: 100
+          }];
+        }
+        
+        if (scope === 'technology' || scope === 'AudioVisual') {
+          return [{
+            name: isTT ? 'Audio-Visual' : 'Technology Costs',
+            amount: totalCost || 0,
+            rate: (totalCost || 0) / area,
+            percentage: 100
+          }];
+        }
+        
+        if (scope === 'Both') {
+          return [
+            {
+              name: isTT ? 'Construction' : 'Fitout Costs',
+              amount: (totalCost || 0) * 0.8, // 80% fitout, 20% furniture for Both scope
+              rate: ((totalCost || 0) * 0.8) / area,
+              percentage: 80
+            },
+            {
+              name: isTT ? 'Loose Furniture' : 'Furniture Costs',
+              amount: (totalCost || 0) * 0.2,
+              rate: ((totalCost || 0) * 0.2) / area,
+              percentage: 20
+            }
+          ];
+        }
+        
+        // Complete Package - all 4 components
+        return isTT ? [
+          { name: 'Construction', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
+          { name: 'Loose Furniture', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
+          { name: 'Audio-Visual', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
+          { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
+        ] : [
+          { name: 'Fitout Costs', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
+          { name: 'Furniture Costs', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
+          { name: 'Technology Costs', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
+          { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
+        ];
+      };
+      
+      const componentCosts = calculateComponentCosts();
 
       // Create comprehensive HTML content for PDF-style display
       const htmlContent = `
@@ -584,18 +636,70 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
       const area = state.project?.totalArea || 1;
       const currentDate = new Date().toISOString().split('T')[0];
       
-      // Calculate actual component costs based on results
-      const componentCosts = state.budget?.primaryDataSource === 'TT' ? [
-        { name: 'Construction', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
-        { name: 'Loose Furniture', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
-        { name: 'Audio-Visual', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
-        { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
-      ] : [
-        { name: 'Construction Costs', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
-        { name: 'Furniture Costs', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
-        { name: 'Technology Costs', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
-        { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
-      ];
+      // Calculate component costs based on actual scope selection
+      const calculateComponentCosts = () => {
+        const scope = state.budget?.scope;
+        const isTT = state.budget?.primaryDataSource === 'TT';
+        
+        if (scope === 'Fitout') {
+          return [{
+            name: isTT ? 'Construction' : 'Fitout Costs',
+            amount: totalCost || 0,
+            rate: (totalCost || 0) / area,
+            percentage: 100
+          }];
+        }
+        
+        if (scope === 'Furniture') {
+          return [{
+            name: isTT ? 'Loose Furniture' : 'Furniture Costs',
+            amount: totalCost || 0,
+            rate: (totalCost || 0) / area,
+            percentage: 100
+          }];
+        }
+        
+        if (scope === 'technology' || scope === 'AudioVisual') {
+          return [{
+            name: isTT ? 'Audio-Visual' : 'Technology Costs',
+            amount: totalCost || 0,
+            rate: (totalCost || 0) / area,
+            percentage: 100
+          }];
+        }
+        
+        if (scope === 'Both') {
+          return [
+            {
+              name: isTT ? 'Construction' : 'Fitout Costs',
+              amount: (totalCost || 0) * 0.8, // 80% fitout, 20% furniture for Both scope
+              rate: ((totalCost || 0) * 0.8) / area,
+              percentage: 80
+            },
+            {
+              name: isTT ? 'Loose Furniture' : 'Furniture Costs',
+              amount: (totalCost || 0) * 0.2,
+              rate: ((totalCost || 0) * 0.2) / area,
+              percentage: 20
+            }
+          ];
+        }
+        
+        // Complete Package - all 4 components
+        return isTT ? [
+          { name: 'Construction', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
+          { name: 'Loose Furniture', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
+          { name: 'Audio-Visual', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
+          { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
+        ] : [
+          { name: 'Fitout Costs', amount: (totalCost || 0) * 0.729, rate: ((totalCost || 0) * 0.729) / area, percentage: 72.9 },
+          { name: 'Furniture Costs', amount: (totalCost || 0) * 0.127, rate: ((totalCost || 0) * 0.127) / area, percentage: 12.7 },
+          { name: 'Technology Costs', amount: (totalCost || 0) * 0.095, rate: ((totalCost || 0) * 0.095) / area, percentage: 9.5 },
+          { name: 'Professional Fees', amount: (totalCost || 0) * 0.049, rate: ((totalCost || 0) * 0.049) / area, percentage: 4.9 }
+        ];
+      };
+      
+      const componentCosts = calculateComponentCosts();
       
       // Enhanced CSV format for Excel export
       const csvContent = [
@@ -755,10 +859,15 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                       <div className="flex justify-between">
                         <span className="text-gray-500">Components:</span>
                         <span className="font-medium text-gray-800">
-                          {state.budget?.primaryDataSource === 'TT' ? '4 T&T Categories' :
-                           state.budget?.primaryDataSource === 'CBRE' ? '4 CBRE Components' :
-                           state.budget?.isComparisonEnabled ? 'Multi-Source Components' :
-                           '4 types'}
+                          {(() => {
+                            const scope = state.budget?.scope;
+                            if (scope === 'Fitout') return '1 component (Fitout)';
+                            if (scope === 'Furniture') return '1 component (Furniture)';
+                            if (scope === 'technology' || scope === 'AudioVisual') return '1 component (Technology)';
+                            if (scope === 'Complete') return '4 components (Fitout, Furniture, Technology, Professional Fees)';
+                            if (scope === 'Both') return '2 components (Fitout & Furniture)';
+                            return '4 components';
+                          })()}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1029,7 +1138,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                 <div className="export-section mt-8">
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Export Options</h3>
-                    <div className="export-buttons grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="export-buttons grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
                       <button 
                         onClick={() => handlePDFExport()}
                         className="export-btn primary flex flex-col items-center p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
@@ -1047,30 +1156,6 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 11-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
                         </svg>
                         <span className="text-sm font-medium">Detailed Excel Report</span>
-                      </button>
-                      <button 
-                        onClick={() => handlePDFExport()}
-                        className="export-btn flex flex-col items-center p-4 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
-                      >
-                        <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-sm font-medium">Presentation Slides</span>
-                      </button>
-                      <button 
-                        onClick={() => {
-                          navigator.clipboard.writeText(window.location.href);
-                          toast({
-                            title: "Link copied",
-                            description: "Budget link copied to clipboard",
-                          });
-                        }}
-                        className="export-btn flex flex-col items-center p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
-                      >
-                        <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-                        </svg>
-                        <span className="text-sm font-medium">Share Link</span>
                       </button>
                     </div>
                   </div>

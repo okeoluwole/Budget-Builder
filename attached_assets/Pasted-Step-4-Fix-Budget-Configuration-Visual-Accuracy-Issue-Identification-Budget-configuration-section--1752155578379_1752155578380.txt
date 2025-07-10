@@ -1,0 +1,37 @@
+Step 4: Fix Budget Configuration Visual Accuracy
+Issue Identification: Budget configuration section displays incorrect component count and inaccurate base rates.
+Expected Behavior:
+
+Component count should match actual scope selection
+Base rates should exactly match Executive Summary calculations
+All rate calculations should align with source data
+
+Current Behavior: Shows 4 components when scope selection indicates 2, rate discrepancies between sections.
+Specific Instructions for REPLIT:
+1. Fix component count logic:
+   - Display only components included in selected scope
+   - Fitout Only = 1 component, Furniture Only = 1 component, Technology Only = 1 component
+   - Complete Package = 4 components (Fitout, Furniture, Technology, Professional Fees)
+2. Correct base rate calculations:
+   - Verify rates match CBRE source data exactly
+   - Ensure Budget Results rates = Executive Summary rates
+   - Apply specification factors correctly to base rates
+3. Update rate display format to match: "US$X,XXX/sqm"
+4. Verify percentage calculations sum to 100% for selected components only
+Success Criteria: Component count matches scope selection, all rates are consistent between Budget Results and Executive Summary.
+
+Step 5: Clean Up Export Options Interface
+Issue Identification: Redundant export options and unnecessary buttons clutter the interface.
+Expected Behavior: Single, clean export interface with only essential options.
+Current Behavior: Duplicate export sections and unnecessary export formats.
+Specific Instructions for REPLIT:
+1. Remove redundant Export Options section at bottom of Budget Results page
+2. Keep only the main Export Options with two buttons:
+   - "Executive Summary PDF" (blue button)
+   - "Detailed Excel Report" (green button)
+3. Remove these buttons entirely:
+   - "Presentation Slides" (orange button)
+   - "Share Link" (purple button)
+4. Remove radio button selection for Excel/PDF/CSV - make buttons direct actions instead
+5. Ensure remaining export functions work correctly with accurate data
+Success Criteria: Single export interface with only PDF and Excel options, all redundant elements removed.
