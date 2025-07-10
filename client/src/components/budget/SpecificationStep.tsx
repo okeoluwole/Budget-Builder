@@ -13,10 +13,13 @@ interface SpecificationStepProps {
 }
 
 const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, onSaveAsDraft }) => {
-  const { state, updateSpecification, updateTTComponentSpecs } = useBudget();
+  const { state, updateSpecification, updateTTComponentSpecs, updateLayout } = useBudget();
   const [specifications, setSpecifications] = useState<SpecificationData[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  
+  // Layout selection state
+  const [selectedLayout, setSelectedLayout] = useState<string>(state.budget?.layout || 'Activity');
   
   // Track specifications separately for fitout, furniture, and technology
   const [selectedFitoutSpec, setSelectedFitoutSpec] = useState<string>(
@@ -665,7 +668,7 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
             className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             onClick={handleNext}
           >
-            {state.budget?.primaryDataSource === 'TT' ? 'Next: Budget Results' : 'Next: Layout Determination'}
+            {state.budget?.primaryDataSource === 'TT' ? 'Next: Budget Results' : 'Next: Layout Selection'}
             <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>

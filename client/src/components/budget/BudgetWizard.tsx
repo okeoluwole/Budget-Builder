@@ -6,8 +6,7 @@ import ProjectSetupStep from './ProjectSetupStep';
 import DataSourceStep from './DataSourceStep';
 import ScopeSelectionStep from './ScopeSelectionStep';
 import SpecificationStep from './SpecificationStep';
-
-
+import LayoutStep from './LayoutStep';
 import BudgetResultsStep from './BudgetResultsStep';
 import JllOptionsStep from './JllOptionsStep';
 import TTRegionSelectionStep from './TTRegionSelectionStep';
@@ -23,7 +22,7 @@ type Step =
   | 'datasource' 
   | 'scope' 
   | 'specification' 
- 
+  | 'layout'
   | 'jllOptions' 
   | 'results'
   | 'ttRegion'
@@ -53,7 +52,7 @@ const BudgetWizard: React.FC = () => {
     { id: 'project', title: 'Project Setup', description: 'Basic project information' },
     { id: 'scope', title: 'Scope Selection', description: 'Choose budget scope' },
     { id: 'specification', title: 'Specification', description: 'Select quality level' },
-
+    { id: 'layout', title: 'Layout Selection', description: 'Choose workspace layout' },
     { id: 'jllOptions', title: 'JLL Options', description: 'JLL-specific configuration' },
     { id: 'ttRegion', title: 'T&T Region', description: 'Select global region' },
     { id: 'ttCountry', title: 'T&T Country', description: 'Select country' },
@@ -93,16 +92,15 @@ const BudgetWizard: React.FC = () => {
       console.log('T&T selected - Using T&T steps (no layout/space):', ttSteps.map(s => s.id).join(' → '));
       setSteps(ttSteps);
     } else {
-      // For other data sources (CBRE, MMC), use standard steps without layout and space allocation
+      // For other data sources (CBRE, MMC), use standard steps including layout selection
       const standardSteps = initialSteps.filter(step => 
         step.id !== 'jllOptions' && 
         step.id !== 'ttBuildingType' &&
         step.id !== 'ttRegion' &&
         step.id !== 'ttCountry' &&
-        step.id !== 'ttCity' &&
-        step.id !== 'layout'
+        step.id !== 'ttCity'
       );
-      console.log('Standard data source - Using steps (no layout/space):', standardSteps.map(s => s.id).join(' → '));
+      console.log('Standard data source - Using steps (with layout):', standardSteps.map(s => s.id).join(' → '));
       setSteps(standardSteps);
     }
   }, [selectedDataSource]);
@@ -200,6 +198,9 @@ const BudgetWizard: React.FC = () => {
         return <ScopeSelectionStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'specification':
         return <SpecificationStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
+      
+      case 'layout':
+        return <LayoutStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
 
       case 'jllOptions':
         return (
