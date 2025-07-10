@@ -242,7 +242,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
       }
       
       if (totalCost > 0 || hasValidData) {
-        return {
+        const result = {
           totalCost,
           fitoutCost: costsBreakdown['FITOUT COSTS'] || 0,
           furnitureCost: costsBreakdown['FURNITURE COSTS'] || 0,
@@ -251,6 +251,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           rawUnitCost: totalCost / project.totalArea,
           adjustedUnitCost: totalCost / project.totalArea,
           areaUnit: project.areaUnit,
+          localCurrencyCode: 'USD', // CBRE data is always in USD
           datasetInfo: {
             source: 'CBRE',
             location: `${project.city}, ${project.country}`,
@@ -258,6 +259,9 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
             layout
           }
         };
+        
+        console.log("CBRE Server calculation result with USD currency:", result);
+        return result;
       } else {
         throw new Error(`No cost data available for ${project.city}, ${project.country} with ${specification} specification and ${layout} layout`);
       }

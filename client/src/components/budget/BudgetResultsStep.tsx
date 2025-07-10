@@ -40,6 +40,14 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
     const fetchCurrencyRate = async () => {
       if (!state.project?.country) return;
       
+      // CRITICAL: Skip currency conversion for CBRE data source - CBRE data is always in USD
+      if (state.budget?.primaryDataSource === 'CBRE') {
+        console.log("CBRE data source detected - skipping currency conversion, using USD");
+        setLocalCurrencyCode('USD');
+        setLocalCurrencyRate(1.0);
+        return;
+      }
+      
       try {
         // Map countries to their ISO currency codes
         const countryToCurrency: Record<string, string> = {

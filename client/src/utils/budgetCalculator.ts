@@ -652,7 +652,7 @@ export const calculateBudget = async ({
         
         console.log('====== CBRE CALCULATION COMPLETE ======');
         
-        // Return CBRE results immediately
+        // Return CBRE results immediately (all CBRE rates are in USD)
         return {
           totalCost,
           fitoutCost,
@@ -662,7 +662,7 @@ export const calculateBudget = async ({
           rawUnitCost,
           adjustedUnitCost,
           areaUnit: serverResult.areaUnit || project.areaUnit,
-          localCurrencyCode: project.currency,
+          localCurrencyCode: 'USD', // CBRE data is always in USD
           localCurrencyRate: undefined,
           localCurrencyTotalCost: undefined,
           localCurrencyCostsBreakdown: undefined,
@@ -778,7 +778,7 @@ export const calculateBudget = async ({
         
         console.log('====== DEFAULT CBRE CALCULATION COMPLETE ======');
         
-        // Return CBRE results immediately
+        // Return CBRE results immediately (all CBRE rates are in USD)
         return {
           totalCost,
           fitoutCost,
@@ -788,7 +788,7 @@ export const calculateBudget = async ({
           rawUnitCost,
           adjustedUnitCost,
           areaUnit: serverResult.areaUnit || project.areaUnit,
-          localCurrencyCode: project.currency,
+          localCurrencyCode: 'USD', // CBRE data is always in USD
           localCurrencyRate: undefined,
           localCurrencyTotalCost: undefined,
           localCurrencyCostsBreakdown: undefined,
