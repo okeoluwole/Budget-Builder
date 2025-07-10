@@ -18,12 +18,15 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   
-  // Track specifications separately for fitout and furniture
+  // Track specifications separately for fitout, furniture, and technology
   const [selectedFitoutSpec, setSelectedFitoutSpec] = useState<string>(
     state.budget?.fitoutSpecification || state.budget?.specification || ''
   );
   const [selectedFurnitureSpec, setSelectedFurnitureSpec] = useState<string>(
     state.budget?.furnitureSpecification || state.budget?.specification || ''
+  );
+  const [selectedTechnologySpec, setSelectedTechnologySpec] = useState<string>(
+    state.budget?.technologySpecification || state.budget?.specification || ''
   );
 
   // Track T&T component-specific specifications
@@ -157,6 +160,10 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
     setSelectedFurnitureSpec(specName);
   };
 
+  const handleSelectTechnologySpecification = (specName: string) => {
+    setSelectedTechnologySpec(specName);
+  };
+
   const handleNext = () => {
     // For T&T data source, validate component-specific specifications
     if (state.budget?.primaryDataSource === 'TT') {
@@ -217,10 +224,28 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
       return;
     }
     
+    if (state.budget?.scope === 'AudioVisual' && !selectedTechnologySpec) {
+      toast({
+        title: "Specification selection required",
+        description: "Please select a technology specification level before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (state.budget?.scope === 'Both' && (!selectedFitoutSpec || !selectedFurnitureSpec)) {
       toast({
         title: "Specification selections required",
         description: "Please select both fitout and furniture specification levels before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (state.budget?.scope === 'Complete' && (!selectedFitoutSpec || !selectedFurnitureSpec || !selectedTechnologySpec)) {
+      toast({
+        title: "Specification selections required",
+        description: "Please select fitout, furniture, and technology specification levels before continuing.",
         variant: "destructive",
       });
       return;
@@ -232,6 +257,12 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
       updateSpecification(selectedFitoutSpec, selectedFitoutSpec, null);
     } else if (state.budget?.scope === 'Furniture') {
       updateSpecification(selectedFurnitureSpec, null, selectedFurnitureSpec);
+    } else if (state.budget?.scope === 'AudioVisual') {
+      updateSpecification(selectedTechnologySpec, null, null, selectedTechnologySpec);
+    } else if (state.budget?.scope === 'Complete') {
+      // For Complete scope, we need all three specifications
+      // Use fitout spec as the main specification for backward compatibility
+      updateSpecification(selectedFitoutSpec, selectedFitoutSpec, selectedFurnitureSpec, selectedTechnologySpec);
     } else {
       // For 'Both' scope, we need to update both specifications
       // For backward compatibility, use fitout spec as the main specification
@@ -239,6 +270,108 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
     }
     
     onNext();
+  };
+
+  // Render technology specification section
+  const renderTechnologySpecificationSection = () => {
+    const sectionTitle = "Technology Specification";
+    const sectionDescription = "Choose the quality level for your technology and audio-visual systems.";
+    
+    const getTechnologyHighlights = (spec: SpecificationData) => {
+      return [
+        spec.technology.av,
+        spec.technology.security,
+        "Network infrastructure",
+        "Integration capabilities",
+        "Support and maintenance"
+      ];
+    };
+
+    return (
+      <div className="mb-8">
+        <h3 className="text-lg font-medium text-primary mb-2">{sectionTitle}</h3>
+        <p className="text-gray-600 mb-4">{sectionDescription}</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {loading ? (
+            <div className="col-span-3 text-center py-8">
+              <svg className="animate-spin h-8 w-8 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="mt-2 text-gray-600">Loading specifications...</p>
+            </div>
+          ) : (
+            specifications.map((spec) => {
+              const highlights = getTechnologyHighlights(spec);
+              
+              return (
+                <div
+                  key={`technology-${spec.name}`}
+                  className={`border rounded-lg overflow-hidden hover:shadow-md cursor-pointer transition-shadow ${
+                    selectedTechnologySpec === spec.name ? 'border-primary shadow-sm' : ''
+                  }`}
+                  onClick={() => handleSelectTechnologySpecification(spec.name)}
+                >
+                  <div className={`p-4 border-b ${
+                    selectedTechnologySpec === spec.name ? 'bg-blue-50 border-primary' : 'bg-gray-50'
+                  }`}>
+                    <h3 className={`text-lg font-semibold ${
+                      selectedTechnologySpec === spec.name ? 'text-primary' : 'text-gray-800'
+                    }`}>
+                      {spec.name}
+                    </h3>
+                    <p className="text-sm text-gray-600">{spec.description}</p>
+                  </div>
+                  <div className="p-4">
+                    <ul className="space-y-2 text-sm">
+                      {highlights.map((highlight, idx) => (
+                        <li key={idx} className="flex items-start">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span>{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-4 text-xs text-gray-500">
+                      Cost Factor: <span className="font-semibold">{spec.partitions.costFactor.toFixed(1)}x</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Professional Fees section (no specifications, just informational)
+  const renderProfessionalFeesSection = () => {
+    return (
+      <div className="mb-8">
+        <h3 className="text-lg font-medium text-primary mb-2">Professional Fees</h3>
+        <p className="text-gray-600 mb-4">Professional fees are calculated as a percentage of other components.</p>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm font-medium text-blue-800">
+              Professional fees (12% of fitout + furniture + technology costs) include:
+            </span>
+          </div>
+          <ul className="mt-2 ml-7 space-y-1 text-sm text-blue-700">
+            <li>• Design and project management</li>
+            <li>• Cost consulting services</li>
+            <li>• Technical specifications</li>
+            <li>• Contract administration</li>
+          </ul>
+        </div>
+      </div>
+    );
   };
 
   // Determine which specification section to show based on the selected scope
@@ -456,6 +589,35 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
       return renderSpecificationSection('Fitout');
     } else if (state.budget?.scope === 'Furniture') {
       return renderSpecificationSection('Furniture');
+    } else if (state.budget?.scope === 'Technology') {
+      return renderTechnologySpecificationSection();
+    } else if (state.budget?.scope === 'AudioVisual') {
+      return renderTechnologySpecificationSection();
+    } else if (state.budget?.scope === 'Complete') {
+      // For Complete Package, show all three sections
+      return (
+        <>
+          <div className="mb-2 p-4 bg-blue-50 rounded-md">
+            <p className="text-sm text-blue-700">
+              <strong>Note:</strong> For "Complete Package" projects, you can select different quality levels for each component.
+            </p>
+          </div>
+          
+          {renderSpecificationSection('Fitout')}
+          
+          <Separator className="my-8" />
+          
+          {renderSpecificationSection('Furniture')}
+          
+          <Separator className="my-8" />
+          
+          {renderTechnologySpecificationSection()}
+          
+          <Separator className="my-8" />
+          
+          {renderProfessionalFeesSection()}
+        </>
+      );
     } else {
       // For 'Both' scope, show both sections with a separator between them
       return (

@@ -20,6 +20,7 @@ interface BudgetState {
     costsBreakdown?: any;
     fitoutSpecification?: string;
     furnitureSpecification?: string;
+    technologySpecification?: string;
     primaryDataSource?: DataSourceType;
     isComparisonEnabled?: boolean;
     comparisonSources?: DataSourceType[];
@@ -41,7 +42,7 @@ interface BudgetState {
 type BudgetAction =
   | { type: 'UPDATE_PROJECT'; payload: Partial<InsertProject> }
   | { type: 'UPDATE_SCOPE'; payload: string }
-  | { type: 'UPDATE_SPECIFICATION'; payload: { specification: string; fitoutSpecification?: string | null; furnitureSpecification?: string | null } }
+  | { type: 'UPDATE_SPECIFICATION'; payload: { specification: string; fitoutSpecification?: string | null; furnitureSpecification?: string | null; technologySpecification?: string | null } }
   | { type: 'UPDATE_TT_COMPONENT_SPECS'; payload: { construction?: string; looseFurniture?: string; audioVisual?: string; professionalFees?: string } }
   | { type: 'UPDATE_LAYOUT'; payload: string }
   | { type: 'UPDATE_SPACE_ALLOCATION'; payload: SpaceAllocation }
@@ -62,7 +63,8 @@ interface BudgetContextType {
   updateSpecification: (
     specification: string,
     fitoutSpecification?: string | null,
-    furnitureSpecification?: string | null
+    furnitureSpecification?: string | null,
+    technologySpecification?: string | null
   ) => void;
   updateLayout: (layout: string) => void;
   updateSpaceAllocation: (spaceAllocation: SpaceAllocation) => void;
@@ -106,7 +108,8 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           ...(state.budget || {}),
           specification: action.payload.specification,
           fitoutSpecification: action.payload.fitoutSpecification || null,
-          furnitureSpecification: action.payload.furnitureSpecification || null
+          furnitureSpecification: action.payload.furnitureSpecification || null,
+          technologySpecification: action.payload.technologySpecification || null
         }
       };
     case 'UPDATE_TT_COMPONENT_SPECS':
@@ -199,6 +202,7 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           specification: action.payload.budget.specification,
           fitoutSpecification: action.payload.budget.fitoutSpecification || action.payload.budget.specification,
           furnitureSpecification: action.payload.budget.furnitureSpecification || action.payload.budget.specification,
+          technologySpecification: action.payload.budget.technologySpecification || action.payload.budget.specification,
           layout: action.payload.budget.layout,
           primaryDataSource: action.payload.budget.primaryDataSource,
           isComparisonEnabled: action.payload.budget.isComparisonEnabled,
@@ -239,14 +243,16 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
   const updateSpecification = useCallback((
     specification: string,
     fitoutSpecification?: string | null,
-    furnitureSpecification?: string | null
+    furnitureSpecification?: string | null,
+    technologySpecification?: string | null
   ) => {
     dispatch({
       type: 'UPDATE_SPECIFICATION',
       payload: {
         specification,
         fitoutSpecification,
-        furnitureSpecification
+        furnitureSpecification,
+        technologySpecification
       }
     });
   }, []);

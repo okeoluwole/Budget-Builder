@@ -697,26 +697,35 @@ export const calculateBudget = async ({
       
       if (scope === 'AudioVisual' || scope === 'Complete') {
         // For CBRE AudioVisual scope, use T&T data temporarily until CBRE technology data is available
-        // Use a conservative estimate based on T&T AudioVisual rates
+        // Use technology specification if available, otherwise fall back to main specification
+        const technologySpec = (budget as any).technologySpecification || budget.specification;
+        const technologySpecLevel = technologySpec === 'Bronze' ? 'Low' : technologySpec === 'Gold' ? 'High' : 'Medium';
+        
+        // Apply technology specification cost multipliers
+        const technologyMultiplier = getSpecificationFactor(technologySpec);
+        
         try {
           const ttAudioVisualResult = calculateTT2025Budget(
             project.country,
             project.city,
-            (budget.specification === 'Bronze' ? 'Low' : budget.specification === 'Gold' ? 'High' : 'Medium') as TT2025Specification,
+            technologySpecLevel as TT2025Specification,
             project.totalArea,
             project.areaUnit as 'sqm' | 'sqft',
             'AudioVisual'
           );
           
           if (ttAudioVisualResult.success) {
-            technologyCost = ttAudioVisualResult.breakdown.audioVisual;
+            // Apply technology specification multiplier to the base T&T cost
+            technologyCost = ttAudioVisualResult.breakdown.audioVisual * technologyMultiplier;
           } else {
-            // Fallback: use percentage of fitout cost as technology estimate
-            technologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
+            // Fallback: use percentage of fitout cost as technology estimate with multiplier
+            const baseTechnologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
+            technologyCost = baseTechnologyCost * technologyMultiplier;
           }
         } catch (error) {
-          // Fallback: use percentage estimate
-          technologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
+          // Fallback: use percentage estimate with technology specification multiplier
+          const baseTechnologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
+          technologyCost = baseTechnologyCost * technologyMultiplier;
         }
       }
       
@@ -859,12 +868,23 @@ export const calculateBudget = async ({
       }
       
       if (scope === 'Complete') {
-        // For Complete scope, calculate technology cost from T&T data and add professional fees
-        const technologyCost = totalCost - fitoutCost - furnitureCost - (totalCost * 0.12 / 1.12); // Back-calculate before professional fees
-        const actualTechCost = technologyCost > 0 ? technologyCost : (fitoutCost + furnitureCost) * 0.15;
-        const professionalFees = (fitoutCost + furnitureCost + actualTechCost) * 0.12;
+        // Calculate technology and professional fees costs separately from scope variables
+        const technologySpec = (budget as any).technologySpecification || budget.specification;
+        const technologyMultiplier = getSpecificationFactor(technologySpec);
         
-        costsBreakdown['TECHNOLOGY COSTS'] = parseFloat(actualTechCost.toFixed(2));
+        // Technology cost calculation with proper specification multiplier
+        let techCost = 0;
+        try {
+          const baseTechCost = (fitoutCost + furnitureCost) * 0.15; // 15% base technology cost
+          techCost = baseTechCost * technologyMultiplier;
+        } catch (error) {
+          techCost = (fitoutCost + furnitureCost) * 0.15; // Fallback
+        }
+        
+        // Professional fees: 12% of (fitout + furniture + technology)
+        const professionalFees = (fitoutCost + furnitureCost + techCost) * 0.12;
+        
+        costsBreakdown['TECHNOLOGY COSTS'] = parseFloat(techCost.toFixed(2));
         costsBreakdown['PROFESSIONAL FEES'] = parseFloat(professionalFees.toFixed(2));
       }
     }

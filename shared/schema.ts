@@ -48,6 +48,9 @@ export const budgets = pgTable("budgets", {
   name: text("name").notNull(),
   scope: text("scope").default("Fitout").notNull(), // Fitout, Furniture, Both
   specification: text("specification").notNull(), // Bronze, Silver, Gold
+  fitoutSpecification: text("fitout_specification"), // For separate fitout specs
+  furnitureSpecification: text("furniture_specification"), // For separate furniture specs
+  technologySpecification: text("technology_specification"), // For technology specs
   layout: text("layout").notNull(), // Activity, Team, Event
   primaryDataSource: text("primary_data_source").$type<DataSourceType>().default("CBRE").notNull(), // CBRE, JLL, TT, MMC
   dataSource: text("data_source"), // For backward compatibility
