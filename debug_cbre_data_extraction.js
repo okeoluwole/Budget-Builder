@@ -1,9 +1,9 @@
 // CBRE Data Extraction Debugging and Validation Script
 // Following the comprehensive debugging protocol
 
-const fs = require('fs');
-const path = require('path');
-const xlsx = require('xlsx');
+import fs from 'fs';
+import path from 'path';
+import xlsx from 'xlsx';
 
 console.log("=== CBRE DATA SOURCE INVENTORY ===");
 
