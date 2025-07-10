@@ -8,7 +8,7 @@ import { importFitoutCostsFromExcel } from "./utils/databaseImport";
 import { parseExcelFile } from "./utils/excelReader";
 import { db } from "./db";
 import { 
-  fitoutCosts, specifications, layoutTemplates, budgetTemplates, currencyRates, furnitureCosts
+  fitoutCosts, specifications, layoutTemplates, budgetTemplates, currencyRates, furnitureCosts, technologyCosts
 } from "@shared/schema";
 import chatRoutes from './routes/chat';
 import { importCurrencyRatesFromExcel, getAllCurrencyRates } from './utils/currencyImport';
@@ -371,6 +371,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error fetching furniture cost data:', error);
       res.status(500).json({ 
         message: 'Failed to fetch furniture cost data',
+        error: error.message
+      });
+    }
+  });
+
+  // Technology cost data from database
+  app.get('/api/technology-costs', async (req, res) => {
+    try {
+      // Get all technology cost records from the database
+      const records = await db.select().from(technologyCosts);
+      
+      if (records.length === 0) {
+        return res.status(404).json({ message: 'No technology cost data found in database' });
+      }
+      
+      // Transform database records to TechnologyCostData format
+      const data = records.map(record => ({
+        country: record.country,
+        city: record.city,
+        region: record.region,
+        costs: {
+          sqm: {
+            Activity: {
+              Low: parseFloat(record.activityLowSqm || '0'),
+              Medium: parseFloat(record.activityMediumSqm || '0'),
+              High: parseFloat(record.activityHighSqm || '0')
+            },
+            Team: {
+              Low: parseFloat(record.teamLowSqm || '0'),
+              Medium: parseFloat(record.teamMediumSqm || '0'),
+              High: parseFloat(record.teamHighSqm || '0')
+            },
+            Event: {
+              Low: parseFloat(record.eventLowSqm || '0'),
+              Medium: parseFloat(record.eventMediumSqm || '0'),
+              High: parseFloat(record.eventHighSqm || '0')
+            }
+          },
+          sqft: {
+            Activity: {
+              Low: parseFloat(record.activityLowSqft || '0'),
+              Medium: parseFloat(record.activityMediumSqft || '0'),
+              High: parseFloat(record.activityHighSqft || '0')
+            },
+            Team: {
+              Low: parseFloat(record.teamLowSqft || '0'),
+              Medium: parseFloat(record.teamMediumSqft || '0'),
+              High: parseFloat(record.teamHighSqft || '0')
+            },
+            Event: {
+              Low: parseFloat(record.eventLowSqft || '0'),
+              Medium: parseFloat(record.eventMediumSqft || '0'),
+              High: parseFloat(record.eventHighSqft || '0')
+            }
+          }
+        },
+        locationFactors: {
+          EMEA: parseFloat(record.locationFactorEMEA || '1.0'),
+          AMERICA: parseFloat(record.locationFactorAMERICA || '1.0'),
+          APAC: parseFloat(record.locationFactorAPAC || '1.0')
+        },
+        inflationRate: parseFloat(record.inflationRate?.toString() || '1.0')
+      }));
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error('Error fetching technology cost data:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch technology cost data',
         error: error.message
       });
     }
@@ -746,6 +815,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Import technology costs from Excel
+  app.post('/api/admin/import-technology-costs', async (req, res) => {
+    try {
+      // Import the technology import function
+      const { importTechnologyCostsFromExcel } = await import('./utils/technologyImport');
+      
+      // Build file path - use main CBRE file with TECH sheet
+      const filePath = path.join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
+      
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        console.error(`File not found at ${filePath}`);
+        return res.status(404).json({ message: 'Technology costs Excel file not found' });
+      }
+      
+      // Import technology costs from Excel
+      await importTechnologyCostsFromExcel(filePath);
+      
+      // Fetch the imported data from the database
+      const techRecords = await db.select().from(technologyCosts);
+      
+      res.status(200).json({ 
+        message: 'Technology costs imported successfully', 
+        count: techRecords.length,
+        data: techRecords.slice(0, 5) // Only return first 5 records to avoid huge response
+      });
+    } catch (error: any) {
+      console.error('Error importing technology costs:', error);
+      res.status(500).json({ 
+        message: 'Failed to import technology costs', 
+        error: error.message
+      });
+    }
+  });
+
   // Import currency rates from Excel
   app.post('/api/admin/import-currency-rates', async (req, res) => {
     try {

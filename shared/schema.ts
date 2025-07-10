@@ -349,6 +349,53 @@ export const fitoutCosts = pgTable("fitout_costs", {
   professionalFees: numeric("professional_fees")
 });
 
+// Technology costs database schema
+export const technologyCosts = pgTable("technology_costs", {
+  id: serial("id").primaryKey(),
+  country: text("country").notNull(),
+  city: text("city").notNull(),
+  region: text("region").notNull(),
+  
+  // Activity layout technology costs
+  activityLowSqm: numeric("activity_low_sqm"),
+  activityMediumSqm: numeric("activity_medium_sqm"),
+  activityHighSqm: numeric("activity_high_sqm"),
+  activityLowSqft: numeric("activity_low_sqft"),
+  activityMediumSqft: numeric("activity_medium_sqft"),
+  activityHighSqft: numeric("activity_high_sqft"),
+  
+  // Team layout technology costs
+  teamLowSqm: numeric("team_low_sqm"),
+  teamMediumSqm: numeric("team_medium_sqm"),
+  teamHighSqm: numeric("team_high_sqm"),
+  teamLowSqft: numeric("team_low_sqft"),
+  teamMediumSqft: numeric("team_medium_sqft"),
+  teamHighSqft: numeric("team_high_sqft"),
+  
+  // Event layout technology costs
+  eventLowSqm: numeric("event_low_sqm"),
+  eventMediumSqm: numeric("event_medium_sqm"),
+  eventHighSqm: numeric("event_high_sqm"),
+  eventLowSqft: numeric("event_low_sqft"),
+  eventMediumSqft: numeric("event_medium_sqft"),
+  eventHighSqft: numeric("event_high_sqft"),
+  
+  // Location factors
+  locationFactorEMEA: numeric("location_factor_emea"),
+  locationFactorAMERICA: numeric("location_factor_america"),
+  locationFactorAPAC: numeric("location_factor_apac"),
+  
+  // Inflation rate
+  inflationRate: numeric("inflation_rate")
+});
+
+export const insertTechnologyCostSchema = createInsertSchema(technologyCosts).omit({
+  id: true
+});
+
+export type InsertTechnologyCost = z.infer<typeof insertTechnologyCostSchema>;
+export type TechnologyCost = typeof technologyCosts.$inferSelect;
+
 export const insertFitoutCostSchema = createInsertSchema(fitoutCosts).omit({
   id: true
 });

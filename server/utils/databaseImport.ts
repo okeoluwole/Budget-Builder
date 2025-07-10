@@ -459,5 +459,21 @@ export async function initializeDatabase(): Promise<void> {
     // Continue with other initialization steps even if this fails
   }
   
+  // Import technology costs from the main CBRE dataset with TECH sheet
+  try {
+    // Import the technology import function
+    const { importTechnologyCostsFromExcel } = await import('./technologyImport');
+    
+    const technologyExcelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
+    if (existsSync(technologyExcelPath)) {
+      await importTechnologyCostsFromExcel(technologyExcelPath);
+    } else {
+      console.log('Technology costs Excel file not found at path:', technologyExcelPath);
+    }
+  } catch (error) {
+    console.error('Error importing technology costs from Excel during initialization:', error);
+    // Continue with other initialization steps even if this fails
+  }
+  
   console.log('Database initialization complete');
 }

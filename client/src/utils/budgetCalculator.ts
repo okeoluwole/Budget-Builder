@@ -48,19 +48,8 @@ export const calculateSpaceAllocationCosts = (
   return costs;
 };
 
-// Get the specification cost factor based on specification level
-const getSpecificationFactor = (specification: string): number => {
-  switch (specification) {
-    case 'Bronze':
-      return 1.0;
-    case 'Silver':
-      return 1.4;
-    case 'Gold':
-      return 1.8;
-    default:
-      return 1.0;
-  }
-};
+// Note: Specification factors are no longer used - CBRE technology costs are now calculated 
+// using actual rates from the TECH sheet instead of multiplication factors
 
 // Apply inflation rate to costs
 const applyInflation = (value: number, inflationRate: number, years: number = 1): number => {
@@ -265,7 +254,80 @@ function calculateJllCosts(
 // Cache for data to avoid repeated API calls
 let cachedFitoutCostsData: FitoutCostData[] | null = null;
 let cachedFurnitureCostsData: FurnitureCostData[] | null = null;
+let cachedTechnologyCostsData: any[] | null = null;
 let cachedJllCostsData: any[] | null = null;
+
+// Helper function to get CBRE technology cost data
+const getCBRETechnologyCosts = async (): Promise<any[]> => {
+  if (cachedTechnologyCostsData) {
+    return cachedTechnologyCostsData;
+  }
+  
+  try {
+    const response = await apiRequest('/api/technology-costs');
+    cachedTechnologyCostsData = response;
+    return response;
+  } catch (error) {
+    console.error('Error fetching CBRE technology costs:', error);
+    return [];
+  }
+};
+
+// Helper function to calculate actual CBRE technology cost
+const calculateCBRETechnologyCost = async (
+  project: Project,
+  budget: Partial<Budget>,
+  specification: string
+): Promise<number> => {
+  try {
+    const technologyData = await getCBRETechnologyCosts();
+    
+    if (!technologyData || technologyData.length === 0) {
+      console.warn('No CBRE technology data available, using fallback calculation');
+      return 0;
+    }
+    
+    // Find matching location data
+    const locationData = technologyData.find(item => 
+      item.country.toLowerCase() === project.country.toLowerCase() &&
+      item.city.toLowerCase() === project.city.toLowerCase()
+    );
+    
+    if (!locationData) {
+      console.warn(`No CBRE technology data found for ${project.city}, ${project.country}`);
+      return 0;
+    }
+    
+    // Map Bronze/Silver/Gold to Low/Medium/High
+    const specLevel = specification === 'Bronze' ? 'Low' : 
+                     specification === 'Gold' ? 'High' : 'Medium';
+    
+    // Get layout type (default to Activity if not specified)
+    const layoutType = budget.layout || 'Activity';
+    
+    // Get area unit
+    const areaUnit = project.areaUnit === 'sqm' ? 'sqm' : 'sqft';
+    
+    // Get the appropriate rate
+    const technologyRate = locationData.costs[areaUnit][layoutType]?.[specLevel];
+    
+    if (!technologyRate) {
+      console.warn(`No technology rate found for ${layoutType} layout, ${specLevel} specification in ${areaUnit}`);
+      return 0;
+    }
+    
+    // Calculate technology cost
+    const technologyCost = technologyRate * project.totalArea;
+    
+    console.log(`CBRE Technology Cost: ${technologyRate}/${areaUnit} × ${project.totalArea} ${areaUnit} = $${technologyCost.toFixed(2)}`);
+    
+    return technologyCost;
+    
+  } catch (error) {
+    console.error('Error calculating CBRE technology cost:', error);
+    return 0;
+  }
+};
 
 // Calculate budget based on project and budget data
 export const calculateBudget = async ({
@@ -696,36 +758,38 @@ export const calculateBudget = async ({
       let professionalFeesCost = 0;
       
       if (scope === 'AudioVisual' || scope === 'Complete') {
-        // For CBRE AudioVisual scope, use T&T data temporarily until CBRE technology data is available
-        // Use technology specification if available, otherwise fall back to main specification
+        // Use CBRE technology specification if available, otherwise fall back to main specification
         const technologySpec = (budget as any).technologySpecification || budget.specification;
-        const technologySpecLevel = technologySpec === 'Bronze' ? 'Low' : technologySpec === 'Gold' ? 'High' : 'Medium';
         
-        // Apply technology specification cost multipliers
-        const technologyMultiplier = getSpecificationFactor(technologySpec);
-        
+        // Use actual CBRE technology rates instead of multiplication factors
         try {
-          const ttAudioVisualResult = calculateTT2025Budget(
-            project.country,
-            project.city,
-            technologySpecLevel as TT2025Specification,
-            project.totalArea,
-            project.areaUnit as 'sqm' | 'sqft',
-            'AudioVisual'
-          );
+          technologyCost = await calculateCBRETechnologyCost(project, budget, technologySpec);
           
-          if (ttAudioVisualResult.success) {
-            // Apply technology specification multiplier to the base T&T cost
-            technologyCost = ttAudioVisualResult.breakdown.audioVisual * technologyMultiplier;
-          } else {
-            // Fallback: use percentage of fitout cost as technology estimate with multiplier
-            const baseTechnologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
-            technologyCost = baseTechnologyCost * technologyMultiplier;
+          // If CBRE technology data is not available, fall back to T&T calculation
+          if (technologyCost === 0) {
+            console.log('CBRE technology data not available, falling back to T&T calculation');
+            const technologySpecLevel = technologySpec === 'Bronze' ? 'Low' : technologySpec === 'Gold' ? 'High' : 'Medium';
+            
+            const ttAudioVisualResult = calculateTT2025Budget(
+              project.country,
+              project.city,
+              technologySpecLevel as TT2025Specification,
+              project.totalArea,
+              project.areaUnit as 'sqm' | 'sqft',
+              'AudioVisual'
+            );
+            
+            if (ttAudioVisualResult.success) {
+              technologyCost = ttAudioVisualResult.breakdown.audioVisual;
+            } else {
+              // Final fallback: use percentage estimate (no multiplication factors)
+              technologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
+            }
           }
         } catch (error) {
-          // Fallback: use percentage estimate with technology specification multiplier
-          const baseTechnologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
-          technologyCost = baseTechnologyCost * technologyMultiplier;
+          console.error('Error calculating technology cost:', error);
+          // Final fallback: use percentage estimate (no multiplication factors) 
+          technologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
         }
       }
       
@@ -868,18 +932,9 @@ export const calculateBudget = async ({
       }
       
       if (scope === 'Complete') {
-        // Calculate technology and professional fees costs separately from scope variables
-        const technologySpec = (budget as any).technologySpecification || budget.specification;
-        const technologyMultiplier = getSpecificationFactor(technologySpec);
-        
-        // Technology cost calculation with proper specification multiplier
-        let techCost = 0;
-        try {
-          const baseTechCost = (fitoutCost + furnitureCost) * 0.15; // 15% base technology cost
-          techCost = baseTechCost * technologyMultiplier;
-        } catch (error) {
-          techCost = (fitoutCost + furnitureCost) * 0.15; // Fallback
-        }
+        // Use the technology cost that was already calculated above using actual CBRE rates
+        // The technologyCost variable from the earlier calculation contains the actual CBRE technology cost
+        const techCost = technologyCost; // This is already calculated with actual CBRE rates above
         
         // Professional fees: 12% of (fitout + furniture + technology)
         const professionalFees = (fitoutCost + furnitureCost + techCost) * 0.12;
