@@ -448,11 +448,28 @@ export async function initializeDatabase(): Promise<void> {
     // Import the furniture import function
     const { importFurnitureCostsFromExcel } = await import('./furnitureImport');
     
-    const furnitureExcelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_Furniture Only(1).xlsx');
-    if (existsSync(furnitureExcelPath)) {
+    // Try multiple possible furniture file names based on debug findings
+    const furnitureFilePaths = [
+      'CBRE Fit Out Guide Cost Data_Furniture Only_1752162169048.xlsx',
+      'CBRE Fit Out Guide Cost Data_Furniture Only_1752159678271.xlsx',
+      'CBRE Fit Out Guide Cost Data_Furniture Only(1).xlsx',
+      'CBRE Fit Out Guide Cost Data_Fur niture Only.xlsx'
+    ];
+    
+    let furnitureExcelPath = null;
+    for (const fileName of furnitureFilePaths) {
+      const fullPath = join(process.cwd(), 'attached_assets', fileName);
+      if (existsSync(fullPath)) {
+        furnitureExcelPath = fullPath;
+        console.log(`Found furniture file: ${fileName}`);
+        break;
+      }
+    }
+    
+    if (furnitureExcelPath) {
       await importFurnitureCostsFromExcel(furnitureExcelPath);
     } else {
-      console.log('Furniture costs Excel file not found at path:', furnitureExcelPath);
+      console.log('No furniture costs Excel file found. Tried:', furnitureFilePaths);
     }
   } catch (error) {
     console.error('Error importing furniture costs from Excel during initialization:', error);
@@ -464,11 +481,29 @@ export async function initializeDatabase(): Promise<void> {
     // Import the technology import function
     const { importTechnologyCostsFromExcel } = await import('./technologyImport');
     
-    const technologyExcelPath = join(process.cwd(), 'attached_assets', 'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx');
-    if (existsSync(technologyExcelPath)) {
+    // Try multiple possible technology file names based on debug findings
+    const technologyFilePaths = [
+      'CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only_1752162169050.xlsx',
+      'CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only_1752159678272.xlsx',
+      'CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only_1752159164388.xlsx',
+      'CBRE Fit Out Guide Cost Data_29.01.2024_Tech Only_1752154514307.xlsx',
+      'CBRE Fit Out Guide Cost Data_29.01.2024 - Rev 3 - RC OO (2).xlsx'
+    ];
+    
+    let technologyExcelPath = null;
+    for (const fileName of technologyFilePaths) {
+      const fullPath = join(process.cwd(), 'attached_assets', fileName);
+      if (existsSync(fullPath)) {
+        technologyExcelPath = fullPath;
+        console.log(`Found technology file: ${fileName}`);
+        break;
+      }
+    }
+    
+    if (technologyExcelPath) {
       await importTechnologyCostsFromExcel(technologyExcelPath);
     } else {
-      console.log('Technology costs Excel file not found at path:', technologyExcelPath);
+      console.log('No technology costs Excel file found. Tried:', technologyFilePaths);
     }
   } catch (error) {
     console.error('Error importing technology costs from Excel during initialization:', error);
