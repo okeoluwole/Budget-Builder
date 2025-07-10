@@ -127,6 +127,104 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           }
         }
       }
+
+      if (scope === 'Furniture' || scope === 'Complete') {
+        // Fetch furniture costs from database
+        const furnitureData = await db.select().from(furnitureCosts);
+        console.log(`Found ${furnitureData.length} furniture cost records`);
+        
+        // Find matching location (exact match first, then partial)
+        let locationRecord = furnitureData.find(record => 
+          record.city?.toLowerCase() === project.city.toLowerCase() &&
+          record.country?.toLowerCase() === project.country.toLowerCase()
+        );
+        
+        if (!locationRecord) {
+          locationRecord = furnitureData.find(record => 
+            record.city?.toLowerCase().includes(project.city.toLowerCase()) ||
+            record.country?.toLowerCase().includes(project.country.toLowerCase())
+          );
+        }
+        
+        if (locationRecord) {
+          console.log("Found matching furniture location record:", locationRecord);
+          
+          // Build the field name based on layout, specification, and area unit
+          const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
+          const specLevel = specification === 'Low' ? 'Low' : 
+                          specification === 'High' ? 'High' : 'Medium';
+          const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
+          
+          const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
+          console.log(`Looking for furniture field: ${fieldName}`);
+          
+          // Get the rate from the database record
+          const rate = parseFloat(locationRecord[fieldName] as string);
+          
+          if (rate && !isNaN(rate)) {
+            const furnitureCost = rate * project.totalArea;
+            totalCost += furnitureCost;
+            costsBreakdown['FURNITURE COSTS'] = furnitureCost;
+            
+            console.log(`Furniture calculation: ${rate} × ${project.totalArea} = ${furnitureCost}`);
+          } else {
+            console.error(`Invalid furniture rate found for field ${fieldName}:`, locationRecord[fieldName]);
+          }
+        } else {
+          console.log("No direct furniture data found for location, using regional fallback...");
+          
+          // Data borrowing: Use regional average for missing furniture data
+          const regionRecord = furnitureData.find(record => 
+            record.region === 'EMEA' && // Nigeria is EMEA region based on fitout data
+            record.country !== 'COUNTRY' && // Skip header row
+            parseFloat(record[`${layout.toLowerCase()}${specification === 'Low' ? 'Low' : specification === 'High' ? 'High' : 'Medium'}${project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft'}`] as string) > 0
+          );
+          
+          if (regionRecord) {
+            const fieldName = `${layout.toLowerCase()}${specification === 'Low' ? 'Low' : specification === 'High' ? 'High' : 'Medium'}${project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft'}`;
+            const rate = parseFloat(regionRecord[fieldName] as string);
+            
+            if (rate && !isNaN(rate)) {
+              // Apply regional adjustment factor
+              const adjustmentFactor = 0.6; // Nigeria cost adjustment based on EMEA location factors
+              const adjustedRate = rate * adjustmentFactor;
+              const furnitureCost = adjustedRate * project.totalArea;
+              totalCost += furnitureCost;
+              costsBreakdown['FURNITURE COSTS'] = furnitureCost;
+              
+              console.log(`Furniture calculation (regional fallback): ${adjustedRate} × ${project.totalArea} = ${furnitureCost}`);
+            }
+          }
+        }
+      }
+
+      // Add Professional Fees for Complete scope
+      if (scope === 'Complete') {
+        // Use professional fees from fitout data if available
+        const fitoutData = await db.select().from(fitoutCosts);
+        const locationRecord = fitoutData.find(record => 
+          record.city?.toLowerCase() === project.city.toLowerCase() &&
+          record.country?.toLowerCase() === project.country.toLowerCase()
+        ) || fitoutData.find(record => 
+          record.city?.toLowerCase().includes(project.city.toLowerCase()) ||
+          record.country?.toLowerCase().includes(project.country.toLowerCase())
+        );
+        
+        if (locationRecord && locationRecord.professionalFees) {
+          const feeRate = parseFloat(locationRecord.professionalFees as string);
+          if (feeRate && !isNaN(feeRate)) {
+            // Calculate fees as percentage of total construction + furniture + technology costs
+            const baseCosts = (costsBreakdown['FITOUT COSTS'] || 0) + 
+                            (costsBreakdown['FURNITURE COSTS'] || 0) + 
+                            (costsBreakdown['TECHNOLOGY COSTS'] || 0);
+            const professionalFees = baseCosts * feeRate;
+            totalCost += professionalFees;
+            costsBreakdown['PROFESSIONAL FEES'] = professionalFees;
+            
+            console.log(`Professional fees calculation: ${baseCosts} × ${feeRate} = ${professionalFees}`);
+          }
+        }
+      }
       
       if (totalCost > 0) {
         return {
