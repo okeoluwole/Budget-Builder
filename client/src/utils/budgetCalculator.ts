@@ -363,8 +363,8 @@ export const calculateBudget = async ({
   
   // T&T doesn't require layout parameter (it uses specification only)
   if ((budget as any).primaryDataSource !== 'TT' && !budget.layout) {
-    console.error('Layout is required for non-T&T data sources. Current data source:', (budget as any).primaryDataSource);
-    throw new Error('Layout is required for non-T&T data sources');
+    console.log('No layout specified for non-T&T data source, using default "Activity" layout');
+    budget.layout = 'Activity'; // Default layout for CBRE calculations
   }
   
   // For T&T, set a default layout since the calculation still expects it but doesn't use it
@@ -372,13 +372,11 @@ export const calculateBudget = async ({
     budget.layout = 'Standard Office'; // Default for T&T calculations
   }
   
-  // T&T doesn't use space allocation, so provide a default for calculation
-  if ((budget as any).primaryDataSource === 'TT' && !budget.spaceAllocation) {
-    budget.spaceAllocation = { 'Total Project Area': { percentage: 100, area: (project as any)?.totalArea || 1000 } }; // Default for T&T calculations
+  // Provide default space allocation for all data sources when not specified
+  if (!budget.spaceAllocation) {
+    console.log('No space allocation specified, using default allocation');
+    budget.spaceAllocation = { 'Total Project Area': { percentage: 100, area: project.totalArea || 1000 } };
   }
-  
-  // If using JLL data source, we don't require space allocation initially
-  // Note: Space allocation is now auto-generated for all data sources when not provided
 
   try {
     // Get the scope from the budget
