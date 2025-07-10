@@ -264,9 +264,10 @@ const getCBRETechnologyCosts = async (): Promise<any[]> => {
   }
   
   try {
-    const response = await apiRequest('/api/technology-costs');
-    cachedTechnologyCostsData = response;
-    return response;
+    const response = await apiRequest('GET', '/api/technology-costs', undefined);
+    const technologyCostsData = await response.json();
+    cachedTechnologyCostsData = technologyCostsData;
+    return technologyCostsData;
   } catch (error) {
     console.error('Error fetching CBRE technology costs:', error);
     return [];
@@ -835,9 +836,8 @@ export const calculateBudget = async ({
     } else if (scope === 'Furniture') {
       rawUnitCost = furnitureCost / project.totalArea;
     } else if (scope === 'AudioVisual') {
-      // Get technologyCost from the outer scope
-      const technologyCost = totalCost; // For AudioVisual scope, totalCost equals technologyCost
-      rawUnitCost = technologyCost / project.totalArea;
+      // For AudioVisual scope, totalCost is the technology cost
+      rawUnitCost = totalCost / project.totalArea;
     } else {
       // Fallback for other scopes
       rawUnitCost = totalCost / project.totalArea;
