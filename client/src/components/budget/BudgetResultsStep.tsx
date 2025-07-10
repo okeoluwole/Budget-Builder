@@ -428,7 +428,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         
         // Update state with results
         setTotalCost(result.totalCost);
-        setBudgetBreakdown(result.costsBreakdown);
+        setBudgetBreakdown(result); // Store the entire result object
         setRawUnitCost(result.rawUnitCost || null);
         setAdjustedUnitCost(result.adjustedUnitCost || null);
         setAreaUnit(result.areaUnit || null);
@@ -1424,7 +1424,10 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           const area = state.project?.totalArea || 1;
                           const breakdown = budgetBreakdown?.costsBreakdown || {};
                           
-                          console.log("CBRE Breakdown Table - Using actual server breakdown:", breakdown);
+                          console.log("CBRE Breakdown Table - budgetBreakdown:", budgetBreakdown);
+                          console.log("CBRE Breakdown Table - breakdown:", breakdown);
+                          console.log("CBRE Breakdown Table - Object.keys(breakdown):", Object.keys(breakdown));
+                          console.log("CBRE Breakdown Table - breakdown entries:", Object.entries(breakdown));
                           
                           // Create component mapping for CBRE data using actual server breakdown
                           const componentDisplayMap = {
@@ -1450,25 +1453,90 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                             }
                           };
                           
-                          // Build component costs from actual server breakdown
-                          const cbreComponentCosts = Object.entries(breakdown)
-                            .filter(([key, value]) => componentDisplayMap[key] && value > 0)
-                            .map(([key, amount]) => {
-                              const config = componentDisplayMap[key];
-                              const rate = amount / area;
-                              const percentage = (amount / totalCost) * 100;
-                              
-                              console.log(`${key}: $${amount} = $${Math.round(rate)}/sqm (${percentage.toFixed(1)}%)`);
-                              
-                              return {
-                                name: config.displayName,
+                          // Build component costs from actual server breakdown with proper fallback
+                          let cbreComponentCosts = [];
+                          
+                          // First try to use actual server breakdown
+                          if (breakdown && Object.keys(breakdown).length > 0) {
+                            cbreComponentCosts = Object.entries(breakdown)
+                              .filter(([key, value]) => componentDisplayMap[key] && value > 0)
+                              .map(([key, amount]) => {
+                                const config = componentDisplayMap[key];
+                                const rate = amount / area;
+                                const percentage = (amount / totalCost) * 100;
+                                
+                                console.log(`${key}: $${amount} = $${Math.round(rate)}/sqm (${percentage.toFixed(1)}%)`);
+                                
+                                return {
+                                  name: config.displayName,
+                                  amount: amount,
+                                  rate: rate,
+                                  percentage: percentage,
+                                  color: config.color,
+                                  description: config.description
+                                };
+                              });
+                          } 
+                          
+                          // Fallback: use direct budget values if breakdown is empty
+                          if (cbreComponentCosts.length === 0 && totalCost > 0) {
+                            console.log("Using fallback calculation with individual budget values");
+                            
+                            const components = [];
+                            
+                            // Use individual cost values from budget state
+                            if (state.budget?.fitoutCost || budgetBreakdown?.fitoutCost) {
+                              const amount = state.budget?.fitoutCost || budgetBreakdown?.fitoutCost;
+                              components.push({
+                                name: "Construction Costs",
                                 amount: amount,
-                                rate: rate,
-                                percentage: percentage,
-                                color: config.color,
-                                description: config.description
-                              };
-                            });
+                                rate: amount / area,
+                                percentage: (amount / totalCost) * 100,
+                                color: "#3B82F6",
+                                description: "Partitions, flooring, ceilings, mechanical works, electrical systems"
+                              });
+                            }
+                            
+                            if (state.budget?.furnitureCost || budgetBreakdown?.furnitureCost) {
+                              const amount = state.budget?.furnitureCost || budgetBreakdown?.furnitureCost;
+                              components.push({
+                                name: "Furniture Costs",
+                                amount: amount,
+                                rate: amount / area,
+                                percentage: (amount / totalCost) * 100,
+                                color: "#10B981",
+                                description: "Desks, chairs, storage, meeting room furniture, workstations"
+                              });
+                            }
+                            
+                            if (state.budget?.technologyCost || budgetBreakdown?.technologyCost) {
+                              const amount = state.budget?.technologyCost || budgetBreakdown?.technologyCost;
+                              components.push({
+                                name: "Technology Costs",
+                                amount: amount,
+                                rate: amount / area,
+                                percentage: (amount / totalCost) * 100,
+                                color: "#F59E0B",
+                                description: "AV systems, displays, conferencing equipment, IT infrastructure"
+                              });
+                            }
+                            
+                            // Professional fees calculation (15% of other components)
+                            const otherTotal = components.reduce((sum, comp) => sum + comp.amount, 0);
+                            if (otherTotal > 0) {
+                              const professionalAmount = otherTotal * 0.15;
+                              components.push({
+                                name: "Professional Fees",
+                                amount: professionalAmount,
+                                rate: professionalAmount / area,
+                                percentage: (professionalAmount / totalCost) * 100,
+                                color: "#8B5CF6",
+                                description: "Design, project management, consulting, contract administration"
+                              });
+                            }
+                            
+                            cbreComponentCosts = components;
+                          }
                           
                           return cbreComponentCosts.map((data) => (
                             <div key={data.name} className="cost-row grid grid-cols-4 gap-6 py-4 border-b border-gray-100 hover:bg-gradient-to-r hover:from-gray-50 hover:to-green-50 transition-all duration-200 rounded-lg group">
