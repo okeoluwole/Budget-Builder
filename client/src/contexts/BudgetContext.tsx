@@ -45,7 +45,7 @@ type BudgetAction =
   | { type: 'UPDATE_SPECIFICATION'; payload: { specification: string; fitoutSpecification?: string | null; furnitureSpecification?: string | null; technologySpecification?: string | null } }
   | { type: 'UPDATE_TT_COMPONENT_SPECS'; payload: { construction?: string; looseFurniture?: string; audioVisual?: string; professionalFees?: string } }
   | { type: 'UPDATE_LAYOUT'; payload: string }
-  | { type: 'UPDATE_SPACE_ALLOCATION'; payload: SpaceAllocation }
+
   | { type: 'UPDATE_BUDGET_RESULTS'; payload: { totalCost: number; fitoutCost?: number; furnitureCost?: number; costsBreakdown: any } }
   | { type: 'UPDATE_DATA_SOURCE'; payload: { dataSource: DataSourceType; enableComparison: boolean; comparisonSources?: DataSourceType[] } }
   | { type: 'UPDATE_JLL_OPTIONS'; payload: { jllLayout: JLLLayout; jllQuality: JLLQuality } }
@@ -67,7 +67,7 @@ interface BudgetContextType {
     technologySpecification?: string | null
   ) => void;
   updateLayout: (layout: string) => void;
-  updateSpaceAllocation: (spaceAllocation: SpaceAllocation) => void;
+
   updateBudgetResults: (totalCost: number, fitoutCost?: number, furnitureCost?: number, costsBreakdown?: any) => void;
   updateDataSource: (dataSource: DataSourceType, enableComparison: boolean, comparisonSources?: DataSourceType[]) => void;
   updateJllOptions: (jllLayout: JLLLayout, jllQuality: JLLQuality) => void;
@@ -128,14 +128,7 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           layout: action.payload
         }
       };
-    case 'UPDATE_SPACE_ALLOCATION':
-      return {
-        ...state,
-        budget: {
-          ...(state.budget || {}),
-          spaceAllocation: action.payload
-        }
-      };
+
     case 'UPDATE_BUDGET_RESULTS':
       return {
         ...state,
@@ -209,7 +202,7 @@ const budgetReducer = (state: BudgetState, action: BudgetAction): BudgetState =>
           comparisonSources: action.payload.budget.comparisonSources || [],
           jllLayout: action.payload.budget.jllLayout,
           jllQuality: action.payload.budget.jllQuality,
-          spaceAllocation: action.payload.budget.spaceAllocation,
+
           totalCost: action.payload.budget.totalCost,
           fitoutCost: action.payload.budget.fitoutCost,
           furnitureCost: action.payload.budget.furnitureCost,
@@ -261,9 +254,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
     dispatch({ type: 'UPDATE_LAYOUT', payload: layout });
   }, []);
 
-  const updateSpaceAllocation = useCallback((spaceAllocation: SpaceAllocation) => {
-    dispatch({ type: 'UPDATE_SPACE_ALLOCATION', payload: spaceAllocation });
-  }, []);
+
 
   const updateBudgetResults = useCallback((totalCost: number, fitoutCost?: number, furnitureCost?: number, costsBreakdown?: any) => {
     dispatch({ 
@@ -370,10 +361,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
             status
           };
           
-          // Add JSON fields
-          if (state.budget.spaceAllocation) {
-            updateBudgetData['spaceAllocation'] = state.budget.spaceAllocation;
-          }
+
           
           if (state.budget.costsBreakdown) {
             updateBudgetData['costsBreakdown'] = state.budget.costsBreakdown;
@@ -414,10 +402,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
             status
           };
 
-          // Add non-schema fields as JSON
-          if (state.budget.spaceAllocation) {
-            budgetData['spaceAllocation'] = state.budget.spaceAllocation;
-          }
+
           
           if (state.budget.costsBreakdown) {
             budgetData['costsBreakdown'] = state.budget.costsBreakdown;
@@ -450,7 +435,7 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
       updateScope,
       updateSpecification, 
       updateLayout, 
-      updateSpaceAllocation, 
+ 
       updateBudgetResults,
       updateDataSource,
       updateJllOptions,

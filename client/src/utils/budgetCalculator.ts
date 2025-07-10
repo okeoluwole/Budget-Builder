@@ -364,9 +364,7 @@ export const calculateBudget = async ({
   }
   
   // If using JLL data source, we don't require space allocation initially
-  if (budget.primaryDataSource !== 'JLL' && (budget as any).primaryDataSource !== 'TT' && !budget.spaceAllocation) {
-    throw new Error('Space allocation is required for CBRE and MMC data sources');
-  }
+  // Note: Space allocation is now auto-generated for all data sources when not provided
 
   try {
     // Get the scope from the budget
@@ -643,18 +641,16 @@ export const calculateBudget = async ({
         'PROFESSIONAL FEES': Math.round(tt2025Result.breakdown.professionalFees * inflationMultiplier)
       };
       
-      // Add space allocation if not provided
-      if (!budget.spaceAllocation) {
-        budget.spaceAllocation = {
-          'Open workspace': { percentage: 55, area: project.totalArea * 0.55 },
-          'Meeting rooms': { percentage: 20, area: project.totalArea * 0.20 },
-          'Collaboration areas': { percentage: 15, area: project.totalArea * 0.15 },
-          'Support spaces': { percentage: 10, area: project.totalArea * 0.10 }
-        };
-      }
+      // Create default space allocation for cost breakdown
+      const defaultSpaceAllocation = {
+        'Open workspace': { percentage: 55, area: project.totalArea * 0.55 },
+        'Meeting rooms': { percentage: 20, area: project.totalArea * 0.20 },
+        'Collaboration areas': { percentage: 15, area: project.totalArea * 0.15 },
+        'Support spaces': { percentage: 10, area: project.totalArea * 0.10 }
+      };
       
       // Add space allocation costs to breakdown
-      const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, budget.spaceAllocation);
+      const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, defaultSpaceAllocation);
       Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {
         costsBreakdown[`SPACE: ${spaceName}`] = parseFloat(cost.toFixed(2));
       });
@@ -945,15 +941,8 @@ export const calculateBudget = async ({
       }
     }
     
-    // We can add space allocation breakdown for reference
-    if (budget.spaceAllocation) {
-      const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, budget.spaceAllocation);
-      
-      // Add space type costs for reference 
-      Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {
-        costsBreakdown[`SPACE: ${spaceName}`] = parseFloat(cost.toFixed(2));
-      });
-    } else if (budget.primaryDataSource === 'JLL') {
+    // Create default space allocation breakdown for all data sources
+    if (budget.primaryDataSource === 'JLL') {
       // For JLL, we create a simplified space allocation based on the JLL layout
       // This ensures the budget results don't depend on actual space allocation
       let defaultJllAllocation: SpaceAllocation = {};
@@ -982,6 +971,21 @@ export const calculateBudget = async ({
       }
       
       const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, defaultJllAllocation);
+      
+      // Add space type costs for reference 
+      Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {
+        costsBreakdown[`SPACE: ${spaceName}`] = parseFloat(cost.toFixed(2));
+      });
+    } else {
+      // For other data sources (CBRE, MMC), create a standard default allocation
+      const defaultStandardAllocation: SpaceAllocation = {
+        'Open workspace': { percentage: 50, area: project.totalArea * 0.50 },
+        'Meeting rooms': { percentage: 25, area: project.totalArea * 0.25 },
+        'Focus areas': { percentage: 15, area: project.totalArea * 0.15 },
+        'Support spaces': { percentage: 10, area: project.totalArea * 0.10 }
+      };
+      
+      const spaceAllocationCosts = calculateSpaceAllocationCosts(totalCost, defaultStandardAllocation);
       
       // Add space type costs for reference 
       Object.entries(spaceAllocationCosts).forEach(([spaceName, cost]) => {

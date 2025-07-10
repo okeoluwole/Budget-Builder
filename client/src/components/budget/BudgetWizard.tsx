@@ -6,8 +6,8 @@ import ProjectSetupStep from './ProjectSetupStep';
 import DataSourceStep from './DataSourceStep';
 import ScopeSelectionStep from './ScopeSelectionStep';
 import SpecificationStep from './SpecificationStep';
-import LayoutStep from './LayoutStep';
-import SpaceAllocationStep from './SpaceAllocationStep';
+
+
 import BudgetResultsStep from './BudgetResultsStep';
 import JllOptionsStep from './JllOptionsStep';
 import TTRegionSelectionStep from './TTRegionSelectionStep';
@@ -23,9 +23,8 @@ type Step =
   | 'datasource' 
   | 'scope' 
   | 'specification' 
-  | 'layout' 
+ 
   | 'jllOptions' 
-  | 'space' 
   | 'results'
   | 'ttRegion'
   | 'ttCountry'
@@ -54,13 +53,13 @@ const BudgetWizard: React.FC = () => {
     { id: 'project', title: 'Project Setup', description: 'Basic project information' },
     { id: 'scope', title: 'Scope Selection', description: 'Choose budget scope' },
     { id: 'specification', title: 'Specification', description: 'Select quality level' },
-    { id: 'layout', title: 'Layout', description: 'Select space layout' },
+
     { id: 'jllOptions', title: 'JLL Options', description: 'JLL-specific configuration' },
     { id: 'ttRegion', title: 'T&T Region', description: 'Select global region' },
     { id: 'ttCountry', title: 'T&T Country', description: 'Select country' },
     { id: 'ttCity', title: 'T&T City', description: 'Select city' },
 
-    { id: 'space', title: 'Space Allocation', description: 'Define space usage' },
+
     { id: 'results', title: 'Budget Results', description: 'Review and export' },
   ];
   
@@ -94,15 +93,16 @@ const BudgetWizard: React.FC = () => {
       console.log('T&T selected - Using T&T steps (no layout/space):', ttSteps.map(s => s.id).join(' → '));
       setSteps(ttSteps);
     } else {
-      // For other data sources, use standard steps without JLL or T&T specific options
+      // For other data sources (CBRE, MMC), use standard steps without layout and space allocation
       const standardSteps = initialSteps.filter(step => 
         step.id !== 'jllOptions' && 
         step.id !== 'ttBuildingType' &&
         step.id !== 'ttRegion' &&
         step.id !== 'ttCountry' &&
-        step.id !== 'ttCity'
+        step.id !== 'ttCity' &&
+        step.id !== 'layout'
       );
-      console.log('Standard data source - Using steps:', standardSteps.map(s => s.id).join(' → '));
+      console.log('Standard data source - Using steps (no layout/space):', standardSteps.map(s => s.id).join(' → '));
       setSteps(standardSteps);
     }
   }, [selectedDataSource]);
@@ -200,8 +200,7 @@ const BudgetWizard: React.FC = () => {
         return <ScopeSelectionStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       case 'specification':
         return <SpecificationStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
-      case 'layout':
-        return <LayoutStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
+
       case 'jllOptions':
         return (
           <JllOptionsStep 
@@ -245,8 +244,7 @@ const BudgetWizard: React.FC = () => {
           />
         );
 
-      case 'space':
-        return <SpaceAllocationStep onNext={goToNextStep} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
+
       case 'results':
         return <BudgetResultsStep onFinish={handleFinish} onBack={goToPreviousStep} onSaveAsDraft={handleSaveAsDraft} />;
       default:
