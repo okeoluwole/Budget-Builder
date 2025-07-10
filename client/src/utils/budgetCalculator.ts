@@ -344,12 +344,26 @@ export const calculateBudget = async ({
   let costsBreakdown: { [key: string]: number } = {};
   
   // Check required parameters based on data source
+  console.log('Budget calculation params check:', {
+    project: !!project,
+    budget: !!budget,
+    specification: budget?.specification,
+    layout: budget?.layout,
+    primaryDataSource: (budget as any)?.primaryDataSource
+  });
+  
   if (!project || !budget || !budget.specification) {
-    throw new Error('Missing required budget parameters');
+    console.error('Missing required parameters:', {
+      project: !!project,
+      budget: !!budget,
+      specification: budget?.specification
+    });
+    throw new Error('Missing required budget parameters: project, budget, or specification');
   }
   
   // T&T doesn't require layout parameter (it uses specification only)
   if ((budget as any).primaryDataSource !== 'TT' && !budget.layout) {
+    console.error('Layout is required for non-T&T data sources. Current data source:', (budget as any).primaryDataSource);
     throw new Error('Layout is required for non-T&T data sources');
   }
   
@@ -369,9 +383,12 @@ export const calculateBudget = async ({
   try {
     // Get the scope from the budget
     const scope = budget.scope || 'Fitout';
-    console.log(`Calculating budget for scope: ${scope}`);
-    console.log('Budget object:', JSON.stringify(budget, null, 2)); // Debug budget object
-    console.log('Using data source:', budget.primaryDataSource || 'CBRE'); // Log selected data source
+    console.log(`=== BUDGET CALCULATION START ===`);
+    console.log(`Scope: ${scope}`);
+    console.log(`Data source: ${(budget as any).primaryDataSource || 'CBRE'}`);
+    console.log(`Specification: ${budget.specification}`);
+    console.log(`Layout: ${budget.layout}`);
+    console.log(`Project: ${project.city}, ${project.country}, ${project.totalArea} ${project.areaUnit}`);
     
     // Handle T&T data source calculation
     if ((budget as any).primaryDataSource === 'TT') {

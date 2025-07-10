@@ -402,9 +402,13 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         updateBudgetResults(calculatedTotalCost, fitoutCost, furnitureCost, costsBreakdown);
       } catch (error) {
         console.error('Error calculating budget:', error);
+        console.error('Error stack:', error.stack);
+        console.error('Error message:', error.message);
+        console.error('Project data:', state.project);
+        console.error('Budget data:', state.budget);
         toast({
           title: "Budget calculation error",
-          description: "There was an error calculating your budget. Please check your inputs and try again.",
+          description: `There was an error calculating your budget: ${error.message}. Please check your inputs and try again.`,
           variant: "destructive",
         });
       } finally {
