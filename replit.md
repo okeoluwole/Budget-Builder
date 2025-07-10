@@ -102,6 +102,7 @@ This is a comprehensive fit-out budget estimation application that helps constru
 ## Changelog
 
 Changelog:
+- July 10, 2025. Budget Configuration Visual Accuracy - Fixed component count logic to dynamically display correct number based on selected scope (1, 2, or 4 components). Removed redundant export options (Presentation Slides, Share Link). Updated export functions to calculate components dynamically ensuring perfect alignment between budget display and exported reports.
 - July 10, 2025. Space Allocation Stage Removal - Completely removed the Space Allocation workflow step from budget creation process. Updated workflow to proceed directly from Specification to Budget Results. Auto-generates default space allocations for cost breakdown visualization without requiring user input.
 - June 14, 2025. Initial setup
 
