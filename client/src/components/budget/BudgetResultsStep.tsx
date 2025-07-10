@@ -318,11 +318,23 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
 
       try {
         setCalculatingBudget(true);
-        console.log("Starting budget calculation with project data:", {
-          country: state.project.country,
-          city: state.project.city,
-          layout: state.budget.layout,
-          specification: state.budget.specification
+        console.log("Starting budget calculation with complete data:", {
+          project: {
+            country: state.project.country,
+            city: state.project.city,
+            totalArea: state.project.totalArea,
+            areaUnit: state.project.areaUnit,
+            currency: state.project.currency
+          },
+          budget: {
+            layout: state.budget.layout,
+            specification: state.budget.specification,
+            scope: state.budget.scope,
+            primaryDataSource: state.budget.primaryDataSource,
+            fitoutSpecification: state.budget.fitoutSpecification,
+            furnitureSpecification: state.budget.furnitureSpecification,
+            technologySpecification: state.budget.technologySpecification
+          }
         });
         
         // Make sure we have all required properties for project

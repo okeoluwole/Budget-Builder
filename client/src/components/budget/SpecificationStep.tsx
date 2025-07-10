@@ -509,7 +509,7 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
     const relevantComponents = componentsConfig.filter(comp => {
       if (state.budget?.scope === 'Construction') return comp.key === 'construction';
       if (state.budget?.scope === 'LooseFurniture') return comp.key === 'looseFurniture';
-      if (state.budget?.scope === 'AudioVisual') return comp.key === 'audioVisual';
+      if (state.budget?.scope === 'technology' || state.budget?.scope === 'AudioVisual') return comp.key === 'audioVisual';
       if (state.budget?.scope === 'ProfessionalFees') return comp.key === 'professionalFees';
       return true; // Show all for Complete package
     });
@@ -586,9 +586,7 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
       return renderSpecificationSection('Fitout');
     } else if (state.budget?.scope === 'Furniture') {
       return renderSpecificationSection('Furniture');
-    } else if (state.budget?.scope === 'Technology') {
-      return renderTechnologySpecificationSection();
-    } else if (state.budget?.scope === 'AudioVisual') {
+    } else if (state.budget?.scope === 'technology' || state.budget?.scope === 'Technology' || state.budget?.scope === 'AudioVisual') {
       return renderTechnologySpecificationSection();
     } else if (state.budget?.scope === 'Complete') {
       // For Complete Package, show all three sections

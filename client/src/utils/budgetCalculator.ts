@@ -408,7 +408,7 @@ export const calculateBudget = async ({
           ttScope = 'Construction';
         } else if (budget.scope === 'LooseFurniture') {
           ttScope = 'LooseFurniture'; 
-        } else if (budget.scope === 'AudioVisual') {
+        } else if (budget.scope === 'technology' || budget.scope === 'AudioVisual') {
           ttScope = 'AudioVisual';
         } else if (budget.scope === 'ProfessionalFees') {
           ttScope = 'ProfessionalFees';
@@ -769,7 +769,7 @@ export const calculateBudget = async ({
       let technologyCost = 0;
       let professionalFeesCost = 0;
       
-      if (scope === 'AudioVisual' || scope === 'Complete') {
+      if (scope === 'technology' || scope === 'AudioVisual' || scope === 'Complete') {
         // Use CBRE technology specification if available, otherwise fall back to main specification
         const technologySpec = (budget as any).technologySpecification || budget.specification;
         
@@ -818,7 +818,7 @@ export const calculateBudget = async ({
         totalCost = fitoutCost;
       } else if (scope === 'Furniture') {
         totalCost = furnitureCost;
-      } else if (scope === 'AudioVisual') {
+      } else if (scope === 'technology' || scope === 'AudioVisual') {
         totalCost = technologyCost;
       } else if (scope === 'Complete') {
         totalCost = fitoutCost + furnitureCost + technologyCost + professionalFeesCost;
@@ -835,8 +835,8 @@ export const calculateBudget = async ({
       rawUnitCost = fitoutCost / project.totalArea;
     } else if (scope === 'Furniture') {
       rawUnitCost = furnitureCost / project.totalArea;
-    } else if (scope === 'AudioVisual') {
-      // For AudioVisual scope, totalCost is the technology cost
+    } else if (scope === 'technology' || scope === 'AudioVisual') {
+      // For technology scope, totalCost is the technology cost
       rawUnitCost = totalCost / project.totalArea;
     } else {
       // Fallback for other scopes
@@ -938,8 +938,8 @@ export const calculateBudget = async ({
         costsBreakdown['FURNITURE COSTS'] = parseFloat(furnitureCost.toFixed(2));
       }
       
-      if (scope === 'AudioVisual') {
-        // For AudioVisual scope, totalCost is the technology cost
+      if (scope === 'technology' || scope === 'AudioVisual') {
+        // For technology scope, totalCost is the technology cost
         costsBreakdown['TECHNOLOGY COSTS'] = parseFloat(totalCost.toFixed(2));
       }
       

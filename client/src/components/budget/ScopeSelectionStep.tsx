@@ -123,7 +123,7 @@ const ScopeSelectionStep: React.FC<ScopeSelectionStepProps> = ({ onNext, onBack,
       ]
     },
     {
-      value: 'AudioVisual',
+      value: 'technology',
       title: 'Technology Only',
       description: 'Focus exclusively on AV, IT, and technology infrastructure elements.',
       icon: <Monitor className="h-8 w-8 text-purple-500" />,
