@@ -311,41 +311,56 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
   useEffect(() => {
     const performBudgetCalculation = async () => {
       // Check if we have necessary data and budget template is loaded
-      if (!state.project || !state.budget || loading || budgetTemplateStructure.length === 0) return;
+      if (!state.project || !state.budget || loading || budgetTemplateStructure.length === 0) {
+        console.log('Budget calculation skipped: missing required data', {
+          hasProject: !!state.project,
+          hasBudget: !!state.budget,
+          loading,
+          hasTemplate: budgetTemplateStructure.length > 0
+        });
+        return;
+      }
       
       // Check if we already have results to avoid recalculating unnecessarily
-      if (totalCost !== null && budgetBreakdown !== null) return;
+      if (totalCost !== null && budgetBreakdown !== null) {
+        console.log('Budget calculation skipped: results already exist');
+        return;
+      }
 
       try {
         setCalculatingBudget(true);
-        console.log("Starting budget calculation with complete data:", {
-          project: {
-            country: state.project.country,
-            city: state.project.city,
-            totalArea: state.project.totalArea,
-            areaUnit: state.project.areaUnit,
-            currency: state.project.currency
-          },
-          budget: {
-            layout: state.budget.layout,
-            specification: state.budget.specification,
-            scope: state.budget.scope,
-            primaryDataSource: state.budget.primaryDataSource,
-            fitoutSpecification: state.budget.fitoutSpecification,
-            furnitureSpecification: state.budget.furnitureSpecification,
-            technologySpecification: state.budget.technologySpecification
-          }
+        console.log("=== STARTING BUDGET CALCULATION ===");
+        console.log("Project data:", {
+          country: state.project.country,
+          city: state.project.city,
+          totalArea: state.project.totalArea,
+          areaUnit: state.project.areaUnit,
+          currency: state.project.currency
+        });
+        console.log("Budget data:", {
+          layout: state.budget.layout,
+          specification: state.budget.specification,
+          scope: state.budget.scope,
+          primaryDataSource: state.budget.primaryDataSource,
+          fitoutSpecification: state.budget.fitoutSpecification,
+          furnitureSpecification: state.budget.furnitureSpecification,
+          technologySpecification: state.budget.technologySpecification
         });
         
-        // Make sure we have all required properties for project
-        if (!state.project || !state.budget) {
-          throw new Error("Missing project or budget data");
+        // Validate required project fields
+        if (!state.project.country || !state.project.city || !state.project.totalArea) {
+          throw new Error(`Missing required project data: country=${!!state.project.country}, city=${!!state.project.city}, area=${!!state.project.totalArea}`);
+        }
+        
+        // Validate required budget fields
+        if (!state.budget.specification) {
+          throw new Error('Missing budget specification');
         }
         
         // Calculate the budget - using savedProject if available, otherwise create a Project from InsertProject
         const projectForCalculation = state.savedProject || {
           id: 0, // Temporary ID for calculation
-          name: state.project.name,
+          name: state.project.name || 'Test Project',
           reference: state.project.reference || null,
           country: state.project.country,
           city: state.project.city,
@@ -359,68 +374,98 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           updatedAt: new Date()
         };
         
-        const { 
-          totalCost: calculatedTotalCost, 
-          costsBreakdown,
-          rawUnitCost: calcRawUnitCost,
-          adjustedUnitCost: calcAdjustedUnitCost,
-          areaUnit: calcAreaUnit,
-          datasetInfo: calcDatasetInfo,
-          localCurrencyCode: calcLocalCurrencyCode,
-          localCurrencyRate: calcLocalCurrencyRate,
-          localCurrencyTotalCost: calcLocalCurrencyTotalCost,
-          localCurrencyCostsBreakdown: calcLocalCurrencyCostsBreakdown
-        } = await calculateBudget({
+        // Prepare budget with required defaults
+        const budgetForCalculation = {
+          ...state.budget,
+          primaryDataSource: state.budget.primaryDataSource || 'CBRE',
+          specification: state.budget.specification || 'Medium',
+          layout: state.budget.layout || 'Activity',
+          scope: state.budget.scope || 'Fitout',
+          spaceAllocation: state.budget.spaceAllocation || {
+            'Open workspace': { percentage: 50, area: projectForCalculation.totalArea * 0.5 },
+            'Meeting rooms': { percentage: 25, area: projectForCalculation.totalArea * 0.25 },
+            'Focus areas': { percentage: 15, area: projectForCalculation.totalArea * 0.15 },
+            'Support spaces': { percentage: 10, area: projectForCalculation.totalArea * 0.1 }
+          }
+        };
+        
+        console.log("Prepared calculation data:", {
           project: projectForCalculation,
-          budget: state.budget,
+          budget: budgetForCalculation,
+          budgetStructure: budgetTemplateStructure.length
+        });
+        
+        const result = await calculateBudget({
+          project: projectForCalculation,
+          budget: budgetForCalculation,
           budgetStructure: budgetTemplateStructure
         });
         
+        console.log("Budget calculation result:", result);
+        
+        // Validate calculation result
+        if (!result || typeof result.totalCost !== 'number' || result.totalCost <= 0) {
+          throw new Error(`Invalid calculation result: totalCost=${result?.totalCost}`);
+        }
+        
         console.log("Budget calculation complete:", { 
-          totalCost: calculatedTotalCost,
-          rawUnitCost: calcRawUnitCost,
-          adjustedUnitCost: calcAdjustedUnitCost,
-          datasetInfo: calcDatasetInfo,
-          localCurrencyCode: calcLocalCurrencyCode,
-          localCurrencyRate: calcLocalCurrencyRate
+          totalCost: result.totalCost,
+          fitoutCost: result.fitoutCost,
+          furnitureCost: result.furnitureCost,
+          costsBreakdown: result.costsBreakdown,
+          rawUnitCost: result.rawUnitCost,
+          adjustedUnitCost: result.adjustedUnitCost,
+          datasetInfo: result.datasetInfo
         });
         
-        setTotalCost(calculatedTotalCost);
-        setBudgetBreakdown(costsBreakdown);
-        
-        // Set unit cost information
-        if (calcRawUnitCost) setRawUnitCost(calcRawUnitCost);
-        if (calcAdjustedUnitCost) setAdjustedUnitCost(calcAdjustedUnitCost);
-        if (calcAreaUnit) setAreaUnit(calcAreaUnit);
-        if (calcDatasetInfo) setDatasetInfo(calcDatasetInfo);
+        // Update state with results
+        setTotalCost(result.totalCost);
+        setBudgetBreakdown(result.costsBreakdown);
+        setRawUnitCost(result.rawUnitCost || null);
+        setAdjustedUnitCost(result.adjustedUnitCost || null);
+        setAreaUnit(result.areaUnit || null);
+        setDatasetInfo(result.datasetInfo || null);
         
         // Set local currency info if available from calculation
-        if (calcLocalCurrencyCode) setLocalCurrencyCode(calcLocalCurrencyCode);
-        if (calcLocalCurrencyRate) setLocalCurrencyRate(calcLocalCurrencyRate);
-        if (calcLocalCurrencyTotalCost) setLocalCurrencyTotalCost(calcLocalCurrencyTotalCost);
-        if (calcLocalCurrencyCostsBreakdown) setLocalCurrencyCostsBreakdown(calcLocalCurrencyCostsBreakdown);
+        if (result.localCurrencyCode) setLocalCurrencyCode(result.localCurrencyCode);
+        if (result.localCurrencyRate) setLocalCurrencyRate(result.localCurrencyRate);
+        if (result.localCurrencyTotalCost) setLocalCurrencyTotalCost(result.localCurrencyTotalCost);
+        if (result.localCurrencyCostsBreakdown) setLocalCurrencyCostsBreakdown(result.localCurrencyCostsBreakdown);
         
-        // Update context with results - properly pass the fitout and furniture costs
-        const fitoutCost = costsBreakdown['FITOUT COSTS']; 
-        const furnitureCost = costsBreakdown['FURNITURE COSTS'];
+        // Update context with results
+        updateBudgetResults(
+          result.totalCost,
+          result.fitoutCost,
+          result.furnitureCost,
+          result.costsBreakdown
+        );
         
-        console.log("Updating budget results with:", { 
-          totalCost: calculatedTotalCost,
-          fitoutCost,
-          furnitureCost,
-          costsBreakdown
-        });
+        console.log("=== BUDGET CALCULATION COMPLETE ===");
         
-        updateBudgetResults(calculatedTotalCost, fitoutCost, furnitureCost, costsBreakdown);
       } catch (error) {
-        console.error('Error calculating budget:', error);
-        console.error('Error stack:', error.stack);
-        console.error('Error message:', error.message);
+        console.error('=== BUDGET CALCULATION ERROR ===');
+        console.error('Error:', error);
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
         console.error('Project data:', state.project);
         console.error('Budget data:', state.budget);
+        
+        // Show detailed error message based on error type
+        let errorMessage = 'Could not calculate budget';
+        if (error instanceof Error) {
+          if (error.message.includes('Missing required project data')) {
+            errorMessage = 'Missing project information. Please check that location and area are specified.';
+          } else if (error.message.includes('Missing budget specification')) {
+            errorMessage = 'Missing specification level. Please select a specification level.';
+          } else if (error.message.includes('Invalid calculation result')) {
+            errorMessage = 'Budget calculation returned invalid results. Please check your data source settings.';
+          } else {
+            errorMessage = `Calculation error: ${error.message}`;
+          }
+        }
+        
         toast({
           title: "Budget calculation error",
-          description: `There was an error calculating your budget: ${error.message}. Please check your inputs and try again.`,
+          description: errorMessage,
           variant: "destructive",
         });
       } finally {

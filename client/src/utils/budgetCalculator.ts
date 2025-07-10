@@ -376,7 +376,12 @@ export const calculateBudget = async ({
   // Provide default space allocation for all data sources when not specified
   if (!budget.spaceAllocation) {
     console.log('No space allocation specified, using default allocation');
-    budget.spaceAllocation = { 'Total Project Area': { percentage: 100, area: project.totalArea || 1000 } };
+    budget.spaceAllocation = {
+      'Open workspace': { percentage: 50, area: (project.totalArea || 1000) * 0.5 },
+      'Meeting rooms': { percentage: 25, area: (project.totalArea || 1000) * 0.25 },
+      'Focus areas': { percentage: 15, area: (project.totalArea || 1000) * 0.15 },
+      'Support spaces': { percentage: 10, area: (project.totalArea || 1000) * 0.1 }
+    };
   }
 
   try {

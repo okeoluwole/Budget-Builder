@@ -355,6 +355,13 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
               state.budget.isComparisonEnabled : 
               state.savedBudget.isComparisonEnabled || false,
             comparisonSources: state.budget.comparisonSources || [],
+            // Provide default space allocation if not present
+            spaceAllocation: state.savedBudget.spaceAllocation || {
+              'Open workspace': { percentage: 50, area: (project.totalArea || 1000) * 0.5 },
+              'Meeting rooms': { percentage: 25, area: (project.totalArea || 1000) * 0.25 },
+              'Focus areas': { percentage: 15, area: (project.totalArea || 1000) * 0.15 },
+              'Support spaces': { percentage: 10, area: (project.totalArea || 1000) * 0.1 }
+            },
             fitoutCost: state.budget.fitoutCost !== undefined ? state.budget.fitoutCost : state.savedBudget.fitoutCost,
             furnitureCost: state.budget.furnitureCost !== undefined ? state.budget.furnitureCost : state.savedBudget.furnitureCost,
             totalCost: state.budget.totalCost !== undefined ? state.budget.totalCost : state.savedBudget.totalCost,
@@ -396,6 +403,13 @@ export const BudgetProvider: React.FC<BudgetProviderProps> = ({ children }) => {
             primaryDataSource: state.budget.primaryDataSource || 'CBRE',
             isComparisonEnabled: state.budget.isComparisonEnabled || false,
             comparisonSources: state.budget.comparisonSources || [],
+            // Provide default space allocation since we removed the Space Allocation step
+            spaceAllocation: {
+              'Open workspace': { percentage: 50, area: (project.totalArea || 1000) * 0.5 },
+              'Meeting rooms': { percentage: 25, area: (project.totalArea || 1000) * 0.25 },
+              'Focus areas': { percentage: 15, area: (project.totalArea || 1000) * 0.15 },
+              'Support spaces': { percentage: 10, area: (project.totalArea || 1000) * 0.1 }
+            },
             fitoutCost: state.budget.fitoutCost,
             furnitureCost: state.budget.furnitureCost,
             totalCost: state.budget.totalCost,
