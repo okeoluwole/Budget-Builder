@@ -1,0 +1,93 @@
+Phase 5: Validation and Integration
+Step 9: Validate Against Display
+9. Compare extracted rates with what's currently displayed:
+
+   function validateAgainstCurrentDisplay(extractedRates) {
+       console.log("=== STEP 9: VALIDATING AGAINST CURRENT DISPLAY ===");
+       
+       // Get what's currently displayed for Nigeria Event
+       const currentDisplay = {
+           technology: 203, // From the image shown: US$203/sqm
+           construction: 1558,
+           furniture: 271,
+           professionalFees: 105
+       };
+       
+       console.log("Currently displayed rates:", currentDisplay);
+       console.log("Extracted Technology rates:", extractedRates);
+       
+       // Check if any of our extracted rates match
+       const matches = {
+           low: Math.abs(extractedRates.low - currentDisplay.technology) < 1,
+           medium: Math.abs(extractedRates.medium - currentDisplay.technology) < 1,
+           high: Math.abs(extractedRates.high - currentDisplay.technology) < 1
+       };
+       
+       console.log("Rate matches:", matches);
+       
+       if (!matches.low && !matches.medium && !matches.high) {
+           console.error("❌ NONE of the extracted rates match the displayed rate!");
+           console.error("This confirms the extraction is incorrect.");
+       } else {
+           console.log("✅ Found matching rate(s)");
+       }
+       
+       return matches;
+   }
+   
+   // Execute validation
+   const validation = validateAgainstCurrentDisplay(nigeriaEventTest);
+Step 10: Final Verification and Next Steps
+10. Provide clear next steps based on results:
+
+    function provideFinalReport() {
+        console.log("=== STEP 10: FINAL VERIFICATION REPORT ===");
+        
+        console.log("\n📋 DEBUGGING SUMMARY:");
+        console.log("1. File Access:", fileAccess ? "✅ Success" : "❌ Failed");
+        console.log("2. Workbook Structure:", structures ? "✅ Success" : "❌ Failed");
+        console.log("3. Tech File Reading:", techData ? "✅ Success" : "❌ Failed");
+        console.log("4. Nigeria Search:", nigeriaInTech ? "✅ Found" : "❌ Not Found");
+        console.log("5. Manual Extraction:", nigeriaEventRates ? "✅ Success" : "❌ Failed");
+        console.log("6. All Files Test:", allNigeriaData ? "✅ Success" : "❌ Failed");
+        console.log("7. Basic Function:", getRate ? "✅ Created" : "❌ Failed");
+        console.log("8. Nigeria Event Test:", nigeriaEventTest ? "✅ Success" : "❌ Failed");
+        console.log("9. Display Validation:", validation ? "✅ Complete" : "❌ Failed");
+        
+        if (nigeriaEventTest && validation) {
+            console.log("\n🎯 EXTRACTED RATES FOR NIGERIA EVENT:");
+            console.log(`Low: ${nigeriaEventTest.low}`);
+            console.log(`Medium: ${nigeriaEventTest.medium}`);
+            console.log(`High: ${nigeriaEventTest.high}`);
+            
+            console.log("\n🔍 RATE ANALYSIS:");
+            if (validation.medium) {
+                console.log("✅ Medium rate matches display - use Medium specification");
+            } else if (validation.low) {
+                console.log("✅ Low rate matches display - use Low specification");
+            } else if (validation.high) {
+                console.log("✅ High rate matches display - use High specification");
+            } else {
+                console.log("❌ No extracted rates match display - data extraction failed");
+            }
+        }
+        
+        console.log("\n🔧 NEXT STEPS:");
+        console.log("1. Fix the rate extraction function based on test results");
+        console.log("2. Apply the working extraction to all components");
+        console.log("3. Test with other locations to ensure consistency");
+        console.log("4. Replace the current broken extraction in the live system");
+    }
+    
+    // Generate final report
+    provideFinalReport();
+Success Criteria:
+
+All 10 steps execute without errors
+Nigeria/Abuja data is found in the source files
+Technology rates are successfully extracted for Low/Medium/High
+At least one extracted rate matches the displayed rate of US$203/sqm
+Clear identification of which specification level corresponds to the displayed rate
+
+Priority: CRITICAL - This systematic approach will identify exactly where the extraction is failing and provide the foundation for fixing it.
+Execute these steps ONE AT A TIME. Do not proceed to the next step until the current step is working correctly.
