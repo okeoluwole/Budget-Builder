@@ -1069,48 +1069,54 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                               }
                             } else {
                               // CBRE specifications - Use actual breakdown values from server response
-                              const breakdown = budgetBreakdown || {};
-                              console.log("CBRE Component Specs - Using breakdown:", breakdown);
+                              const breakdown = budgetBreakdown?.costsBreakdown || {};
+                              console.log("CBRE Component Specs - budgetBreakdown:", budgetBreakdown);
+                              console.log("CBRE Component Specs - breakdown:", breakdown);
+                              console.log("CBRE Component Specs - scope:", scope);
                               
-                              if ((scope === 'Fitout' || scope === 'Complete Package' || scope === 'Both') && breakdown['FITOUT COSTS']) {
-                                const fitoutSpec = state.budget?.fitoutSpecification || state.budget?.specification || 'Medium';
+                              // Check for FITOUT COSTS component
+                              if (breakdown['FITOUT COSTS']) {
+                                const fitoutSpec = state.budget?.specification || 'High (Gold)';
                                 const fitoutRate = Math.round(breakdown['FITOUT COSTS'] / area);
                                 console.log("Fitout rate calculation:", breakdown['FITOUT COSTS'], "÷", area, "=", fitoutRate);
                                 componentSpecs.push({
-                                  name: 'Fitout Construction',
+                                  name: 'Construction Costs',
                                   specification: getSpecificationDisplay(fitoutSpec),
                                   rate: `US$${fitoutRate}/sqm`
                                 });
                               }
                               
-                              if ((scope === 'Furniture' || scope === 'Complete Package' || scope === 'Both') && breakdown['FURNITURE COSTS']) {
-                                const furnitureSpec = state.budget?.furnitureSpecification || state.budget?.specification || 'Medium';
+                              // Check for FURNITURE COSTS component
+                              if (breakdown['FURNITURE COSTS']) {
+                                const furnitureSpec = state.budget?.specification || 'High (Gold)';
                                 const furnitureRate = Math.round(breakdown['FURNITURE COSTS'] / area);
                                 console.log("Furniture rate calculation:", breakdown['FURNITURE COSTS'], "÷", area, "=", furnitureRate);
                                 componentSpecs.push({
-                                  name: 'Furniture',
+                                  name: 'Furniture Costs',
                                   specification: getSpecificationDisplay(furnitureSpec),
                                   rate: `US$${furnitureRate}/sqm`
                                 });
                               }
                               
-                              if ((scope === 'Technology' || scope === 'AudioVisual' || scope === 'Complete Package') && breakdown['TECHNOLOGY COSTS']) {
-                                const technologySpec = state.budget?.technologySpecification || state.budget?.specification || 'Medium';
+                              // Check for TECHNOLOGY COSTS component
+                              if (breakdown['TECHNOLOGY COSTS']) {
+                                const technologySpec = state.budget?.specification || 'High (Gold)';
                                 const technologyRate = Math.round(breakdown['TECHNOLOGY COSTS'] / area);
                                 console.log("Technology rate calculation:", breakdown['TECHNOLOGY COSTS'], "÷", area, "=", technologyRate);
                                 componentSpecs.push({
-                                  name: 'Technology',
+                                  name: 'Technology Costs',
                                   specification: getSpecificationDisplay(technologySpec),
                                   rate: `US$${technologyRate}/sqm`
                                 });
                               }
                               
-                              if (scope === 'Complete Package' && breakdown['PROFESSIONAL FEES']) {
+                              // Check for PROFESSIONAL FEES component
+                              if (breakdown['PROFESSIONAL FEES']) {
                                 const professionalRate = Math.round(breakdown['PROFESSIONAL FEES'] / area);
                                 console.log("Professional fees rate calculation:", breakdown['PROFESSIONAL FEES'], "÷", area, "=", professionalRate);
                                 componentSpecs.push({
                                   name: 'Professional Fees',
-                                  specification: 'Standard',
+                                  specification: '15% of other components',
                                   rate: `US$${professionalRate}/sqm`
                                 });
                               }
