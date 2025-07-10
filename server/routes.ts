@@ -169,6 +169,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Budgets
+  app.get('/api/budgets', async (req, res) => {
+    try {
+      const budgets = await storage.getAllBudgets();
+      res.json(budgets);
+    } catch (error) {
+      console.error('Error fetching budgets:', error);
+      res.status(500).json({ message: 'Failed to fetch budgets' });
+    }
+  });
+
   app.get('/api/projects/:projectId/budgets', async (req, res) => {
     try {
       const budgets = await storage.getBudgetsByProject(parseInt(req.params.projectId));
