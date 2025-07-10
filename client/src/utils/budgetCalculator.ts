@@ -601,8 +601,8 @@ export const calculateBudget = async ({
     } else {
       // Standard calculation for other data sources (CBRE, MMC)
     
-      // Calculate fitout costs if scope is 'Fitout' or 'Both'
-      if (scope === 'Fitout' || scope === 'Both') {
+      // Calculate fitout costs if scope is 'Fitout', 'Both', or 'Complete'
+      if (scope === 'Fitout' || scope === 'Both' || scope === 'Complete') {
         // Use cached data if available, otherwise fetch from API
         let fitoutCostsData: FitoutCostData[];
         if (cachedFitoutCostsData) {
@@ -646,8 +646,8 @@ export const calculateBudget = async ({
           : fitoutAreaCost;
       }
       
-      // Calculate furniture costs if scope is 'Furniture' or 'Both'
-      if (scope === 'Furniture' || scope === 'Both') {
+      // Calculate furniture costs if scope is 'Furniture', 'Both', or 'Complete'
+      if (scope === 'Furniture' || scope === 'Both' || scope === 'Complete') {
         // Use cached data if available, otherwise fetch from API
         let furnitureCostsData: FurnitureCostData[];
         if (cachedFurnitureCostsData) {
@@ -691,49 +691,71 @@ export const calculateBudget = async ({
           : furnitureAreaCost;
       }
       
+      // Add technology/audiovisual costs if scope includes it
+      let technologyCost = 0;
+      let professionalFeesCost = 0;
+      
+      if (scope === 'AudioVisual' || scope === 'Complete') {
+        // For CBRE AudioVisual scope, use T&T data temporarily until CBRE technology data is available
+        // Use a conservative estimate based on T&T AudioVisual rates
+        try {
+          const ttAudioVisualResult = calculateTT2025Budget(
+            project.country,
+            project.city,
+            (budget.specification === 'Bronze' ? 'Low' : budget.specification === 'Gold' ? 'High' : 'Medium') as TT2025Specification,
+            project.totalArea,
+            project.areaUnit as 'sqm' | 'sqft',
+            'AudioVisual'
+          );
+          
+          if (ttAudioVisualResult.success) {
+            technologyCost = ttAudioVisualResult.breakdown.audioVisual;
+          } else {
+            // Fallback: use percentage of fitout cost as technology estimate
+            technologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
+          }
+        } catch (error) {
+          // Fallback: use percentage estimate
+          technologyCost = (fitoutCost > 0 ? fitoutCost : furnitureCost) * 0.15; // 15% estimate
+        }
+      }
+      
+      // Add professional fees for Complete scope only
+      if (scope === 'Complete') {
+        // Professional fees are typically 10-15% of construction + furniture + technology costs
+        const baseCosts = fitoutCost + furnitureCost + technologyCost;
+        professionalFeesCost = baseCosts * 0.12; // 12% professional fees
+      }
+      
       // Calculate total cost based on scope
-      totalCost = scope === 'Fitout' ? fitoutCost : 
-                  scope === 'Furniture' ? furnitureCost : 
-                  fitoutCost + furnitureCost; // For 'Both'
+      if (scope === 'Fitout') {
+        totalCost = fitoutCost;
+      } else if (scope === 'Furniture') {
+        totalCost = furnitureCost;
+      } else if (scope === 'AudioVisual') {
+        totalCost = technologyCost;
+      } else if (scope === 'Complete') {
+        totalCost = fitoutCost + furnitureCost + technologyCost + professionalFeesCost;
+      } else {
+        totalCost = fitoutCost + furnitureCost; // For 'Both'
+      }
     }
     
     // Calculate the raw unit cost based on scope
-    // For 'Both' scope, we need to ensure the rate calculation is consistent with individual components
-    if (scope === 'Both') {
-      // For combined scope, use weighted average of individual rates
-      if (fitoutCost > 0 && furnitureCost > 0) {
-        // If both costs exist, use the weighted average of both rates
-        const fitoutRate = fitoutCost / project.totalArea;
-        const furnitureRate = furnitureCost / project.totalArea;
-        
-        // Calculate individual rates for logging
-        console.log("Fitout Rate:", fitoutRate, "Furniture Rate:", furnitureRate);
-        
-        // For combined scope we should display a weighted average of both rates
-        // Calculate the proportion of each cost to the total
-        const fitoutProportion = fitoutCost / (fitoutCost + furnitureCost);
-        const furnitureProportion = furnitureCost / (fitoutCost + furnitureCost);
-        
-        // Calculate weighted average rate
-        const weightedRate = (fitoutRate * fitoutProportion) + (furnitureRate * furnitureProportion);
-        console.log("Weighted Rate Calculation:", 
-          `(${fitoutRate} × ${fitoutProportion.toFixed(3)}) + (${furnitureRate} × ${furnitureProportion.toFixed(3)}) = ${weightedRate}`);
-        
-        rawUnitCost = weightedRate;
-      } 
-      else if (fitoutCost > 0) {
-        // If only fitout costs exist, use that rate
-        rawUnitCost = fitoutCost / project.totalArea;
-      } 
-      else if (furnitureCost > 0) {
-        // If only furniture costs exist, use that rate
-        rawUnitCost = furnitureCost / project.totalArea;
-      }
+    if (scope === 'Complete' || scope === 'Both') {
+      // For combined scopes, calculate total unit cost
+      rawUnitCost = totalCost / project.totalArea;
+    } else if (scope === 'Fitout') {
+      rawUnitCost = fitoutCost / project.totalArea;
+    } else if (scope === 'Furniture') {
+      rawUnitCost = furnitureCost / project.totalArea;
+    } else if (scope === 'AudioVisual') {
+      // Get technologyCost from the outer scope
+      const technologyCost = totalCost; // For AudioVisual scope, totalCost equals technologyCost
+      rawUnitCost = technologyCost / project.totalArea;
     } else {
-      // For individual scopes, use the appropriate rate
-      rawUnitCost = scope === 'Fitout' ? 
-        (fitoutCost / project.totalArea) : 
-        (furnitureCost / project.totalArea);
+      // Fallback for other scopes
+      rawUnitCost = totalCost / project.totalArea;
     }
     
     // In all cases, adjusted unit cost is the same as raw unit cost
@@ -823,12 +845,27 @@ export const calculateBudget = async ({
     } else {
       // Standard breakdown for other data sources
       // Add the appropriate cost category based on scope
-      if (scope === 'Fitout' || scope === 'Both') {
+      if (scope === 'Fitout' || scope === 'Both' || scope === 'Complete') {
         costsBreakdown['FITOUT COSTS'] = parseFloat(fitoutCost.toFixed(2));
       }
       
-      if (scope === 'Furniture' || scope === 'Both') {
+      if (scope === 'Furniture' || scope === 'Both' || scope === 'Complete') {
         costsBreakdown['FURNITURE COSTS'] = parseFloat(furnitureCost.toFixed(2));
+      }
+      
+      if (scope === 'AudioVisual') {
+        // For AudioVisual scope, totalCost is the technology cost
+        costsBreakdown['TECHNOLOGY COSTS'] = parseFloat(totalCost.toFixed(2));
+      }
+      
+      if (scope === 'Complete') {
+        // For Complete scope, calculate technology cost from T&T data and add professional fees
+        const technologyCost = totalCost - fitoutCost - furnitureCost - (totalCost * 0.12 / 1.12); // Back-calculate before professional fees
+        const actualTechCost = technologyCost > 0 ? technologyCost : (fitoutCost + furnitureCost) * 0.15;
+        const professionalFees = (fitoutCost + furnitureCost + actualTechCost) * 0.12;
+        
+        costsBreakdown['TECHNOLOGY COSTS'] = parseFloat(actualTechCost.toFixed(2));
+        costsBreakdown['PROFESSIONAL FEES'] = parseFloat(professionalFees.toFixed(2));
       }
     }
     

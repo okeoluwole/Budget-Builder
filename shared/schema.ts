@@ -89,7 +89,7 @@ export type JLLQuality = 'Baseline' | 'Medium' | 'High';
 // Legacy Types
 export type Specification = 'Bronze' | 'Silver' | 'Gold';
 export type Layout = 'Activity' | 'Team' | 'Event';
-export type BudgetScope = 'Fitout' | 'Furniture' | 'Both' | 'Construction' | 'LooseFurniture' | 'AudioVisual' | 'ProfessionalFees' | 'Complete';
+export type BudgetScope = 'Fitout' | 'Furniture' | 'AudioVisual' | 'Complete' | 'Construction' | 'LooseFurniture' | 'ProfessionalFees' | 'Both';
 
 // Budget model to hold selected data source
 export const budgetDataSources = pgTable("budget_data_sources", {
