@@ -260,7 +260,7 @@ const SpecificationStep: React.FC<SpecificationStepProps> = ({ onNext, onBack, o
       updateSpecification(selectedFitoutSpec, selectedFitoutSpec, null);
     } else if (state.budget?.scope === 'Furniture') {
       updateSpecification(selectedFurnitureSpec, null, selectedFurnitureSpec);
-    } else if (state.budget?.scope === 'AudioVisual') {
+    } else if (state.budget?.scope === 'technology' || state.budget?.scope === 'AudioVisual') {
       updateSpecification(selectedTechnologySpec, null, null, selectedTechnologySpec);
     } else if (state.budget?.scope === 'Complete') {
       // For Complete scope, we need all three specifications
