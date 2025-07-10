@@ -1068,10 +1068,14 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                                 });
                               }
                             } else {
-                              // CBRE specifications
-                              if (scope === 'Fitout' || scope === 'Complete' || scope === 'Both') {
+                              // CBRE specifications - Use actual breakdown values from server response
+                              const breakdown = budgetBreakdown || {};
+                              console.log("CBRE Component Specs - Using breakdown:", breakdown);
+                              
+                              if ((scope === 'Fitout' || scope === 'Complete Package' || scope === 'Both') && breakdown['FITOUT COSTS']) {
                                 const fitoutSpec = state.budget?.fitoutSpecification || state.budget?.specification || 'Medium';
-                                const fitoutRate = scope === 'Fitout' ? Math.round(totalCost / area) : Math.round((totalCost * 0.729) / area);
+                                const fitoutRate = Math.round(breakdown['FITOUT COSTS'] / area);
+                                console.log("Fitout rate calculation:", breakdown['FITOUT COSTS'], "÷", area, "=", fitoutRate);
                                 componentSpecs.push({
                                   name: 'Fitout Construction',
                                   specification: getSpecificationDisplay(fitoutSpec),
@@ -1079,9 +1083,10 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                                 });
                               }
                               
-                              if (scope === 'Furniture' || scope === 'Complete' || scope === 'Both') {
+                              if ((scope === 'Furniture' || scope === 'Complete Package' || scope === 'Both') && breakdown['FURNITURE COSTS']) {
                                 const furnitureSpec = state.budget?.furnitureSpecification || state.budget?.specification || 'Medium';
-                                const furnitureRate = scope === 'Furniture' ? Math.round(totalCost / area) : Math.round((totalCost * 0.127) / area);
+                                const furnitureRate = Math.round(breakdown['FURNITURE COSTS'] / area);
+                                console.log("Furniture rate calculation:", breakdown['FURNITURE COSTS'], "÷", area, "=", furnitureRate);
                                 componentSpecs.push({
                                   name: 'Furniture',
                                   specification: getSpecificationDisplay(furnitureSpec),
@@ -1089,9 +1094,10 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                                 });
                               }
                               
-                              if (scope === 'technology' || scope === 'AudioVisual' || scope === 'Complete') {
+                              if ((scope === 'Technology' || scope === 'AudioVisual' || scope === 'Complete Package') && breakdown['TECHNOLOGY COSTS']) {
                                 const technologySpec = state.budget?.technologySpecification || state.budget?.specification || 'Medium';
-                                const technologyRate = scope === 'technology' || scope === 'AudioVisual' ? Math.round(totalCost / area) : Math.round((totalCost * 0.095) / area);
+                                const technologyRate = Math.round(breakdown['TECHNOLOGY COSTS'] / area);
+                                console.log("Technology rate calculation:", breakdown['TECHNOLOGY COSTS'], "÷", area, "=", technologyRate);
                                 componentSpecs.push({
                                   name: 'Technology',
                                   specification: getSpecificationDisplay(technologySpec),
@@ -1099,11 +1105,12 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                                 });
                               }
                               
-                              if (scope === 'Complete') {
-                                const professionalRate = Math.round((totalCost * 0.049) / area);
+                              if (scope === 'Complete Package' && breakdown['PROFESSIONAL FEES']) {
+                                const professionalRate = Math.round(breakdown['PROFESSIONAL FEES'] / area);
+                                console.log("Professional fees rate calculation:", breakdown['PROFESSIONAL FEES'], "÷", area, "=", professionalRate);
                                 componentSpecs.push({
                                   name: 'Professional Fees',
-                                  specification: '4.9% of other components',
+                                  specification: 'Standard',
                                   rate: `US$${professionalRate}/sqm`
                                 });
                               }
