@@ -451,8 +451,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Get current user
-  app.get('/api/auth/user', isAuthenticated, (req, res) => {
+  // Get current user (no authentication required - used to check auth status)
+  app.get('/api/auth/user', (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
     const user = req.user as any;
     res.json({
       user: {

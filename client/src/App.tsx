@@ -16,7 +16,7 @@ import ChatInterface from "@/components/chat/ChatInterface";
 import ChatWizard from "@/components/chat/ChatWizard";
 import DatasetValidator from "@/components/DatasetValidator";
 import { useAuth } from "@/hooks/useAuth";
-import { LoginForm } from "@/components/auth/LoginForm";
+import { LandingPage } from "@/pages/LandingPage";
 import { Navigation } from "@/components/auth/Navigation";
 import { UserManagement } from "@/components/auth/UserManagement";
 import { useState } from "react";
@@ -52,8 +52,7 @@ function AuthenticatedApp() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const [authUser, setAuthUser] = useState(null);
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -67,7 +66,7 @@ function Router() {
   }
 
   if (!isAuthenticated) {
-    return <LoginForm onLoginSuccess={setAuthUser} />;
+    return <LandingPage />;
   }
 
   return <AuthenticatedApp />;

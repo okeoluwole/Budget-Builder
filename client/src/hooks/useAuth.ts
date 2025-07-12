@@ -13,8 +13,33 @@ export function useAuth() {
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ["/api/auth/user"],
+    queryFn: async () => {
+      const res = await fetch("/api/auth/user", {
+        credentials: "include",
+      });
+      
+      if (res.status === 401) {
+        return null; // Return null for 401, don't throw error
+      }
+      
+      if (!res.ok) {
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
+      
+      return await res.json();
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      const response = await apiRequest('POST', '/api/login', { email, password });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
   });
 
   const logoutMutation = useMutation({
@@ -28,6 +53,22 @@ export function useAuth() {
     },
   });
 
+  const login = async (email: string, password: string) => {
+    return new Promise((resolve, reject) => {
+      loginMutation.mutate(
+        { email, password },
+        {
+          onSuccess: (data) => {
+            resolve(data);
+          },
+          onError: (error) => {
+            reject(error);
+          },
+        }
+      );
+    });
+  };
+
   const logout = () => {
     logoutMutation.mutate();
   };
@@ -37,7 +78,9 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!user?.user && !error,
     isAdmin: user?.user?.role === 'admin',
+    login,
     logout,
+    isLoggingIn: loginMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
   };
 }
