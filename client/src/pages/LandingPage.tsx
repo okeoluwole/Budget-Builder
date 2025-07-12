@@ -179,18 +179,7 @@ export function LandingPage() {
                 </button>
               </form>
 
-              {/* Demo Credentials Section */}
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</p>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <div>
-                    <strong>Admin:</strong> okeoluwole@gmail.com / admin123
-                  </div>
-                  <div>
-                    <strong>Staff:</strong> testuser1@example.com / password123
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
