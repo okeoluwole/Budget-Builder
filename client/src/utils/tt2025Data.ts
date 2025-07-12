@@ -346,11 +346,11 @@ export const TT2025_COST_DATA: TT2025CostData[] = [
     city: 'Singapore',
     region: 'APAC',
     costs: {
-      total: { low: 2705.0, medium: 3200.0, high: 4185.0 },
-      construction: { low: 1937.0, medium: 2288.0, high: 2992.0 },
-      looseFurniture: { low: 290.0, medium: 343.0, high: 448.0 },
-      audioVisual: { low: 170.0, medium: 201.0, high: 263.0 },
-      professionalFees: { low: 312.0, medium: 368.0, high: 482.0 }
+      total: { low: 2214.0, medium: 2895.0, high: 3700.0 },
+      construction: { low: 1654.0, medium: 2126.0, high: 2811.0 },
+      looseFurniture: { low: 189.0, medium: 259.0, high: 296.0 },
+      audioVisual: { low: 133.0, medium: 189.0, high: 222.0 },
+      professionalFees: { low: 241.0, medium: 323.0, high: 393.0 }
     }
   },
   {
@@ -458,11 +458,49 @@ export function getTT2025CountriesByRegion(region: TT2025Region): string[] {
 }
 
 export function getTT2025CitiesByCountry(country: string): string[] {
-  return TT2025_COST_DATA.filter(item => item.country === country).map(item => item.city);
+  const normalizedCountry = normalizeCountryName(country);
+  return TT2025_COST_DATA.filter(item => item.country === normalizedCountry).map(item => item.city);
+}
+
+// Country name normalization for better matching
+const COUNTRY_ALIASES: { [key: string]: string } = {
+  'USA': 'United States',
+  'US': 'United States',
+  'United States of America': 'United States',
+  'UK': 'United Kingdom',
+  'Britain': 'United Kingdom',
+  'Great Britain': 'United Kingdom',
+  'Korea': 'South Korea',
+  'Republic of Korea': 'South Korea'
+};
+
+function normalizeCountryName(country: string): string {
+  // Check for exact aliases first
+  if (COUNTRY_ALIASES[country]) {
+    return COUNTRY_ALIASES[country];
+  }
+  
+  // Return original if no alias found
+  return country;
 }
 
 export function getTT2025CostData(country: string, city: string): TT2025CostData | undefined {
-  return TT2025_COST_DATA.find(item => item.country === country && item.city === city);
+  const normalizedCountry = normalizeCountryName(country);
+  
+  // Try exact match first
+  const exactMatch = TT2025_COST_DATA.find(item => item.country === normalizedCountry && item.city === city);
+  if (exactMatch) {
+    return exactMatch;
+  }
+  
+  // If no exact match, try to find the first city in the same country as fallback
+  const countryFallback = TT2025_COST_DATA.find(item => item.country === normalizedCountry);
+  if (countryFallback) {
+    console.warn(`No T&T data for ${city}, ${normalizedCountry}. Using fallback city: ${countryFallback.city}`);
+    return countryFallback;
+  }
+  
+  return undefined;
 }
 
 export function calculateTT2025Budget(
