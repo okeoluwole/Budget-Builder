@@ -346,11 +346,11 @@ export const TT2025_COST_DATA: TT2025CostData[] = [
     city: 'Singapore',
     region: 'APAC',
     costs: {
-      total: { low: 2200.0, medium: 2600.0, high: 3400.0 },
-      construction: { low: 1540.0, medium: 1820.0, high: 2380.0 },
-      looseFurniture: { low: 220.0, medium: 260.0, high: 340.0 },
-      audioVisual: { low: 154.0, medium: 182.0, high: 238.0 },
-      professionalFees: { low: 286.0, medium: 338.0, high: 442.0 }
+      total: { low: 2705.0, medium: 3200.0, high: 4185.0 },
+      construction: { low: 1937.0, medium: 2288.0, high: 2992.0 },
+      looseFurniture: { low: 290.0, medium: 343.0, high: 448.0 },
+      audioVisual: { low: 170.0, medium: 201.0, high: 263.0 },
+      professionalFees: { low: 312.0, medium: 368.0, high: 482.0 }
     }
   },
   {
