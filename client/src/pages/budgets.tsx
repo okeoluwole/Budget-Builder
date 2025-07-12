@@ -94,8 +94,7 @@ export default function Budgets() {
         return "bg-orange-100 text-orange-800";
       case "T&T":
         return "bg-cyan-100 text-cyan-800";
-      case "MMC":
-        return "bg-pink-100 text-pink-800";
+
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -150,7 +149,7 @@ export default function Budgets() {
               <SelectItem value="CBRE">CBRE</SelectItem>
               <SelectItem value="JLL">JLL</SelectItem>
               <SelectItem value="T&T">T&T</SelectItem>
-              <SelectItem value="MMC">MMC</SelectItem>
+
             </SelectContent>
           </Select>
         </div>

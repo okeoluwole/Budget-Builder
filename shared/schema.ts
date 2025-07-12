@@ -125,7 +125,7 @@ export const budgets = pgTable("budgets", {
   furnitureSpecification: text("furniture_specification"), // For separate furniture specs
   technologySpecification: text("technology_specification"), // For technology specs
   layout: text("layout").notNull(), // Activity, Team, Event
-  primaryDataSource: text("primary_data_source").$type<DataSourceType>().default("CBRE").notNull(), // CBRE, JLL, TT, MMC
+  primaryDataSource: text("primary_data_source").$type<DataSourceType>().default("CBRE").notNull(), // CBRE, JLL, TT
   dataSource: text("data_source"), // For backward compatibility
   jllLayout: text("jll_layout"), // Open & flexible, High spatial variety, Structured
   jllQuality: text("jll_quality"), // Baseline, Medium, High
@@ -157,8 +157,8 @@ export type InsertBudget = z.infer<typeof insertBudgetSchema>;
 export type Budget = typeof budgets.$inferSelect;
 
 // Data Source Types
-export type DataSourceType = 'CBRE' | 'JLL' | 'TT' | 'MMC';
-export type PrimaryDataSourceType = 'CBRE' | 'JLL' | 'TT' | 'MMC';
+export type DataSourceType = 'CBRE' | 'JLL' | 'TT';
+export type PrimaryDataSourceType = 'CBRE' | 'JLL' | 'TT';
 export type JLLLayout = 'Open & flexible' | 'High spatial variety' | 'Structured';
 export type JLLQuality = 'Baseline' | 'Medium' | 'High';
 

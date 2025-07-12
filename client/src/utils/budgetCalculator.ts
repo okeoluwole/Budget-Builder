@@ -801,7 +801,7 @@ export const calculateBudget = async ({
       }
       
       // Legacy fallback code below (should not be reached)
-      // Standard calculation for other data sources (CBRE, MMC)
+      // Standard calculation for other data sources (CBRE)
     
       // Calculate fitout costs if scope is 'Fitout', 'Both', or 'Complete'
       if (scope === 'Fitout' || scope === 'Both' || scope === 'Complete') {
@@ -1180,7 +1180,7 @@ export const calculateBudget = async ({
         costsBreakdown[`SPACE: ${spaceName}`] = parseFloat(cost.toFixed(2));
       });
     } else {
-      // For other data sources (CBRE, MMC), create a standard default allocation
+      // For other data sources (CBRE), create a standard default allocation
       const defaultStandardAllocation: SpaceAllocation = {
         'Open workspace': { percentage: 50, area: project.totalArea * 0.50 },
         'Meeting rooms': { percentage: 25, area: project.totalArea * 0.25 },

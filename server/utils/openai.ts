@@ -32,7 +32,7 @@ export interface ChatContext {
  */
 function generateSystemPrompt(context?: ChatContext): string {
   // Base system instruction
-  let prompt = `You are an AI assistant for an MMC Fit-out Budget Estimation application. 
+  let prompt = `You are an AI assistant for a Cost Estimator Pro fit-out budget estimation application. 
 You help users understand construction fit-out costs, budgeting, and specifications.
 
 Current Date: ${new Date().toLocaleDateString()}

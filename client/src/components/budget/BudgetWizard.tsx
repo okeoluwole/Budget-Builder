@@ -92,7 +92,7 @@ const BudgetWizard: React.FC = () => {
       console.log('T&T selected - Using T&T steps (no layout/space):', ttSteps.map(s => s.id).join(' → '));
       setSteps(ttSteps);
     } else {
-      // For other data sources (CBRE, MMC), use standard steps including layout selection
+      // For other data sources (CBRE), use standard steps including layout selection
       const standardSteps = initialSteps.filter(step => 
         step.id !== 'jllOptions' && 
         step.id !== 'ttBuildingType' &&

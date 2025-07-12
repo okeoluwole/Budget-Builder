@@ -57,7 +57,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
     const systemMessage = {
       sessionId: session.id,
       role: 'system' as 'system',
-      content: 'I am an AI assistant for the MMC Fit-out Budget Estimation application. How can I help you today?'
+      content: 'I am an AI assistant for Cost Estimator Pro. How can I help you today?'
     };
     
     await storage.addChatMessage(systemMessage);

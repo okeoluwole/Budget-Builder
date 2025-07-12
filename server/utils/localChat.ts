@@ -61,7 +61,7 @@ export async function getChatCompletion(
     
     // Check for question types and provide appropriate responses
     if (userQuery.includes('hello') || userQuery.includes('hi') || userQuery.includes('hey')) {
-      return "Hello! I'm your Budget Assistant for the MMC Fit-out Budget Estimation tool. I can help you understand fit-out costs, specifications, and budget calculations. What would you like to know about?";
+      return "Hello! I'm your Budget Assistant for Cost Estimator Pro. I can help you understand fit-out costs, specifications, and budget calculations. What would you like to know about?";
     }
     
     // Questions about specifications
@@ -356,7 +356,7 @@ What specific aspect would you like to learn more about?`;
       }
       
       if (userQuery.includes('mmc')) {
-        return `MMC stands for "Modern Methods of Construction," an approach that emphasizes off-site production, standardization, and modular techniques. In the context of fit-out, MMC can include prefabricated wall systems, modular meeting pods, and standardized furniture solutions. This approach typically offers benefits like faster installation, consistent quality, reduced waste, and potentially lower costs for certain elements. Our budget estimation tool incorporates some MMC approaches in its cost modeling.`;
+        return `Cost Estimator Pro provides comprehensive budget estimation using industry-leading data sources like CBRE, Turner & Townsend, and JLL. Our platform offers multiple specification levels, detailed component breakdowns, and multi-source comparison capabilities to help you create accurate construction budgets for office fit-out projects.`;
       }
       
       // Default terminology response
@@ -368,7 +368,7 @@ What specific aspect would you like to learn more about?`;
 • Location Factor: Multiplier applied to baseline costs to account for regional variations.
 • Activity-Based Working (ABW): Layout approach creating diverse spaces for different work modes.
 • CAT A/CAT B: UK terminology for landlord's basic finish (A) vs. tenant's specific fit-out (B).
-• MMC: Modern Methods of Construction - prefabricated and modular approaches.
+• Cost Estimator Pro: Professional cost estimation platform with multi-source data integration.
 
 Is there a specific term you'd like me to explain in more detail?`;
     }

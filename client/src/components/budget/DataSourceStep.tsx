@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { DataSourceType } from '@shared/schema';
-import { FaBuilding, FaChartLine, FaCogs, FaIndustry } from 'react-icons/fa';
+import { FaBuilding, FaChartLine, FaCogs } from 'react-icons/fa';
 import { BsBuildings } from 'react-icons/bs';
 import { Building2, Factory } from 'lucide-react';
 
@@ -76,17 +76,6 @@ const DataSourceStep: React.FC<DataSourceStepProps> = ({
       version: '2025',
       releaseDate: 'April 2025',
       countries: ['United States', 'United Kingdom', 'Singapore', 'Australia', 'Hong Kong', 'Germany', 'France', 'Japan', 'Canada', 'India', 'UAE', 'Brazil', 'Mexico', '+37 more'],
-      isDefault: false
-    },
-    {
-      id: 'mmc',
-      name: 'MMC',
-      displayName: 'MMC Cost Data',
-      description: 'Industry-specific Modern Methods of Construction data with detailed project budgeting capabilities. Includes specialized cost indices for prefabricated and modular construction approaches.',
-      logo: <FaIndustry className="w-8 h-8 text-emerald-600" />,
-      version: '2024 ED',
-      releaseDate: 'April 2024',
-      countries: ['United States', 'United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Canada', '+39 more'],
       isDefault: false
     }
   ];
