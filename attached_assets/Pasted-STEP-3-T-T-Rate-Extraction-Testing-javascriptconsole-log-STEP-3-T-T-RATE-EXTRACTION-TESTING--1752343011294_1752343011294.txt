@@ -1,0 +1,86 @@
+STEP 3: T&T Rate Extraction Testing
+javascriptconsole.log("=== STEP 3: T&T RATE EXTRACTION TESTING ===");
+
+function testTTRateExtraction() {
+    console.log("Testing T&T rate extraction for working locations...");
+    
+    // Use locations that were found in Step 2
+    const workingLocations = Object.keys(step2Results.locationTests)
+        .filter(loc => step2Results.locationTests[loc].exists && step2Results.locationTests[loc].hasData);
+    
+    if (workingLocations.length === 0) {
+        console.error("❌ No working T&T locations found from Step 2");
+        return { error: "No working locations available" };
+    }
+    
+    const testLocation = workingLocations[0]; // Use first working location
+    console.log(`Testing rate extraction for: ${testLocation}`);
+    
+    const ttComponents = ["Construction", "Loose Furniture", "Audio-Visual"];
+    const ttSpecs = ["Low", "Medium", "High"];
+    
+    const rateTestResults = {};
+    
+    ttComponents.forEach(component => {
+        rateTestResults[component] = {};
+        
+        ttSpecs.forEach(spec => {
+            try {
+                console.log(`Testing ${component} ${spec} rate for ${testLocation}...`);
+                
+                const rate = getTTRate(testLocation, component, spec);
+                console.log(`${component} ${spec}: $${rate}/sqm`);
+                
+                rateTestResults[component][spec] = {
+                    rate: rate,
+                    success: !!(rate && rate > 0)
+                };
+                
+            } catch (error) {
+                console.error(`❌ ${component} ${spec}: ${error.message}`);
+                rateTestResults[component][spec] = {
+                    success: false,
+                    error: error.message
+                };
+            }
+        });
+    });
+    
+    // Test Professional Fees
+    try {
+        const profFeesRate = getTTProfessionalFeesPercentage(testLocation);
+        rateTestResults["Professional Fees"] = {
+            percentage: profFeesRate,
+            success: !!(profFeesRate && profFeesRate > 0)
+        };
+        console.log(`Professional Fees: ${profFeesRate}%`);
+    } catch (error) {
+        rateTestResults["Professional Fees"] = {
+            success: false,
+            error: error.message
+        };
+    }
+    
+    return {
+        testLocation: testLocation,
+        rateTests: rateTestResults
+    };
+}
+
+// Execute Step 3
+const step3Results = testTTRateExtraction();
+console.log("STEP 3 RESULTS:", step3Results);
+
+// Check if any rates were successfully extracted
+const successfulRates = Object.values(step3Results.rateTests || {})
+    .some(componentRates => {
+        if (typeof componentRates === 'object' && componentRates.success) return true;
+        return Object.values(componentRates).some(spec => spec.success);
+    });
+
+if (!successfulRates) {
+    console.error("❌ STEP 3 FAILED - No T&T rates successfully extracted");
+    throw new Error("T&T rate extraction completely failed");
+}
+
+console.log("✅ STEP 3 PASSED - Some T&T rates extracted successfully");
