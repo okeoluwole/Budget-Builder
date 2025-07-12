@@ -1138,32 +1138,51 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                       </div>
                       
                       {/* T&T Component-Specific Rates */}
-                      {state.budget?.primaryDataSource === 'TT' && state.budget?.ttComponentSpecs && (() => {
+                      {state.budget?.primaryDataSource === 'TT' && budgetBreakdown?.costsBreakdown && (() => {
                         const area = state.project?.totalArea || 1;
-                        const constructionRate = Math.round((totalCost * 0.75) / area);
-                        const furnitureRate = Math.round((totalCost * 0.15) / area);
-                        const avRate = Math.round((totalCost * 0.06) / area);
-                        const professionalRate = Math.round((totalCost * 0.04) / area);
+                        const breakdown = budgetBreakdown.costsBreakdown;
+                        
+                        // Use actual breakdown values instead of percentage calculations
+                        const constructionRate = breakdown['Construction'] ? Math.round(breakdown['Construction'] / area) : 0;
+                        const furnitureRate = breakdown['Loose Furniture'] ? Math.round(breakdown['Loose Furniture'] / area) : 0;
+                        const avRate = breakdown['Audio-Visual'] ? Math.round(breakdown['Audio-Visual'] / area) : 0;
+                        const professionalRate = breakdown['Professional Fees'] ? Math.round(breakdown['Professional Fees'] / area) : 0;
                         const combinedRate = Math.round(totalCost / area);
+                        
+                        console.log("T&T Component breakdown rates:", {
+                          Construction: constructionRate,
+                          'Loose Furniture': furnitureRate,
+                          'Audio-Visual': avRate,
+                          'Professional Fees': professionalRate,
+                          Combined: combinedRate
+                        });
                         
                         return (
                           <>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Construction Rate:</span>
-                              <span className="font-medium text-gray-800">{formatCurrency(constructionRate, 'USD')}/{state.project?.areaUnit}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Furniture Rate:</span>
-                              <span className="font-medium text-gray-800">{formatCurrency(furnitureRate, 'USD')}/{state.project?.areaUnit}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Audio-Visual Rate:</span>
-                              <span className="font-medium text-gray-800">{formatCurrency(avRate, 'USD')}/{state.project?.areaUnit}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Professional Rate:</span>
-                              <span className="font-medium text-gray-800">{formatCurrency(professionalRate, 'USD')}/{state.project?.areaUnit}</span>
-                            </div>
+                            {breakdown['Construction'] && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Construction Rate:</span>
+                                <span className="font-medium text-gray-800">{formatCurrency(constructionRate, 'USD')}/{state.project?.areaUnit}</span>
+                              </div>
+                            )}
+                            {breakdown['Loose Furniture'] && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Loose Furniture Rate:</span>
+                                <span className="font-medium text-gray-800">{formatCurrency(furnitureRate, 'USD')}/{state.project?.areaUnit}</span>
+                              </div>
+                            )}
+                            {breakdown['Audio-Visual'] && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Audio-Visual Rate:</span>
+                                <span className="font-medium text-gray-800">{formatCurrency(avRate, 'USD')}/{state.project?.areaUnit}</span>
+                              </div>
+                            )}
+                            {breakdown['Professional Fees'] && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Professional Rate:</span>
+                                <span className="font-medium text-gray-800">{formatCurrency(professionalRate, 'USD')}/{state.project?.areaUnit}</span>
+                              </div>
+                            )}
                             <div className="flex justify-between pt-2 border-t">
                               <span className="text-gray-700 font-medium">Combined Rate:</span>
                               <span className="font-bold text-gray-900">{formatCurrency(combinedRate, 'USD')}/{state.project?.areaUnit}</span>
