@@ -265,6 +265,110 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
       } else {
         throw new Error(`No cost data available for ${project.city}, ${project.country} with ${specification} specification and ${layout} layout`);
       }
+    } else if (primaryDataSource === 'TT') {
+      // Handle T&T calculation using the same successful pattern as CBRE
+      console.log("=== T&T SERVER-SIDE CALCULATION ===");
+      
+      // Import T&T 2025 data
+      const { TT2025_COST_DATA } = await import('../client/src/utils/tt2025Data');
+      
+      // Find matching location in T&T data
+      let locationData = TT2025_COST_DATA.find(data => 
+        data.city.toLowerCase() === project.city.toLowerCase() &&
+        data.country.toLowerCase() === project.country.toLowerCase()
+      );
+      
+      if (!locationData) {
+        // Try partial matching
+        locationData = TT2025_COST_DATA.find(data => 
+          data.city.toLowerCase().includes(project.city.toLowerCase()) ||
+          data.country.toLowerCase().includes(project.country.toLowerCase())
+        );
+      }
+      
+      if (!locationData) {
+        throw new Error(`No T&T cost data available for ${project.city}, ${project.country}`);
+      }
+      
+      console.log("Found T&T location data:", locationData);
+      
+      let totalCost = 0;
+      let costsBreakdown: { [key: string]: number } = {};
+      
+      // Map specification to T&T levels (Bronze->Low, Silver->Medium, Gold->High)
+      const specLevel = specification.includes('Low') || specification === 'Bronze' ? 'low' : 
+                        specification.includes('High') || specification === 'Gold' ? 'high' : 'medium';
+      
+      // T&T Component calculations based on scope (using same logic as CBRE)
+      if (scope === 'Construction' || scope === 'Fitout' || scope === 'Complete' || scope === 'Complete Package') {
+        const constructionRate = locationData.costs.construction[specLevel];
+        const constructionCost = constructionRate * project.totalArea;
+        totalCost += constructionCost;
+        costsBreakdown['CONSTRUCTION COSTS'] = constructionCost;
+        console.log(`T&T Construction calculation: ${constructionRate} × ${project.totalArea} = ${constructionCost}`);
+      }
+      
+      if (scope === 'Furniture' || scope === 'Loose Furniture' || scope === 'Complete' || scope === 'Complete Package') {
+        const furnitureRate = locationData.costs.looseFurniture[specLevel];
+        const furnitureCost = furnitureRate * project.totalArea;
+        totalCost += furnitureCost;
+        costsBreakdown['LOOSE FURNITURE COSTS'] = furnitureCost;
+        console.log(`T&T Furniture calculation: ${furnitureRate} × ${project.totalArea} = ${furnitureCost}`);
+      }
+      
+      if (scope === 'Audio-Visual' || scope === 'Technology' || scope === 'Complete' || scope === 'Complete Package') {
+        const avRate = locationData.costs.audioVisual[specLevel];
+        const avCost = avRate * project.totalArea;
+        totalCost += avCost;
+        costsBreakdown['AUDIO-VISUAL COSTS'] = avCost;
+        console.log(`T&T Audio-Visual calculation: ${avRate} × ${project.totalArea} = ${avCost}`);
+      }
+      
+      if (scope === 'Complete' || scope === 'Complete Package') {
+        const professionalRate = locationData.costs.professionalFees[specLevel];
+        const professionalCost = professionalRate * project.totalArea;
+        totalCost += professionalCost;
+        costsBreakdown['PROFESSIONAL FEES'] = professionalCost;
+        console.log(`T&T Professional Fees calculation: ${professionalRate} × ${project.totalArea} = ${professionalCost}`);
+      }
+      
+      // For single-component scopes, use the component total as the main total cost
+      if (scope !== 'Complete' && scope !== 'Complete Package') {
+        totalCost = costsBreakdown['CONSTRUCTION COSTS'] || 
+                   costsBreakdown['LOOSE FURNITURE COSTS'] || 
+                   costsBreakdown['AUDIO-VISUAL COSTS'] || 0;
+      }
+      
+      if (totalCost > 0) {
+        const result = {
+          totalCost,
+          constructionCost: costsBreakdown['CONSTRUCTION COSTS'] || 0,
+          furnitureCost: costsBreakdown['LOOSE FURNITURE COSTS'] || 0,
+          audioVisualCost: costsBreakdown['AUDIO-VISUAL COSTS'] || 0,
+          professionalFeesCost: costsBreakdown['PROFESSIONAL FEES'] || 0,
+          costsBreakdown,
+          rawUnitCost: totalCost / project.totalArea,
+          adjustedUnitCost: totalCost / project.totalArea,
+          areaUnit: project.areaUnit,
+          localCurrencyCode: 'USD', // T&T data is in USD like CBRE
+          ttComponentSpecs: {
+            construction: specification,
+            furniture: specification,
+            audioVisual: specification
+          },
+          datasetInfo: {
+            source: 'T&T',
+            location: `${project.city}, ${project.country}`,
+            specification,
+            region: locationData.region
+          }
+        };
+        
+        console.log("T&T Server calculation result:", result);
+        return result;
+      } else {
+        throw new Error(`No valid T&T cost data for specified scope: ${scope}`);
+      }
     } else {
       throw new Error(`Data source ${primaryDataSource} not supported in server-side calculation`);
     }

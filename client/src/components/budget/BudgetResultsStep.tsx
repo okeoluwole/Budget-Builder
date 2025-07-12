@@ -1251,60 +1251,58 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                           const ttSpecs = state.budget?.ttComponentSpecs || {};
                           const area = state.project?.totalArea || 1;
                           
-                          // Use actual calculated breakdown from budgetBreakdown if available
+                          // Use actual T&T calculated breakdown from server response (like CBRE)
                           const actualBreakdown = budgetBreakdown?.costsBreakdown || {};
+                          console.log("T&T Component Breakdown - budgetBreakdown:", budgetBreakdown);
+                          console.log("T&T Component Breakdown - actualBreakdown:", actualBreakdown);
                           
-                          // Enhanced T&T component mapping with accurate industry percentages
+                          // T&T component mapping following successful CBRE pattern
                           const componentMapping = {
                             'Construction': { 
-                              key: 'fitoutCost',
-                              fallbackAmount: totalCost * 0.729, // 72.9% industry standard
+                              key: 'CONSTRUCTION COSTS',
                               color: '#E11D48',
-                              description: 'CAT B fit-out standard: partitions, flooring, ceilings, basic M&E works',
-                              ttNote: 'Core construction works'
+                              description: 'Core building elements: partitions, flooring, ceilings, mechanical & electrical works',
+                              ttNote: 'Primary construction components'
                             },
                             'Loose Furniture': { 
-                              key: 'furnitureCost',
-                              fallbackAmount: totalCost * 0.127, // 12.7%
+                              key: 'LOOSE FURNITURE COSTS',
                               color: '#059669',
-                              description: 'Standard specification furniture: desks, chairs, storage, meeting furniture',
-                              ttNote: 'Movable furniture package'
+                              description: 'Movable furniture: desks, chairs, storage, meeting room furniture',
+                              ttNote: 'Non-fixed furniture elements'
                             },
                             'Audio-Visual': { 
-                              key: 'audioVisualCost',
-                              fallbackAmount: totalCost * 0.095, // 9.5%
+                              key: 'AUDIO-VISUAL COSTS',
                               color: '#DC2626',
-                              description: 'Medium-spec AV package: displays, conferencing, control systems',
-                              ttNote: 'Technology integration'
+                              description: 'Technology systems: displays, conferencing equipment, AV control systems',
+                              ttNote: 'Technology integration components'
                             },
                             'Professional Fees': { 
-                              key: 'professionalFeesCost',
-                              fallbackAmount: totalCost * 0.049, // 4.9%
+                              key: 'PROFESSIONAL FEES',
                               color: '#7C3AED',
-                              description: '12-15% of construction cost: design, project management, consulting',
-                              ttNote: 'Professional services'
+                              description: 'Professional services: design, project management, cost consulting',
+                              ttNote: 'Advisory and management services'
                             }
                           };
                           
-                          // Calculate component costs using actual breakdown or T&T methodology
-                          const componentCosts = Object.entries(componentMapping).map(([componentName, config]) => {
-                            const actualAmount = actualBreakdown[config.key] || 
-                                               (budgetBreakdown?.[config.key]) || 
-                                               config.fallbackAmount;
-                            
-                            const amount = Math.round(actualAmount);
-                            const rate = Math.round(amount / area);
-                            const percentage = (amount / totalCost) * 100;
-                            
-                            return {
-                              name: componentName,
-                              amount,
-                              rate,
-                              percentage: Math.max(0.1, percentage), // Ensure minimum 0.1% visibility
-                              color: config.color,
-                              description: config.description
-                            };
-                          });
+                          // Calculate component costs using actual T&T server breakdown (same pattern as CBRE)
+                          const componentCosts = Object.entries(componentMapping)
+                            .filter(([componentName, config]) => actualBreakdown[config.key])
+                            .map(([componentName, config]) => {
+                              const amount = Math.round(actualBreakdown[config.key]);
+                              const rate = Math.round(amount / area);
+                              const percentage = (amount / totalCost) * 100;
+                              
+                              console.log(`T&T ${componentName} calculation: ${amount} (${rate}/sqm, ${percentage.toFixed(1)}%)`);
+                              
+                              return {
+                                name: componentName,
+                                amount,
+                                rate,
+                                percentage: Math.max(0.1, percentage),
+                                color: config.color,
+                                description: config.description
+                              };
+                            });
                           
                           return componentCosts.map((data) => (
                             <div key={data.name} className="cost-row grid grid-cols-4 gap-6 py-4 border-b border-gray-100 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-200 rounded-lg group">
