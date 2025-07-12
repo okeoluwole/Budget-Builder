@@ -406,6 +406,9 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Trust proxy for Replit deployment
+  app.set('trust proxy', 1);
+  
   // Initialize authentication system
   app.use(sessionConfig);
   app.use(passport.initialize());

@@ -14,10 +14,10 @@ export const sessionConfig = session({
     createTableIfMissing: false, // We'll create it via Drizzle
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for Replit deployment compatibility
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'strict',
+    sameSite: 'lax', // Changed from 'strict' to 'lax' for deployment compatibility
   },
   name: 'budget_app_session'
 });
