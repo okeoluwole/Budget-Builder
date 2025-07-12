@@ -115,15 +115,6 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
               {loginMutation.isPending ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Test Credentials:</h4>
-            <div className="text-xs text-gray-600 space-y-1">
-              <p><strong>Admin:</strong> okeoluwole@gmail.com / admin123</p>
-              <p><strong>Staff:</strong> testuser1@example.com / password123</p>
-              <p><strong>Staff:</strong> testuser2@example.com / password234</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

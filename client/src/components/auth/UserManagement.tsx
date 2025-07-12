@@ -276,34 +276,6 @@ export function UserManagement() {
           )}
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Default Test Credentials
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <h4 className="font-medium">Admin Account</h4>
-              <p className="text-sm text-muted-foreground">
-                Email: okeoluwole@gmail.com<br />
-                Password: admin123
-              </p>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-medium">Test Staff Accounts</h4>
-              <p className="text-sm text-muted-foreground">
-                testuser1@example.com / password123<br />
-                testuser2@example.com / password234<br />
-                testuser3@example.com / password345
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
