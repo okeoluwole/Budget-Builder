@@ -78,11 +78,11 @@ export const TT2025_COST_DATA: TT2025CostData[] = [
     city: 'Munich',
     region: 'EMEA',
     costs: {
-      total: { low: 2701.5, medium: 3193.2, high: 4137.0 },
-      construction: { low: 2137.1, medium: 2539.6, high: 3322.6 },
-      looseFurniture: { low: 169.1, medium: 187.4, high: 205.8 },
-      audioVisual: { low: 37.8, medium: 42.0, high: 52.5 },
-      professionalFees: { low: 357.5, medium: 425.2, high: 556.0 }
+      total: { low: 3431.0, medium: 4055.0, high: 5253.0 },
+      construction: { low: 2714.0, medium: 3224.0, high: 4218.0 },
+      looseFurniture: { low: 215.0, medium: 238.0, high: 262.0 },
+      audioVisual: { low: 48.0, medium: 53.0, high: 66.0 },
+      professionalFees: { low: 454.0, medium: 540.0, high: 707.0 }
     }
   },
   {
@@ -162,11 +162,11 @@ export const TT2025_COST_DATA: TT2025CostData[] = [
     city: 'London',
     region: 'EMEA',
     costs: {
-      total: { low: 3551.5, medium: 4331.2, high: 5932.0 },
-      construction: { low: 2532.9, medium: 2992.2, high: 4112.4 },
-      looseFurniture: { low: 381.0, medium: 571.5, high: 762.0 },
-      audioVisual: { low: 216.0, medium: 266.7, high: 368.4 },
-      professionalFees: { low: 420.5, medium: 499.4, high: 690.6 }
+      total: { low: 4510.0, medium: 5500.0, high: 7535.0 },
+      construction: { low: 3217.0, medium: 3801.0, high: 5223.0 },
+      looseFurniture: { low: 484.0, medium: 726.0, high: 967.0 },
+      audioVisual: { low: 274.0, medium: 339.0, high: 468.0 },
+      professionalFees: { low: 535.0, medium: 634.0, high: 877.0 }
     }
   },
   {
