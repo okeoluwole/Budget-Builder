@@ -1,0 +1,1150 @@
+**Complete Authentication & User Management Implementation Guide**
+
+**For Generic Fortune 500 Budget Application**
+
+---
+
+**Instructions for Replit:**
+
+**"Implement a complete enterprise-grade authentication and user management system for the budget application using the following comprehensive architecture. This system is designed for generic Fortune 500 deployment and should maintain the current UI design without company-specific branding."**
+
+## **1. Database Schema Implementation**
+
+```sql
+-- Core user management table
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL, -- bcrypt hashed
+  role VARCHAR(20) NOT NULL DEFAULT 'staff', -- 'admin' or 'staff'
+  email VARCHAR(100) UNIQUE,
+  password_reset_required BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Session management for persistent authentication
+CREATE TABLE sessions (
+  sid VARCHAR PRIMARY KEY,
+  data TEXT,
+  expires_at TIMESTAMP
+);
+
+-- User project storage for saved budget estimates
+CREATE TABLE user_projects (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  project_name VARCHAR(255) NOT NULL,
+  project_data JSONB NOT NULL, -- Complete project configuration
+  data_source VARCHAR(50) NOT NULL, -- 'CBRE' or 'Turner & Townsend'
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Project sharing capabilities between users
+CREATE TABLE project_shares (
+  id SERIAL PRIMARY KEY,
+  project_id INTEGER REFERENCES user_projects(id) ON DELETE CASCADE,
+  shared_with_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  permission_level VARCHAR(20) DEFAULT 'view', -- 'view' or 'edit'
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Audit logging for compliance and tracking
+CREATE TABLE audit_logs (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  action VARCHAR(100) NOT NULL,
+  resource_type VARCHAR(50),
+  resource_id INTEGER,
+  details JSONB,
+  ip_address INET,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create initial admin user
+INSERT INTO users (username, password, role, email) 
+VALUES ('admin', '$2b$10$[hash_for_admin123]', 'admin', 'okeoluwole@gmail.com');
+
+-- Create test staff users
+INSERT INTO users (username, password, role, email) VALUES
+('testuser1', '$2b$10$[hash_for_password123]', 'staff', 'testuser1@example.com'),
+('testuser2', '$2b$10$[hash_for_password234]', 'staff', 'testuser2@example.com'),
+('testuser3', '$2b$10$[hash_for_password345]', 'staff', 'testuser3@example.com'),
+('testuser4', '$2b$10$[hash_for_password456]', 'staff', 'testuser4@example.com'),
+('testuser5', '$2b$10$[hash_for_password567]', 'staff', 'testuser5@example.com');
+```
+
+## **2. Backend Authentication Architecture**
+
+**Install Required Dependencies:**
+```bash
+npm install bcryptjs express-session passport passport-local connect-pg-simple drizzle-orm @types/bcryptjs @types/express-session @types/passport @types/passport-local
+```
+
+**Password Security Implementation:**
+```javascript
+import bcrypt from 'bcryptjs';
+
+// Password hashing with salt rounds
+export async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
+}
+
+// Secure password comparison
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  return await bcrypt.compare(password, hashedPassword);
+}
+
+// Password strength validation
+export function validatePasswordStrength(password: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  if (password.length < 8) errors.push('Password must be at least 8 characters');
+  if (!/[A-Z]/.test(password)) errors.push('Password must contain uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('Password must contain lowercase letter');
+  if (!/[0-9]/.test(password)) errors.push('Password must contain number');
+  
+  return { valid: errors.length === 0, errors };
+}
+```
+
+**Session Configuration:**
+```javascript
+import session from 'express-session';
+import ConnectPgSimple from 'connect-pg-simple';
+import { pool } from './database';
+
+const PostgresStore = ConnectPgSimple(session);
+
+export const sessionConfig = {
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  store: new PostgresStore({
+    pool: pool,
+    tableName: 'sessions',
+    createTableIfMissing: true
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'strict'
+  },
+  name: 'budget_app_session'
+};
+```
+
+**Passport.js Authentication Strategy:**
+```javascript
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
+import { getUserByEmail, getUserById, verifyPassword } from './userService';
+
+passport.use(new LocalStrategy(
+  { usernameField: 'email' },
+  async (email, password, done) => {
+    try {
+      const user = await getUserByEmail(email);
+      if (!user) {
+        return done(null, false, { message: 'Invalid email or password' });
+      }
+
+      const isValidPassword = await verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        return done(null, false, { message: 'Invalid email or password' });
+      }
+
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  }
+));
+
+passport.serializeUser((user: any, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id: number, done) => {
+  try {
+    const user = await getUserById(id);
+    done(null, user);
+  } catch (error) {
+    done(error);
+  }
+});
+```
+
+**Authentication Middleware:**
+```javascript
+import { Request, Response, NextFunction } from 'express';
+
+// Route protection middleware
+export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  return res.status(401).json({ error: 'Authentication required' });
+}
+
+// Admin-only route protection
+export function isAdmin(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated() && req.user?.role === 'admin') {
+    return next();
+  }
+  return res.status(403).json({ error: 'Admin access required' });
+}
+
+// Project ownership verification
+export function canAccessProject(req: Request, res: Response, next: NextFunction) {
+  // Implementation for project access control
+  const projectId = req.params.id;
+  const userId = req.user?.id;
+  
+  // Check if user owns project or has shared access
+  // Implementation details...
+  next();
+}
+```
+
+## **3. API Endpoints Implementation**
+
+**Authentication Endpoints:**
+```javascript
+import { Router } from 'express';
+import passport from 'passport';
+import { hashPassword, validatePasswordStrength } from './auth';
+import { createUser, updateUserPassword } from './userService';
+import { isAuthenticated, isAdmin } from './middleware';
+
+const router = Router();
+
+// User login
+router.post('/api/login', (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
+    if (err) return next(err);
+    if (!user) return res.status(401).json({ error: info.message });
+
+    req.logIn(user, (err) => {
+      if (err) return next(err);
+      
+      // Log successful login
+      logAuditEvent(user.id, 'LOGIN', 'USER', user.id, { ip: req.ip });
+      
+      return res.json({
+        user: { id: user.id, username: user.username, email: user.email, role: user.role }
+      });
+    });
+  })(req, res, next);
+});
+
+// User logout
+router.post('/api/logout', isAuthenticated, (req, res) => {
+  const userId = req.user?.id;
+  
+  req.logout((err) => {
+    if (err) return res.status(500).json({ error: 'Logout failed' });
+    
+    // Log logout
+    if (userId) {
+      logAuditEvent(userId, 'LOGOUT', 'USER', userId, { ip: req.ip });
+    }
+    
+    res.json({ message: 'Logged out successfully' });
+  });
+});
+
+// Get current user
+router.get('/api/user', isAuthenticated, (req, res) => {
+  res.json({
+    user: {
+      id: req.user?.id,
+      username: req.user?.username,
+      email: req.user?.email,
+      role: req.user?.role
+    }
+  });
+});
+
+// Change password
+router.post('/api/change-password', isAuthenticated, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user?.id;
+
+    // Validate new password strength
+    const validation = validatePasswordStrength(newPassword);
+    if (!validation.valid) {
+      return res.status(400).json({ errors: validation.errors });
+    }
+
+    // Verify current password
+    const user = await getUserById(userId);
+    const isValidCurrent = await verifyPassword(currentPassword, user.password);
+    if (!isValidCurrent) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    // Update password
+    const hashedNewPassword = await hashPassword(newPassword);
+    await updateUserPassword(userId, hashedNewPassword);
+
+    // Log password change
+    logAuditEvent(userId, 'PASSWORD_CHANGE', 'USER', userId, { ip: req.ip });
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+```
+
+**User Management Endpoints (Admin Only):**
+```javascript
+// Get all users
+router.get('/api/users', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.json(users.map(user => ({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt
+    })));
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Create new user
+router.post('/api/users', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const { username, email, password, role } = req.body;
+
+    // Validate password strength
+    const validation = validatePasswordStrength(password);
+    if (!validation.valid) {
+      return res.status(400).json({ errors: validation.errors });
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const newUser = await createUser({
+      username,
+      email,
+      password: hashedPassword,
+      role: role || 'staff'
+    });
+
+    // Log user creation
+    logAuditEvent(req.user?.id, 'CREATE_USER', 'USER', newUser.id, { 
+      createdUser: { username, email, role },
+      ip: req.ip 
+    });
+
+    res.status(201).json({
+      id: newUser.id,
+      username: newUser.username,
+      email: newUser.email,
+      role: newUser.role
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+// Update user
+router.put('/api/users/:id', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { username, email, role } = req.body;
+
+    const updatedUser = await updateUser(userId, { username, email, role });
+
+    // Log user update
+    logAuditEvent(req.user?.id, 'UPDATE_USER', 'USER', userId, {
+      updates: { username, email, role },
+      ip: req.ip
+    });
+
+    res.json({
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      role: updatedUser.role
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Delete user
+router.delete('/api/users/:id', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Prevent self-deletion
+    if (userId === req.user?.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    await deleteUser(userId);
+
+    // Log user deletion
+    logAuditEvent(req.user?.id, 'DELETE_USER', 'USER', userId, { ip: req.ip });
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+```
+
+**Project Management Endpoints:**
+```javascript
+// Get user's projects
+router.get('/api/projects', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const projects = await getUserProjects(userId);
+    res.json(projects);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+// Save new project
+router.post('/api/projects', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { projectName, projectData, dataSource } = req.body;
+
+    const newProject = await createProject({
+      userId,
+      projectName,
+      projectData,
+      dataSource
+    });
+
+    // Log project creation
+    logAuditEvent(userId, 'CREATE_PROJECT', 'PROJECT', newProject.id, {
+      projectName,
+      dataSource,
+      ip: req.ip
+    });
+
+    res.status(201).json(newProject);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save project' });
+  }
+});
+
+// Update project
+router.put('/api/projects/:id', isAuthenticated, canAccessProject, async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    const { projectName, projectData } = req.body;
+
+    const updatedProject = await updateProject(projectId, {
+      projectName,
+      projectData
+    });
+
+    // Log project update
+    logAuditEvent(req.user?.id, 'UPDATE_PROJECT', 'PROJECT', projectId, {
+      updates: { projectName },
+      ip: req.ip
+    });
+
+    res.json(updatedProject);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update project' });
+  }
+});
+
+// Delete project
+router.delete('/api/projects/:id', isAuthenticated, canAccessProject, async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    
+    await deleteProject(projectId);
+
+    // Log project deletion
+    logAuditEvent(req.user?.id, 'DELETE_PROJECT', 'PROJECT', projectId, { ip: req.ip });
+
+    res.json({ message: 'Project deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete project' });
+  }
+});
+```
+
+## **4. Frontend Authentication Implementation**
+
+**React Authentication Context:**
+```typescript
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: 'admin' | 'staff';
+}
+
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/user', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Login failed');
+    }
+
+    const data = await response.json();
+    setUser(data.user);
+  };
+
+  const logout = async () => {
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'include'
+    });
+    setUser(null);
+  };
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, logout, checkAuth }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+```
+
+**Protected Route Component:**
+```typescript
+import React, { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+
+interface ProtectedRouteProps {
+  children: ReactNode;
+  adminOnly?: boolean;
+}
+
+export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (adminOnly && user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+```
+
+**Login Page Component:**
+```typescript
+import React, { useState } from 'react';
+import { useAuth } from './AuthContext';
+import { Navigate } from 'react-router-dom';
+
+export function LoginPage() {
+  const { user, login } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      await login(formData.email, formData.password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left side - Form */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Budget Estimation Tool
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Enterprise cost planning platform
+            </p>
+          </div>
+
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="text-red-600 text-sm">{error}</div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {isLoading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+
+          <div className="text-center text-sm text-gray-600">
+            <p>Demo Credentials:</p>
+            <p>Admin: okeoluwole@gmail.com / admin123</p>
+            <p>Staff: testuser1@example.com / password123</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right side - Hero */}
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-blue-600 to-purple-700 items-center justify-center">
+        <div className="text-center text-white px-8">
+          <h2 className="text-4xl font-bold mb-6">
+            Professional Cost Estimation
+          </h2>
+          <p className="text-xl mb-8">
+            Streamline your budget planning with enterprise-grade cost analysis tools
+          </p>
+          <ul className="text-left space-y-3">
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-white rounded-full mr-3"></span>
+              Global cost database coverage
+            </li>
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-white rounded-full mr-3"></span>
+              Multi-tenant user management
+            </li>
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-white rounded-full mr-3"></span>
+              Advanced project collaboration
+            </li>
+            <li className="flex items-center">
+              <span className="w-2 h-2 bg-white rounded-full mr-3"></span>
+              Enterprise security standards
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## **5. Application Integration**
+
+**Main App Wrapper:**
+```typescript
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './auth/AuthContext';
+import { ProtectedRoute } from './auth/ProtectedRoute';
+import { LoginPage } from './auth/LoginPage';
+import { CurrentApplication } from './CurrentApplication'; // Your existing app
+
+export function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <CurrentApplication />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}
+```
+
+**Enhanced Main Menu:**
+```typescript
+import React from 'react';
+import { useAuth } from './auth/AuthContext';
+import { 
+  LayoutDashboard, 
+  FolderOpen, 
+  Calculator, 
+  FileText, 
+  Settings, 
+  Users, 
+  LogOut 
+} from 'lucide-react';
+
+export function MainMenu() {
+  const { user, logout } = useAuth();
+
+  const menuItems = [
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/' },
+    { name: 'Projects', icon: FolderOpen, href: '/projects' },
+    { name: 'Budgets', icon: Calculator, href: '/budgets' },
+    { name: 'Reports', icon: FileText, href: '/reports' },
+    { name: 'Settings', icon: Settings, href: '/settings' },
+  ];
+
+  // Add admin-only items
+  if (user?.role === 'admin') {
+    menuItems.push({
+      name: 'User Management',
+      icon: Users,
+      href: '/admin/users'
+    });
+  }
+
+  return (
+    <nav className="space-y-1">
+      {menuItems.map((item) => (
+        
+          key={item.name}
+          href={item.href}
+          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+        >
+          <item.icon className="mr-3 h-5 w-5" />
+          {item.name}
+        </a>
+      ))}
+      
+      <button
+        onClick={logout}
+        className="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+      >
+        <LogOut className="mr-3 h-5 w-5" />
+        Logout
+      </button>
+    </nav>
+  );
+}
+```
+
+## **6. Project Management Integration**
+
+**Save Project Functionality:**
+```typescript
+import React, { useState } from 'react';
+
+export function SaveProjectButton({ projectData, dataSource }: {
+  projectData: any;
+  dataSource: string;
+}) {
+  const [projectName, setProjectName] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!projectName.trim()) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          projectName: projectName.trim(),
+          projectData,
+          dataSource
+        })
+      });
+
+      if (response.ok) {
+        setIsOpen(false);
+        setProjectName('');
+        // Show success notification
+      }
+    } catch (error) {
+      // Show error notification
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+      >
+        Save Project
+      </button>
+
+      {isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium mb-4">Save Project</h3>
+            
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="Project name"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
+            />
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!projectName.trim() || isSaving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+## **7. User Management Dashboard**
+
+**Admin User Management Component:**
+```typescript
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../auth/AuthContext';
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+export function UserManagement() {
+  const { user } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetchUsers();
+    }
+  }, [user]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (user?.role !== 'admin') {
+    return <div>Access denied</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">User Management</h1>
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Create User
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="animate-pulse">Loading users...</div>
+      ) : (
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {users.map((userData) => (
+                <tr key={userData.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {userData.username}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {userData.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      userData.role === 'admin' 
+                        ? 'bg-purple-100 text-purple-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {userData.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(userData.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button className="text-indigo-600 hover:text-indigo-900 mr-4">
+                      Edit
+                    </button>
+                    {userData.id !== user.id && (
+                      <button className="text-red-600 hover:text-red-900">
+                        Delete
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Create User Form Modal would go here */}
+    </div>
+  );
+}
+```
+
+## **8. Data Preservation Implementation**
+
+**CRITICAL: Current Application Preservation**
+```typescript
+// Wrap existing application with authentication but preserve all functionality
+export function PreservedApplication() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              {/* Your existing application components - unchanged */}
+              <ExistingMainLayout>
+                <Routes>
+                  <Route path="/" element={<ExistingDashboard />} />
+                  <Route path="/new-budget" element={<ExistingBudgetCreator />} />
+                  <Route path="/projects" element={<ExistingProjects />} />
+                  <Route path="/budgets" element={<ExistingBudgets />} />
+                  <Route path="/reports" element={<ExistingReports />} />
+                  <Route path="/settings" element={<EnhancedSettings />} />
+                  <Route path="/admin/users" element={
+                    <ProtectedRoute adminOnly>
+                      <UserManagement />
+                    </ProtectedRoute>
+                  } />
+                </Routes>
+              </ExistingMainLayout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </AuthProvider>
+  );
+}
+```
+
+## **9. Environment Configuration**
+
+**Required Environment Variables:**
+```env
+# Database
+DATABASE_URL=postgresql://username:password@localhost:5432/budget_app
+
+# Session Security
+SESSION_SECRET=your-super-secret-session-key-change-in-production
+
+# Application
+NODE_ENV=development
+PORT=3000
+
+# Optional: Email configuration for password resets
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+```
+
+## **10. Account Credentials**
+
+**Admin Account:**
+- **Email:** `okeoluwole@gmail.com`
+- **Password:** `admin123`
+- **Role:** `admin`
+
+**Test Staff Accounts:**
+- `testuser1@example.com` / `password123`
+- `testuser2@example.com` / `password234`
+- `testuser3@example.com` / `password345`
+- `testuser4@example.com` / `password456`
+- `testuser5@example.com` / `password567`
+
+## **Implementation Success Criteria**
+
+**Must Work After Implementation:**
+- ✅ **Zero existing functionality lost** - all current budget calculators work identically
+- ✅ **Zero data loss** - all existing projects preserved under admin account
+- ✅ **Admin experience** - full current application access + user management
+- ✅ **Staff experience** - budget calculators + personal project management
+- ✅ **Professional login** - suitable for Fortune 500 client demonstrations
+- ✅ **Project isolation** - users can only see their own projects (except admin)
+- ✅ **Role-based access** - proper admin/staff permission enforcement
+- ✅ **Current UI maintained** - no branding changes, preserve existing design
+- ✅ **Enterprise security** - production-ready authentication and session management
+
+**Testing Checklist:**
+1. Admin can log in and access everything that exists today
+2. All 5 test staff users can log in successfully
+3. Staff users can create, save, and manage personal budget projects
+4. Staff users cannot access admin features or other users' projects
+5. All existing CBRE and T&T workflows function identically
+6. Project saving and loading works correctly
+7. User management dashboard functional for admin
+8. Audit logging captures user activities
+9. Session management works correctly (login persistence, logout)
+10. Password security and validation enforced
+
+This implementation provides enterprise-grade authentication while maintaining 100% backward compatibility with your existing application functionality."
+
+---
+
+**Share only this comprehensive instruction with Replit.** It contains everything from the architecture document plus all improvements, adaptations, and specific requirements in one complete guide.

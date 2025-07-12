@@ -1,21 +1,93 @@
-import { pgTable, text, serial, integer, real, boolean, timestamp, json, numeric, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, real, boolean, timestamp, json, numeric, jsonb, varchar, inet, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Base user schema
+// Enterprise user management schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(), // bcrypt hashed
+  role: varchar("role", { length: 20 }).notNull().default("staff"), // 'admin' or 'staff'
+  email: varchar("email", { length: 100 }).unique(),
+  passwordResetRequired: boolean("password_reset_required").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+// Session management for persistent authentication
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User project storage for saved budget estimates
+export const userProjects = pgTable("user_projects", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  projectName: varchar("project_name", { length: 255 }).notNull(),
+  projectData: jsonb("project_data").notNull(), // Complete project configuration
+  dataSource: varchar("data_source", { length: 50 }).notNull(), // 'CBRE' or 'Turner & Townsend'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Project sharing capabilities between users
+export const projectShares = pgTable("project_shares", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => userProjects.id, { onDelete: 'cascade' }).notNull(),
+  sharedWithUserId: integer("shared_with_user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  permissionLevel: varchar("permission_level", { length: 20 }).default("view").notNull(), // 'view' or 'edit'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Audit logging for compliance and tracking
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  action: varchar("action", { length: 100 }).notNull(),
+  resourceType: varchar("resource_type", { length: 50 }),
+  resourceId: integer("resource_id"),
+  details: jsonb("details"),
+  ipAddress: inet("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserProjectSchema = createInsertSchema(userProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProjectShareSchema = createInsertSchema(projectShares).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type UpsertUser = typeof users.$inferInsert;
+export type InsertUserProject = z.infer<typeof insertUserProjectSchema>;
+export type UserProject = typeof userProjects.$inferSelect;
+export type InsertProjectShare = z.infer<typeof insertProjectShareSchema>;
+export type ProjectShare = typeof projectShares.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
 
 // Project schema
 export const projects = pgTable("projects", {

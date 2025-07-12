@@ -15,24 +15,13 @@ import { BudgetProvider } from "@/contexts/BudgetContext";
 import ChatInterface from "@/components/chat/ChatInterface";
 import ChatWizard from "@/components/chat/ChatWizard";
 import DatasetValidator from "@/components/DatasetValidator";
+import { useAuth } from "@/hooks/useAuth";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { Navigation } from "@/components/auth/Navigation";
+import { UserManagement } from "@/components/auth/UserManagement";
 import { useState } from "react";
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/budgets" component={Budgets} />
-      <Route path="/new-budget" component={NewBudget} />
-      <Route path="/budget/:id" component={BudgetDetails} />
-      <Route path="/projects" component={Projects} />
-      <Route path="/reports" component={Reports} />
-      <Route path="/settings" component={Settings} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
-function App() {
+function AuthenticatedApp() {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const handleChatToggle = () => {
@@ -40,14 +29,55 @@ function App() {
   };
 
   return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <main className="container mx-auto px-4 py-8">
+        <DatasetValidator />
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/budgets" component={Budgets} />
+          <Route path="/new-budget" component={NewBudget} />
+          <Route path="/budget/:id" component={BudgetDetails} />
+          <Route path="/projects" component={Projects} />
+          <Route path="/reports" component={Reports} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/admin/users" component={UserManagement} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+      <ChatInterface />
+      <ChatWizard isOpen={isChatOpen} onToggle={handleChatToggle} />
+    </div>
+  );
+}
+
+function Router() {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [authUser, setAuthUser] = useState(null);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginForm onLoginSuccess={setAuthUser} />;
+  }
+
+  return <AuthenticatedApp />;
+}
+
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <BudgetProvider>
-        <AppLayout>
-          <DatasetValidator />
-          <Router />
-        </AppLayout>
-        <ChatInterface />
-        <ChatWizard isOpen={isChatOpen} onToggle={handleChatToggle} />
+        <Router />
         <Toaster />
       </BudgetProvider>
     </QueryClientProvider>

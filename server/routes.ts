@@ -16,6 +16,32 @@ import * as openaiUtil from './utils/openai';
 import { validateDataset, getDatasetValidationWarnings } from './utils/datasetValidator';
 import { eq } from 'drizzle-orm';
 
+// Authentication imports
+import { sessionConfig } from './sessionConfig';
+import passport from './passport';
+import { 
+  isAuthenticated, 
+  isAdmin, 
+  hashPassword, 
+  validatePasswordStrength, 
+  logAuditEvent 
+} from './auth';
+import {
+  getUserByEmail,
+  getUserById,
+  createUser,
+  updateUser,
+  updateUserPassword,
+  deleteUser,
+  getAllUsers,
+  getUserProjects,
+  createUserProject,
+  updateUserProject,
+  deleteUserProject,
+  initializeAdminUser,
+  initializeTestUsers
+} from './userService';
+
 // Server-side budget calculation function
 async function performServerSideBudgetCalculation(project: any, budget: any, budgetStructure: any) {
   console.log("=== SERVER-SIDE BUDGET CALCULATION ===");
@@ -380,10 +406,231 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize authentication system
+  app.use(sessionConfig);
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Initialize admin and test users
+  try {
+    await initializeAdminUser();
+    await initializeTestUsers();
+  } catch (error) {
+    console.error('Error initializing users:', error);
+  }
+
+  // Authentication routes
+  // User login
+  app.post('/api/login', (req, res, next) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) return next(err);
+      if (!user) return res.status(401).json({ error: info.message });
+
+      req.logIn(user, (err) => {
+        if (err) return next(err);
+        
+        // Log successful login
+        console.log(`User ${user.username} logged in`);
+        
+        return res.json({
+          user: { id: user.id, username: user.username, email: user.email, role: user.role }
+        });
+      });
+    })(req, res, next);
+  });
+
+  // User logout
+  app.post('/api/logout', isAuthenticated, (req, res) => {
+    const user = req.user as any;
+    
+    req.logout((err) => {
+      if (err) return res.status(500).json({ error: 'Logout failed' });
+      
+      console.log(`User ${user?.username} logged out`);
+      res.json({ message: 'Logged out successfully' });
+    });
+  });
+
+  // Get current user
+  app.get('/api/auth/user', isAuthenticated, (req, res) => {
+    const user = req.user as any;
+    res.json({
+      user: {
+        id: user?.id,
+        username: user?.username,
+        email: user?.email,
+        role: user?.role
+      }
+    });
+  });
+
+  // Change password
+  app.post('/api/change-password', isAuthenticated, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const user = req.user as any;
+
+      // Validate new password strength
+      const validation = validatePasswordStrength(newPassword);
+      if (!validation.valid) {
+        return res.status(400).json({ errors: validation.errors });
+      }
+
+      // Verify current password
+      const userRecord = await getUserById(user.id);
+      if (!userRecord) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const bcrypt = require('bcryptjs');
+      const isValidCurrent = await bcrypt.compare(currentPassword, userRecord.password);
+      if (!isValidCurrent) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+
+      // Update password
+      const hashedNewPassword = await hashPassword(newPassword);
+      await updateUserPassword(user.id, hashedNewPassword);
+
+      console.log(`Password changed for user ${user.username}`);
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Password change error:', error);
+      res.status(500).json({ error: 'Failed to update password' });
+    }
+  });
+
+  // Admin-only user management routes
+  // Get all users
+  app.get('/api/users', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const users = await getAllUsers();
+      res.json(users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      })));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
+  // Create new user
+  app.post('/api/users', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { username, email, password, role } = req.body;
+
+      // Validate password strength
+      const validation = validatePasswordStrength(password);
+      if (!validation.valid) {
+        return res.status(400).json({ errors: validation.errors });
+      }
+
+      const hashedPassword = await hashPassword(password);
+      const newUser = await createUser({
+        username,
+        email,
+        password: hashedPassword,
+        role: role || 'staff',
+        passwordResetRequired: false
+      });
+
+      console.log(`Admin created user: ${username}`);
+      res.status(201).json({
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+      res.status(500).json({ error: 'Failed to create user' });
+    }
+  });
+
+  // Update user
+  app.put('/api/users/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { username, email, role } = req.body;
+
+      const updatedUser = await updateUser(userId, { username, email, role });
+
+      console.log(`Admin updated user: ${username}`);
+      res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role
+      });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  });
+
+  // Delete user
+  app.delete('/api/users/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = req.user as any;
+      
+      // Prevent self-deletion
+      if (userId === currentUser?.id) {
+        return res.status(400).json({ error: 'Cannot delete your own account' });
+      }
+
+      await deleteUser(userId);
+
+      console.log(`Admin deleted user ID: ${userId}`);
+      res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).json({ error: 'Failed to delete user' });
+    }
+  });
+
+  // Protected project management routes
+  // Get user's projects
+  app.get('/api/user-projects', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const projects = await getUserProjects(user.id);
+      res.json(projects);
+    } catch (error) {
+      console.error('Error fetching user projects:', error);
+      res.status(500).json({ error: 'Failed to fetch projects' });
+    }
+  });
+
+  // Save new project
+  app.post('/api/user-projects', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { projectName, projectData, dataSource } = req.body;
+
+      const newProject = await createUserProject({
+        userId: user.id,
+        projectName,
+        projectData,
+        dataSource
+      });
+
+      console.log(`User ${user.username} saved project: ${projectName}`);
+      res.status(201).json(newProject);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      res.status(500).json({ error: 'Failed to save project' });
+    }
+  });
+
   // API routes with /api prefix
   
-  // Chat AI routes
-  app.use('/api/chat', chatRoutes);
+  // Chat AI routes (now protected)
+  app.use('/api/chat', isAuthenticated, chatRoutes);
   
   // Direct API handlers for chat functionality for better compatibility
   app.get('/api/chat/sessions', async (req, res) => {
