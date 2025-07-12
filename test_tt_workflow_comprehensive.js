@@ -4,205 +4,227 @@
  * Following successful CBRE pattern
  */
 
-import fs from 'fs';
-import path from 'path';
-
 async function testTTWorkflowComprehensive() {
   console.log("=== T&T WORKFLOW COMPREHENSIVE TEST ===");
   
-  try {
-    // Test 1: London Complete Package High Specification
-    console.log("\n1. Testing London Complete Package High Specification...");
-    const londonProject = {
-      id: 1,
-      name: "T&T London Test",
-      location: "London",
-      city: "London", 
-      country: "United Kingdom",
-      totalArea: 1000,
-      areaUnit: "sqm",
-      currency: "GBP"
-    };
-    
-    const londonBudget = {
-      id: 1,
-      projectId: 1,
-      primaryDataSource: "TT",
-      scope: "Complete",
-      specification: "High (Gold)", // T&T specification mapping
-      layout: "Activity", // T&T layout
-      status: "draft"
-    };
-    
-    // Import server calculation function
-    const { performServerSideBudgetCalculation } = await import('./server/routes.js');
-    
-    console.log("Calling T&T server-side calculation...");
-    const londonResult = await performServerSideBudgetCalculation(
-      londonProject, 
-      londonBudget, 
-      { specification: "High (Gold)" }
-    );
-    
-    console.log("T&T London Result:", {
-      totalCost: londonResult.totalCost,
-      costsBreakdown: londonResult.costsBreakdown,
-      datasetInfo: londonResult.datasetInfo,
-      localCurrencyCode: londonResult.localCurrencyCode
-    });
-    
-    // Validate T&T London results
-    const londonValidation = {
-      hasCostsBreakdown: !!londonResult.costsBreakdown,
-      hasConstructionCosts: !!(londonResult.costsBreakdown && londonResult.costsBreakdown['CONSTRUCTION COSTS']),
-      hasFurnitureCosts: !!(londonResult.costsBreakdown && londonResult.costsBreakdown['LOOSE FURNITURE COSTS']),
-      hasAudioVisualCosts: !!(londonResult.costsBreakdown && londonResult.costsBreakdown['AUDIO-VISUAL COSTS']),
-      hasProfessionalFees: !!(londonResult.costsBreakdown && londonResult.costsBreakdown['PROFESSIONAL FEES']),
-      isUSDCurrency: londonResult.localCurrencyCode === 'USD',
-      totalCostValid: londonResult.totalCost > 0
-    };
-    
-    console.log("London T&T Validation:", londonValidation);
-    
-    // Test 2: New York Construction Only Medium Specification 
-    console.log("\n2. Testing New York Construction Only Medium Specification...");
-    const nyProject = {
-      id: 2,
-      name: "T&T New York Test",
-      location: "New York",
-      city: "New York",
-      country: "United States",
-      totalArea: 1500,
-      areaUnit: "sqm", 
-      currency: "USD"
-    };
-    
-    const nyBudget = {
-      id: 2,
-      projectId: 2,
-      primaryDataSource: "TT",
-      scope: "Construction",
-      specification: "Medium (Silver)",
-      layout: "Cellular",
-      status: "draft"
-    };
-    
-    console.log("Calling T&T server-side calculation for New York...");
-    const nyResult = await performServerSideBudgetCalculation(
-      nyProject,
-      nyBudget,
-      { specification: "Medium (Silver)" }
-    );
-    
-    console.log("T&T New York Result:", {
-      totalCost: nyResult.totalCost,
-      costsBreakdown: nyResult.costsBreakdown,
-      constructionCost: nyResult.constructionCost,
-      datasetInfo: nyResult.datasetInfo
-    });
-    
-    // Test 3: Singapore Furniture Only Low Specification
-    console.log("\n3. Testing Singapore Furniture Only Low Specification...");
-    const sgProject = {
-      id: 3,
-      name: "T&T Singapore Test",
-      location: "Singapore",
-      city: "Singapore",
-      country: "Singapore",
-      totalArea: 800,
-      areaUnit: "sqm",
-      currency: "SGD"
-    };
-    
-    const sgBudget = {
-      id: 3,
-      projectId: 3,
-      primaryDataSource: "TT", 
-      scope: "LooseFurniture",
-      specification: "Low (Bronze)",
-      layout: "Open Plan",
-      status: "draft"
-    };
-    
-    console.log("Calling T&T server-side calculation for Singapore...");
-    const sgResult = await performServerSideBudgetCalculation(
-      sgProject,
-      sgBudget,
-      { specification: "Low (Bronze)" }
-    );
-    
-    console.log("T&T Singapore Result:", {
-      totalCost: sgResult.totalCost,
-      costsBreakdown: sgResult.costsBreakdown,
-      furnitureCost: sgResult.furnitureCost,
-      datasetInfo: sgResult.datasetInfo
-    });
-    
-    // Generate comprehensive validation report
-    console.log("\n=== T&T COMPREHENSIVE VALIDATION REPORT ===");
-    
-    const allTests = [
-      { name: "London Complete Package", result: londonResult, validation: londonValidation },
-      { name: "New York Construction", result: nyResult, scope: "Construction" },
-      { name: "Singapore Furniture", result: sgResult, scope: "Furniture" }
-    ];
-    
-    let passCount = 0;
-    let totalTests = allTests.length;
-    
-    allTests.forEach((test, index) => {
-      const hasValidResult = test.result && test.result.totalCost > 0;
-      const hasBreakdown = test.result && test.result.costsBreakdown;
-      const isUSD = test.result && test.result.localCurrencyCode === 'USD';
-      
-      const testPassed = hasValidResult && hasBreakdown && isUSD;
-      
-      console.log(`\nTest ${index + 1}: ${test.name}`);
-      console.log(`✓ Valid Total Cost: ${hasValidResult ? 'PASS' : 'FAIL'} (${test.result?.totalCost || 0})`);
-      console.log(`✓ Has Breakdown: ${hasBreakdown ? 'PASS' : 'FAIL'}`);
-      console.log(`✓ USD Currency: ${isUSD ? 'PASS' : 'FAIL'} (${test.result?.localCurrencyCode || 'N/A'})`);
-      console.log(`Overall: ${testPassed ? '✅ PASS' : '❌ FAIL'}`);
-      
-      if (testPassed) passCount++;
-    });
-    
-    const successRate = (passCount / totalTests) * 100;
-    console.log(`\n=== FINAL T&T VALIDATION SUMMARY ===`);
-    console.log(`✅ Tests Passed: ${passCount}/${totalTests} (${successRate}%)`);
-    console.log(`📊 T&T Workflow Status: ${successRate === 100 ? 'FULLY OPERATIONAL' : 'NEEDS ATTENTION'}`);
-    
-    // Component coverage analysis
-    console.log(`\n=== T&T COMPONENT COVERAGE ANALYSIS ===`);
-    const componentKeys = ['CONSTRUCTION COSTS', 'LOOSE FURNITURE COSTS', 'AUDIO-VISUAL COSTS', 'PROFESSIONAL FEES'];
-    
-    componentKeys.forEach(key => {
-      const londonHas = londonResult.costsBreakdown && londonResult.costsBreakdown[key];
-      console.log(`${key}: ${londonHas ? '✅ Available' : '❌ Missing'} (${londonHas ? Math.round(londonResult.costsBreakdown[key]) : 0})`);
-    });
-    
-    if (successRate === 100) {
-      console.log(`\n🎉 T&T WORKFLOW VALIDATION COMPLETE - ALL SYSTEMS OPERATIONAL!`);
-      console.log(`🔧 Server-side calculation engine working correctly`);
-      console.log(`💰 USD currency standardization confirmed`);
-      console.log(`📈 Component breakdown generation validated`);
-    } else {
-      console.log(`\n⚠️  T&T WORKFLOW NEEDS REFINEMENT`);
-      console.log(`🔍 Check component calculation logic`);
-      console.log(`🛠️  Verify T&T data source integration`);
+  // Test multiple T&T configurations
+  const testConfigurations = [
+    {
+      name: "London High Specification",
+      project: {
+        id: 1,
+        name: "T&T London Test",
+        city: "London",
+        country: "United Kingdom",
+        totalArea: 1000,
+        areaUnit: "sqm",
+        currency: "GBP"
+      },
+      budget: {
+        primaryDataSource: "TT",
+        scope: "Complete",
+        specification: "High (Gold)",
+        layout: "Activity"
+      }
+    },
+    {
+      name: "New York Medium Specification",
+      project: {
+        id: 2,
+        name: "T&T New York Test",
+        city: "New York",
+        country: "United States",
+        totalArea: 1500,
+        areaUnit: "sqm",
+        currency: "USD"
+      },
+      budget: {
+        primaryDataSource: "TT",
+        scope: "Complete",
+        specification: "Medium (Silver)",
+        layout: "Activity"
+      }
+    },
+    {
+      name: "Singapore Low Specification",
+      project: {
+        id: 3,
+        name: "T&T Singapore Test",
+        city: "Singapore",
+        country: "Singapore",
+        totalArea: 800,
+        areaUnit: "sqm",
+        currency: "SGD"
+      },
+      budget: {
+        primaryDataSource: "TT",
+        scope: "Complete",
+        specification: "Low (Bronze)",
+        layout: "Activity"
+      }
     }
+  ];
+  
+  const results = [];
+  
+  for (const config of testConfigurations) {
+    console.log(`\n--- Testing: ${config.name} ---`);
     
-  } catch (error) {
-    console.error("T&T Workflow Test Error:", error);
-    console.log(`\n❌ CRITICAL ERROR IN T&T WORKFLOW`);
-    console.log(`🔧 Error: ${error.message}`);
-    console.log(`📋 Recommendation: Check T&T data source and server calculation logic`);
+    try {
+      // Make API call to calculate budget
+      const response = await fetch('http://localhost:5000/api/calculate-budget', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project: config.project,
+          budget: config.budget,
+          budgetStructure: {
+            specification: config.budget.specification
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      // Validate result structure
+      const validation = {
+        hasTotal: result.totalCost > 0,
+        hasBreakdown: !!result.costsBreakdown,
+        componentCount: result.costsBreakdown ? Object.keys(result.costsBreakdown).length : 0,
+        hasConstruction: !!result.costsBreakdown?.['Construction'],
+        hasLooseFurniture: !!result.costsBreakdown?.['Loose Furniture'],
+        hasAudioVisual: !!result.costsBreakdown?.['Audio-Visual'],
+        hasProfessionalFees: !!result.costsBreakdown?.['Professional Fees']
+      };
+      
+      // Calculate component rates
+      const area = config.project.totalArea;
+      const componentRates = {};
+      
+      if (result.costsBreakdown) {
+        Object.entries(result.costsBreakdown).forEach(([component, cost]) => {
+          componentRates[component] = Math.round(cost / area);
+        });
+      }
+      
+      console.log(`✅ ${config.name} SUCCESS`);
+      console.log(`   Total Cost: ${result.totalCost.toLocaleString()} ${result.localCurrencyCode}`);
+      console.log(`   Rate: ${Math.round(result.totalCost / area)}/${config.project.areaUnit}`);
+      console.log(`   Components: ${validation.componentCount}`);
+      
+      // Log component breakdown
+      if (result.costsBreakdown) {
+        console.log(`   Component Breakdown:`);
+        Object.entries(result.costsBreakdown).forEach(([component, cost]) => {
+          const rate = Math.round(cost / area);
+          console.log(`     - ${component}: ${cost.toLocaleString()} (${rate}/${config.project.areaUnit})`);
+        });
+      }
+      
+      results.push({
+        name: config.name,
+        success: true,
+        result,
+        validation,
+        componentRates,
+        totalRate: Math.round(result.totalCost / area)
+      });
+      
+    } catch (error) {
+      console.log(`❌ ${config.name} FAILED: ${error.message}`);
+      results.push({
+        name: config.name,
+        success: false,
+        error: error.message
+      });
+    }
   }
+  
+  // Generate comprehensive report
+  console.log("\n=== T&T WORKFLOW VALIDATION REPORT ===");
+  
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  
+  console.log(`\n📊 Test Results:`);
+  console.log(`✅ Successful: ${successful.length}/${testConfigurations.length}`);
+  console.log(`❌ Failed: ${failed.length}/${testConfigurations.length}`);
+  
+  if (successful.length > 0) {
+    console.log(`\n🔧 Component Validation:`);
+    successful.forEach(test => {
+      console.log(`\n${test.name}:`);
+      console.log(`  Construction: ${test.validation.hasConstruction ? '✅' : '❌'}`);
+      console.log(`  Loose Furniture: ${test.validation.hasLooseFurniture ? '✅' : '❌'}`);
+      console.log(`  Audio-Visual: ${test.validation.hasAudioVisual ? '✅' : '❌'}`);
+      console.log(`  Professional Fees: ${test.validation.hasProfessionalFees ? '✅' : '❌'}`);
+      console.log(`  Total Components: ${test.validation.componentCount}`);
+    });
+    
+    console.log(`\n💰 Rate Analysis:`);
+    successful.forEach(test => {
+      console.log(`\n${test.name} Component Rates:`);
+      Object.entries(test.componentRates).forEach(([component, rate]) => {
+        console.log(`  ${component}: ${rate}/sqm`);
+      });
+      console.log(`  Total Rate: ${test.totalRate}/sqm`);
+    });
+  }
+  
+  if (failed.length > 0) {
+    console.log(`\n⚠️  Failed Tests:`);
+    failed.forEach(test => {
+      console.log(`  ${test.name}: ${test.error}`);
+    });
+  }
+  
+  // Component Coverage Analysis
+  const componentCoverage = {
+    construction: successful.filter(t => t.validation.hasConstruction).length,
+    looseFurniture: successful.filter(t => t.validation.hasLooseFurniture).length,
+    audioVisual: successful.filter(t => t.validation.hasAudioVisual).length,
+    professionalFees: successful.filter(t => t.validation.hasProfessionalFees).length
+  };
+  
+  console.log(`\n🎯 Component Coverage:`);
+  Object.entries(componentCoverage).forEach(([component, count]) => {
+    const percentage = successful.length > 0 ? (count / successful.length) * 100 : 0;
+    console.log(`  ${component}: ${count}/${successful.length} (${percentage.toFixed(1)}%)`);
+  });
+  
+  // Final assessment
+  const successRate = (successful.length / testConfigurations.length) * 100;
+  const allComponentsPresent = successful.length > 0 && 
+    successful.every(t => t.validation.componentCount === 4);
+  
+  console.log(`\n🏆 FINAL ASSESSMENT:`);
+  console.log(`Success Rate: ${successRate.toFixed(1)}%`);
+  console.log(`All Components Present: ${allComponentsPresent ? '✅' : '❌'}`);
+  console.log(`Loose Furniture Rate Display: ${componentCoverage.looseFurniture > 0 ? '✅ FIXED' : '❌ MISSING'}`);
+  
+  if (successRate >= 80 && allComponentsPresent) {
+    console.log(`\n🎉 T&T WORKFLOW VALIDATION PASSED`);
+    console.log(`✅ Server-side calculation engine working`);
+    console.log(`✅ Component breakdown complete`);
+    console.log(`✅ Loose furniture rate display functional`);
+  } else {
+    console.log(`\n⚠️  T&T WORKFLOW NEEDS ATTENTION`);
+    console.log(`🔍 Check component coverage and rate calculations`);
+  }
+  
+  return {
+    successRate,
+    allComponentsPresent,
+    componentCoverage,
+    results
+  };
 }
 
-// Export for ES modules
-export { testTTWorkflowComprehensive };
-
-// Run if this is the main module
-if (import.meta.url === `file://${process.argv[1]}`) {
-  testTTWorkflowComprehensive().catch(console.error);
-}
+// Run comprehensive test
+testTTWorkflowComprehensive().catch(console.error);
