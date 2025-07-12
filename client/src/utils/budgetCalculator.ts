@@ -399,9 +399,9 @@ export const calculateBudget = async ({
       console.log('====== T&T CALCULATION START ======');
       
       try {
-        // Get T&T specification level mapping
-        const ttSpecLevel = budget.specification === 'Low' ? 'Low' : 
-                           budget.specification === 'High' ? 'High' : 'Medium';
+        // Get T&T specification level mapping - handle compound formats
+        const ttSpecLevel = budget.specification?.includes('Low') || budget.specification?.includes('Bronze') ? 'Low' : 
+                           budget.specification?.includes('High') || budget.specification?.includes('Gold') ? 'High' : 'Medium';
         
         console.log(`Project details: Country=${project.country}, City=${project.city}, Area=${project.totalArea}, Unit=${project.areaUnit}`);
         console.log(`Budget specification: ${budget.specification} -> T&T spec: ${ttSpecLevel}`);
