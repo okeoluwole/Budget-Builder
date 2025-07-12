@@ -61,10 +61,8 @@ export function UserManagement() {
 
   const createUserMutation = useMutation({
     mutationFn: async (data: CreateUserForm) => {
-      return await apiRequest('/api/users', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('POST', '/api/users', data);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -86,9 +84,8 @@ export function UserManagement() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      return await apiRequest(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiRequest('DELETE', `/api/users/${userId}`);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
