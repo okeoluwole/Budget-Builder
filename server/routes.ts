@@ -819,26 +819,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Countries and cities from database and T&T 2025 data
+  // Countries and cities from authentic T&T 2025 data only
   app.get('/api/locations', async (req, res) => {
     try {
-      // Get all fitout cost records from the database (CBRE data)
-      const records = await db.select().from(fitoutCosts);
-      
-      // Extract unique countries and their cities from CBRE data
-      const locations: { [country: string]: string[] } = {};
-      
-      records.forEach(item => {
-        if (!locations[item.country]) {
-          locations[item.country] = [];
-        }
-        if (!locations[item.country].includes(item.city)) {
-          locations[item.country].push(item.city);
-        }
-      });
-      
-      // Add T&T 2025 locations (import the data)
+      // Only return authentic T&T 2025 locations
       const { TT2025_COST_DATA } = await import('../client/src/utils/tt2025Data');
+      
+      // Extract unique countries and their cities from authentic T&T data only
+      const locations: { [country: string]: string[] } = {};
       
       TT2025_COST_DATA.forEach(item => {
         if (!locations[item.country]) {
@@ -854,6 +842,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       Object.keys(locations).sort().forEach(country => {
         sortedLocations[country] = locations[country].sort();
       });
+      
+      console.log(`Returning ${Object.keys(locations).length} authentic T&T countries with ${Object.values(locations).flat().length} total cities`);
       
       res.json(sortedLocations);
     } catch (error: any) {

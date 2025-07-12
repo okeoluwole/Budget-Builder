@@ -231,42 +231,7 @@ export const TT2025_COST_DATA: TT2025CostData[] = [
       professionalFees: { low: 494.0, medium: 572.0, high: 741.0 }
     }
   },
-  {
-    country: 'United States',
-    city: 'Chicago',
-    region: 'AMERICAS',
-    costs: {
-      total: { low: 3200.0, medium: 3700.0, high: 4800.0 },
-      construction: { low: 2240.0, medium: 2590.0, high: 3360.0 },
-      looseFurniture: { low: 320.0, medium: 370.0, high: 480.0 },
-      audioVisual: { low: 224.0, medium: 259.0, high: 336.0 },
-      professionalFees: { low: 416.0, medium: 481.0, high: 624.0 }
-    }
-  },
-  {
-    country: 'United States',
-    city: 'Dallas',
-    region: 'AMERICAS',
-    costs: {
-      total: { low: 2900.0, medium: 3350.0, high: 4350.0 },
-      construction: { low: 2030.0, medium: 2345.0, high: 3045.0 },
-      looseFurniture: { low: 290.0, medium: 335.0, high: 435.0 },
-      audioVisual: { low: 203.0, medium: 235.0, high: 305.0 },
-      professionalFees: { low: 377.0, medium: 436.0, high: 566.0 }
-    }
-  },
-  {
-    country: 'United States',
-    city: 'Miami',
-    region: 'AMERICAS',
-    costs: {
-      total: { low: 3100.0, medium: 3600.0, high: 4700.0 },
-      construction: { low: 2170.0, medium: 2520.0, high: 3290.0 },
-      looseFurniture: { low: 310.0, medium: 360.0, high: 470.0 },
-      audioVisual: { low: 217.0, medium: 252.0, high: 329.0 },
-      professionalFees: { low: 403.0, medium: 468.0, high: 611.0 }
-    }
-  },
+
   {
     country: 'Canada',
     city: 'Toronto',
