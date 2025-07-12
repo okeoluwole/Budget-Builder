@@ -92,6 +92,7 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 // Project schema
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text("name").notNull(),
   reference: text("reference"),
   country: text("country").notNull(),

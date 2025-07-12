@@ -18,6 +18,7 @@ export interface IStorage {
   
   // Project operations
   getAllProjects(): Promise<Project[]>;
+  getProjectsByUser(userId: number): Promise<Project[]>;
   getProject(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined>;
@@ -25,6 +26,7 @@ export interface IStorage {
   
   // Budget operations
   getAllBudgets(): Promise<Budget[]>;
+  getBudgetsByUser(userId: number): Promise<Budget[]>;
   getBudget(id: number): Promise<Budget | undefined>;
   getBudgetsByProject(projectId: number): Promise<Budget[]>;
   createBudget(budget: InsertBudget): Promise<Budget>;
@@ -65,6 +67,10 @@ export class DatabaseStorage implements IStorage {
   // Project operations
   async getAllProjects(): Promise<Project[]> {
     return await db.select().from(projects);
+  }
+
+  async getProjectsByUser(userId: number): Promise<Project[]> {
+    return await db.select().from(projects).where(eq(projects.userId, userId));
   }
 
   async getProject(id: number): Promise<Project | undefined> {
@@ -124,6 +130,14 @@ export class DatabaseStorage implements IStorage {
   // Budget operations
   async getAllBudgets(): Promise<Budget[]> {
     return await db.select().from(budgets);
+  }
+
+  async getBudgetsByUser(userId: number): Promise<Budget[]> {
+    return await db.select()
+      .from(budgets)
+      .innerJoin(projects, eq(budgets.projectId, projects.id))
+      .where(eq(projects.userId, userId))
+      .then(result => result.map(row => row.budgets));
   }
 
   async getBudget(id: number): Promise<Budget | undefined> {

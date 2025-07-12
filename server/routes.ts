@@ -736,21 +736,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Projects
-  app.get('/api/projects', async (req, res) => {
+  // Projects (user-specific)
+  app.get('/api/projects', isAuthenticated, async (req, res) => {
     try {
-      const projects = await storage.getAllProjects();
+      const user = req.user as any;
+      const projects = await storage.getProjectsByUser(user.id);
       res.json(projects);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch projects' });
     }
   });
 
-  app.get('/api/projects/:id', async (req, res) => {
+  app.get('/api/projects/:id', isAuthenticated, async (req, res) => {
     try {
+      const user = req.user as any;
       const project = await storage.getProject(parseInt(req.params.id));
       if (!project) {
         return res.status(404).json({ message: 'Project not found' });
+      }
+      // Check if user owns this project
+      if (project.userId !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
       }
       res.json(project);
     } catch (error) {
@@ -758,9 +764,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects', async (req, res) => {
+  app.post('/api/projects', isAuthenticated, async (req, res) => {
     try {
-      const project = await storage.createProject(req.body);
+      const user = req.user as any;
+      const projectData = { ...req.body, userId: user.id };
+      const project = await storage.createProject(projectData);
       res.status(201).json(project);
     } catch (error) {
       res.status(400).json({ message: 'Failed to create project' });
@@ -779,10 +787,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Budgets
-  app.get('/api/budgets', async (req, res) => {
+  // Budgets (user-specific)
+  app.get('/api/budgets', isAuthenticated, async (req, res) => {
     try {
-      const budgets = await storage.getAllBudgets();
+      const user = req.user as any;
+      const budgets = await storage.getBudgetsByUser(user.id);
       res.json(budgets);
     } catch (error) {
       console.error('Error fetching budgets:', error);
@@ -790,28 +799,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:projectId/budgets', async (req, res) => {
+  app.get('/api/projects/:projectId/budgets', isAuthenticated, async (req, res) => {
     try {
-      const budgets = await storage.getBudgetsByProject(parseInt(req.params.projectId));
+      const user = req.user as any;
+      const projectId = parseInt(req.params.projectId);
+      
+      // Verify user owns the project
+      const project = await storage.getProject(projectId);
+      if (!project || (project.userId !== user.id && user.role !== 'admin')) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      const budgets = await storage.getBudgetsByProject(projectId);
       res.json(budgets);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch budgets' });
     }
   });
 
-  app.get('/api/budgets/:id', async (req, res) => {
+  app.get('/api/budgets/:id', isAuthenticated, async (req, res) => {
     try {
+      const user = req.user as any;
       const budget = await storage.getBudget(parseInt(req.params.id));
       if (!budget) {
         return res.status(404).json({ message: 'Budget not found' });
       }
+      
+      // Verify user owns the project containing this budget
+      const project = await storage.getProject(budget.projectId);
+      if (!project || (project.userId !== user.id && user.role !== 'admin')) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
       res.json(budget);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch budget' });
     }
   });
 
-  app.post('/api/budgets', async (req, res) => {
+  app.post('/api/budgets', isAuthenticated, async (req, res) => {
     try {
       console.log('Creating budget with data:', JSON.stringify(req.body, null, 2));
       
