@@ -1,0 +1,101 @@
+# Urgent UI Updates for Cost Estimator Pro
+
+## Required Changes - Implement Immediately
+
+### 1. Branding Update: Replace "Budget Estimation" with "Cost Estimator Pro"
+
+**Global Find and Replace:**
+- Change ALL instances of "Budget Estimation" to "Cost Estimator Pro"
+- Update in: header logo text, page titles, footer, and any other locations
+
+**Specific Locations to Update:**
+```javascript
+// Header component
+<span className="logo-text">Cost Estimator Pro</span>
+
+// Page title
+<title>Cost Estimator Pro - Professional Cost Estimation Platform</title>
+
+// Footer branding
+<span className="logo-text">Cost Estimator Pro</span>
+<p>&copy; 2024 Cost Estimator Pro. Professional budget planning platform.</p>
+```
+
+### 2. Typography Hierarchy Fix - CRITICAL
+
+**Current Problem:** "Professional Cost Estimation" is larger than the product name
+**Required Fix:** Make "Cost Estimator Pro" the primary heading
+
+**Specific CSS/Style Changes:**
+```css
+/* Main heading - Cost Estimator Pro */
+.hero-text h1 {
+    font-size: 3.5rem;        /* Keep current size */
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 12px;      /* Reduce margin */
+    color: #111827;
+}
+
+/* Make "Cost Estimator Pro" the highlight color */
+.hero-text h1 .highlight {
+    color: #2563eb;           /* Blue color for "Cost Estimator Pro" */
+}
+
+/* Tagline - Professional Cost Estimation */
+.hero-tagline {
+    font-size: 1.5rem;        /* Smaller than main heading */
+    font-weight: 400;         /* Normal weight */
+    color: #6b7280;          /* Gray color */
+    margin-bottom: 24px;
+}
+```
+
+**HTML Structure Should Be:**
+```html
+<h1>
+    <span class="highlight">Cost Estimator Pro</span>
+</h1>
+<p class="hero-tagline">Professional Cost Estimation</p>
+<p>
+    Streamline your capital expenditure planning with enterprise-grade cost analysis tools...
+</p>
+```
+
+### 3. Complete Text Content Updates
+
+**Replace this text block:**
+```
+Professional
+Cost Estimation
+```
+
+**With this structure:**
+```
+Cost Estimator Pro
+Professional Cost Estimation
+```
+
+**Update the login card header if needed:**
+- Change any "Budget Estimation" references to "Cost Estimator Pro"
+
+### 4. Verify All Branding Consistency
+
+**Check these areas for updates:**
+- Browser tab title
+- Login form headers
+- Footer copyright text
+- Any meta tags or descriptions
+- Social media sharing tags (if implemented)
+
+## Implementation Instructions for Replit
+
+1. **Find and replace "Budget Estimation" with "Cost Estimator Pro" globally**
+2. **Swap the text hierarchy in the hero section** - make product name bigger, tagline smaller
+3. **Apply the CSS changes** to fix font sizes and colors
+4. **Test the responsive design** to ensure text scales properly on mobile
+5. **Verify all instances** have been updated consistently
+
+**Priority: HIGH - These are branding-critical changes that should be implemented immediately.**
+
+The visual hierarchy should clearly establish "Cost Estimator Pro" as the primary brand name, with "Professional Cost Estimation" as the supporting tagline, not the reverse as currently shown.

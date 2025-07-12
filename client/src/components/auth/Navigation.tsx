@@ -38,7 +38,7 @@ export function Navigation() {
           <div className="flex items-center space-x-6">
             <Link href="/" className="flex items-center space-x-2">
               <Calculator className="h-6 w-6" />
-              <span className="font-bold text-lg">Budget Estimation</span>
+              <span className="font-bold text-lg">Cost Estimator Pro</span>
             </Link>
             
             <div className="hidden md:flex items-center space-x-4">

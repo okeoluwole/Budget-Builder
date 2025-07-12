@@ -52,7 +52,7 @@ export function LandingPage() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <Building2 className="h-8 w-8 text-blue-600 mr-3" />
-              <span className="text-2xl font-bold text-gray-900">Budget Estimation</span>
+              <span className="text-2xl font-bold text-gray-900">Cost Estimator Pro</span>
             </div>
             <div className="text-sm text-gray-600">
               Enterprise Budget Planning Platform
@@ -66,10 +66,12 @@ export function LandingPage() {
           
           {/* Left Side - Value Proposition */}
           <div className="mb-12 lg:mb-0">
-            <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl lg:text-6xl">
-              Professional
-              <span className="text-blue-600"> Cost Estimation</span>
+            <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl lg:text-6xl mb-3">
+              <span className="text-blue-600">Cost Estimator Pro</span>
             </h1>
+            <p className="text-2xl font-normal text-gray-600 mb-6">
+              Professional Cost Estimation
+            </p>
             
             <p className="mt-6 text-xl text-gray-600 leading-8">
               Streamline your capital expenditure planning with enterprise-grade cost analysis tools. 
@@ -120,7 +122,7 @@ export function LandingPage() {
                 <Calculator className="h-12 w-12 text-blue-600 mx-auto mb-4" />
                 <h2 className="text-2xl font-bold text-gray-900">Sign In</h2>
                 <p className="text-gray-600 mt-2">
-                  Access your budget estimation workspace
+                  Access your cost estimation workspace
                 </p>
               </div>
 
@@ -285,10 +287,10 @@ export function LandingPage() {
             <div className="col-span-2">
               <div className="flex items-center mb-4">
                 <Building2 className="h-8 w-8 text-blue-400 mr-3" />
-                <span className="text-2xl font-bold">Budget Estimation</span>
+                <span className="text-2xl font-bold">Cost Estimator Pro</span>
               </div>
               <p className="text-gray-400 max-w-md">
-                Professional budget estimation platform designed for accurate cost planning 
+                Professional cost estimation platform designed for accurate budget planning 
                 and project management across global markets.
               </p>
             </div>
@@ -315,7 +317,7 @@ export function LandingPage() {
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Budget Estimation. Professional budget planning platform.</p>
+            <p>&copy; 2024 Cost Estimator Pro. Professional cost estimation platform.</p>
           </div>
         </div>
       </footer>
