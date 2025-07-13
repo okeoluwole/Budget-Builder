@@ -439,7 +439,12 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
             hasComparisons: !!multiGuideResult.data?.comparisons,
             comparisonsCount: multiGuideResult.data?.comparisons?.length || 0,
             firstComparison: multiGuideResult.data?.comparisons?.[0],
-            assumptions: multiGuideResult.data?.comparisons?.[0]?.assumptions
+            firstComparisonAssumptions: multiGuideResult.data?.comparisons?.[0]?.assumptions,
+            allAssumptions: multiGuideResult.data?.comparisons?.map(c => ({
+              guideId: c.guideId,
+              assumptions: c.assumptions,
+              assumptionsCount: c.assumptions?.length || 0
+            }))
           });
 
           if (multiGuideResult.success && multiGuideResult.data) {

@@ -2158,7 +2158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      const response = {
+      const responseData = {
         primary: {
           guideId: primaryGuide,
           guideName: getGuideName(primaryGuide),
@@ -2171,10 +2171,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🎯 Multi-guide calculation response prepared:', {
         primaryTotal: primaryResult?.totalCost,
         comparisonsCount: comparisonResults.length,
-        successfulComparisons: comparisonResults.filter(c => c.dataAvailability === 'available').length
+        successfulComparisons: comparisonResults.filter(c => c.dataAvailability === 'available').length,
+        hasAssumptions: comparisonResults.some(c => c.assumptions && c.assumptions.length > 0)
       });
 
-      res.json(response);
+      res.json({
+        success: true,
+        data: responseData
+      });
 
     } catch (error) {
       console.error('❌ Multi-guide calculation error:', error);
