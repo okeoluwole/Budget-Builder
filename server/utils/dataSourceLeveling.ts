@@ -351,29 +351,50 @@ export function generateLevelingReport(fromGuide: string, toGuide: string, origi
   
   const leveledBudget = { ...originalBudget };
   
-  // Level specifications
+  // Level specifications - Always document transformation for transparency
   const leveledSpec = levelSpecifications(originalBudget.specification, fromGuide, toGuide);
-  if (leveledSpec !== originalBudget.specification) {
-    transformations.push(`Specification: ${originalBudget.specification} → ${leveledSpec}`);
+  if (fromGuide !== toGuide) {
+    transformations.push(`Specification mapping: ${originalBudget.specification} → ${leveledSpec}`);
     leveledBudget.specification = leveledSpec;
   }
   
-  // Level layouts
+  // Level layouts - Always document for different guides
   const leveledLayout = levelLayouts(originalBudget.layout || 'Activity', fromGuide, toGuide);
-  if (leveledLayout !== (originalBudget.layout || 'Activity')) {
-    transformations.push(`Layout: ${originalBudget.layout || 'Activity'} → ${leveledLayout}`);
-    leveledBudget.layout = leveledLayout;
-    
+  if (fromGuide !== toGuide) {
     if (leveledLayout === 'Universal' || leveledLayout === 'Standard') {
-      warnings.push(`${toGuide} uses universal rates - layout-specific pricing not available`);
+      transformations.push(`Layout compatibility: ${originalBudget.layout || 'Activity'} layout ignored - uses universal rates`);
+    } else {
+      transformations.push(`Layout: ${originalBudget.layout || 'Activity'} → ${leveledLayout}`);
     }
+    leveledBudget.layout = leveledLayout;
   }
   
-  // Level currency
+  // Level currency - Always document currency handling
   const leveledCurrency = levelCurrency(originalBudget.currency || 'USD', fromGuide, toGuide);
-  if (leveledCurrency !== (originalBudget.currency || 'USD')) {
-    transformations.push(`Currency: ${originalBudget.currency || 'USD'} → ${leveledCurrency}`);
+  if (fromGuide !== toGuide) {
+    transformations.push(`Currency normalization: Both sources display in ${leveledCurrency}`);
     leveledBudget.currency = leveledCurrency;
+  }
+  
+  // Document component mapping for different guides
+  if (fromGuide !== toGuide) {
+    const fromProfile = DATA_SOURCE_PROFILES[fromGuide];
+    const toProfile = DATA_SOURCE_PROFILES[toGuide];
+    
+    if (fromProfile && toProfile) {
+      // Document key component mappings
+      const componentMappings = [
+        'Component mapping: CBRE Fitout → T&T Construction component',
+        'Component mapping: CBRE Technology → T&T Audio-Visual component'
+      ];
+      
+      if (fromGuide === 'CBRE' && toGuide === 'TT') {
+        transformations.push(...componentMappings);
+      } else if (fromGuide === 'TT' && toGuide === 'CBRE') {
+        transformations.push('Component mapping: T&T Construction → CBRE Fitout component');
+        transformations.push('Component mapping: T&T Audio-Visual → CBRE Technology component');
+      }
+    }
   }
   
   return {

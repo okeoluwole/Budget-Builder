@@ -15,7 +15,17 @@ const LevelingAssumptions: React.FC<LevelingAssumptionsProps> = ({
   mappingNotes,
   isComparisonEnabled
 }) => {
+  // Debug logging
+  console.log('🔍 LevelingAssumptions Debug:', {
+    isComparisonEnabled,
+    hasMultiGuideResults: !!multiGuideResults,
+    multiGuideResults,
+    mappingNotes,
+    comparisonsCount: multiGuideResults?.comparisons?.length || 0
+  });
+
   if (!isComparisonEnabled || !multiGuideResults) {
+    console.log('❌ LevelingAssumptions: Not rendering - comparison disabled or no results');
     return null;
   }
 
@@ -39,6 +49,14 @@ const LevelingAssumptions: React.FC<LevelingAssumptionsProps> = ({
   const assumptions = getAllAssumptions();
   const hasTransformations = assumptions.length > 0;
   const hasMappingNotes = mappingNotes && mappingNotes.length > 0;
+
+  console.log('🔧 LevelingAssumptions Processing:', {
+    assumptionsCount: assumptions.length,
+    hasTransformations,
+    hasMappingNotes,
+    shouldDisplay: hasTransformations || hasMappingNotes,
+    assumptions
+  });
 
   // Categorize assumptions
   const categorizeAssumptions = (assumptionsList: string[]) => {
