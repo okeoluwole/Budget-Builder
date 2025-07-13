@@ -508,7 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin-only user management routes
-  // Get all users
+  // Get all users (both /api/users and /api/admin/users for compatibility)
   app.get('/api/users', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const users = await getAllUsers();
@@ -525,7 +525,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new user
+  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const users = await getAllUsers();
+      res.json(users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      })));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
+  // Create new user (both routes for compatibility)
   app.post('/api/users', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { username, email, password, role } = req.body;
@@ -558,7 +574,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update user
+  app.post('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { username, email, password, role } = req.body;
+
+      // Validate password strength
+      const validation = validatePasswordStrength(password);
+      if (!validation.valid) {
+        return res.status(400).json({ errors: validation.errors });
+      }
+
+      const hashedPassword = await hashPassword(password);
+      const newUser = await createUser({
+        username,
+        email,
+        password: hashedPassword,
+        role: role || 'staff',
+        passwordResetRequired: false
+      });
+
+      console.log(`Admin created user: ${username}`);
+      res.status(201).json({
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+      res.status(500).json({ error: 'Failed to create user' });
+    }
+  });
+
+  // Update user (both routes for compatibility)
   app.put('/api/users/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
@@ -579,8 +627,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete user
+  app.put('/api/admin/users/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { username, email, role } = req.body;
+
+      const updatedUser = await updateUser(userId, { username, email, role });
+
+      console.log(`Admin updated user: ${username}`);
+      res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role
+      });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  });
+
+  // Delete user (both routes for compatibility)
   app.delete('/api/users/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = req.user as any;
+      
+      // Prevent self-deletion
+      if (userId === currentUser?.id) {
+        return res.status(400).json({ error: 'Cannot delete your own account' });
+      }
+
+      await deleteUser(userId);
+
+      console.log(`Admin deleted user ID: ${userId}`);
+      res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).json({ error: 'Failed to delete user' });
+    }
+  });
+
+  app.delete('/api/admin/users/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       const currentUser = req.user as any;
