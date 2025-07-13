@@ -15,6 +15,12 @@ import { importCurrencyRatesFromExcel, getAllCurrencyRates } from './utils/curre
 import * as openaiUtil from './utils/openai';
 import { validateDataset, getDatasetValidationWarnings } from './utils/datasetValidator';
 import { eq } from 'drizzle-orm';
+import { 
+  normalizeCountryName, 
+  normalizeCityName, 
+  findBestLocationMatch, 
+  validateAndNormalizeLocation 
+} from './utils/locationNormalizer';
 
 // Authentication imports
 import { sessionConfig } from './sessionConfig';
@@ -176,12 +182,27 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
         const fitoutData = await db.select().from(fitoutCosts);
         console.log(`Found ${fitoutData.length} fitout cost records`);
         
-        // Find matching location (exact match first, then partial)
+        // Normalize location for intelligent matching
+        const normalizedCountry = normalizeCountryName(project.country);
+        const normalizedCity = normalizeCityName(project.city, project.country);
+        
+        console.log(`Location normalization: ${project.city}, ${project.country} → ${normalizedCity}, ${normalizedCountry}`);
+        
+        // Find matching location using normalized names
         let locationRecord = fitoutData.find(record => 
-          record.city?.toLowerCase() === project.city.toLowerCase() &&
-          record.country?.toLowerCase() === project.country.toLowerCase()
+          normalizeCityName(record.city || '', record.country) === normalizedCity &&
+          normalizeCountryName(record.country || '') === normalizedCountry
         );
         
+        // Fallback to original matching if normalized doesn't work
+        if (!locationRecord) {
+          locationRecord = fitoutData.find(record => 
+            record.city?.toLowerCase() === project.city.toLowerCase() &&
+            record.country?.toLowerCase() === project.country.toLowerCase()
+          );
+        }
+        
+        // Final fallback to partial matching
         if (!locationRecord) {
           locationRecord = fitoutData.find(record => 
             record.city?.toLowerCase().includes(project.city.toLowerCase()) ||
@@ -224,12 +245,25 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
         const techData = await db.select().from(technologyCosts);
         console.log(`Found ${techData.length} technology cost records`);
         
-        // Find matching location (exact match first, then partial)
+        // Normalize location for intelligent matching
+        const normalizedCountry = normalizeCountryName(project.country);
+        const normalizedCity = normalizeCityName(project.city, project.country);
+        
+        // Find matching location using normalized names
         let locationRecord = techData.find(record => 
-          record.city?.toLowerCase() === project.city.toLowerCase() &&
-          record.country?.toLowerCase() === project.country.toLowerCase()
+          normalizeCityName(record.city || '', record.country) === normalizedCity &&
+          normalizeCountryName(record.country || '') === normalizedCountry
         );
         
+        // Fallback to original matching if normalized doesn't work
+        if (!locationRecord) {
+          locationRecord = techData.find(record => 
+            record.city?.toLowerCase() === project.city.toLowerCase() &&
+            record.country?.toLowerCase() === project.country.toLowerCase()
+          );
+        }
+        
+        // Final fallback to partial matching
         if (!locationRecord) {
           locationRecord = techData.find(record => 
             record.city?.toLowerCase().includes(project.city.toLowerCase()) ||
@@ -270,12 +304,25 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
         const furnitureData = await db.select().from(furnitureCosts);
         console.log(`Found ${furnitureData.length} furniture cost records`);
         
-        // Find matching location (exact match first, then partial)
+        // Normalize location for intelligent matching
+        const normalizedCountry = normalizeCountryName(project.country);
+        const normalizedCity = normalizeCityName(project.city, project.country);
+        
+        // Find matching location using normalized names
         let locationRecord = furnitureData.find(record => 
-          record.city?.toLowerCase() === project.city.toLowerCase() &&
-          record.country?.toLowerCase() === project.country.toLowerCase()
+          normalizeCityName(record.city || '', record.country) === normalizedCity &&
+          normalizeCountryName(record.country || '') === normalizedCountry
         );
         
+        // Fallback to original matching if normalized doesn't work
+        if (!locationRecord) {
+          locationRecord = furnitureData.find(record => 
+            record.city?.toLowerCase() === project.city.toLowerCase() &&
+            record.country?.toLowerCase() === project.country.toLowerCase()
+          );
+        }
+        
+        // Final fallback to partial matching
         if (!locationRecord) {
           locationRecord = furnitureData.find(record => 
             record.city?.toLowerCase().includes(project.city.toLowerCase()) ||
@@ -407,14 +454,28 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
       // Import T&T 2025 data
       const { TT2025_COST_DATA } = await import('../client/src/utils/tt2025Data');
       
-      // Find matching location in T&T data
+      // Normalize location for intelligent matching
+      const normalizedCountry = normalizeCountryName(project.country);
+      const normalizedCity = normalizeCityName(project.city, project.country);
+      
+      console.log(`T&T Location normalization: ${project.city}, ${project.country} → ${normalizedCity}, ${normalizedCountry}`);
+      
+      // Find matching location in T&T data using normalized names
       let locationData = TT2025_COST_DATA.find(data => 
-        data.city.toLowerCase() === project.city.toLowerCase() &&
-        data.country.toLowerCase() === project.country.toLowerCase()
+        normalizeCityName(data.city, data.country) === normalizedCity &&
+        normalizeCountryName(data.country) === normalizedCountry
       );
       
+      // Fallback to original matching if normalized doesn't work
       if (!locationData) {
-        // Try partial matching
+        locationData = TT2025_COST_DATA.find(data => 
+          data.city.toLowerCase() === project.city.toLowerCase() &&
+          data.country.toLowerCase() === project.country.toLowerCase()
+        );
+      }
+      
+      // Final fallback to partial matching
+      if (!locationData) {
         locationData = TT2025_COST_DATA.find(data => 
           data.city.toLowerCase().includes(project.city.toLowerCase()) ||
           data.country.toLowerCase().includes(project.country.toLowerCase())
