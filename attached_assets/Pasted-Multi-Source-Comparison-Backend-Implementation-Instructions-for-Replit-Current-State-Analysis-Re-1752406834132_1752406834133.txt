@@ -1,0 +1,317 @@
+Multi-Source Comparison Backend Implementation Instructions for Replit
+
+## Current State Analysis Required
+
+**FIRST: Test the existing multi-source comparison UI to understand current implementation:**
+
+### 1. Frontend Feature Testing
+```javascript
+// Test the existing checkbox functionality:
+1. Navigate through guide selection (CBRE, T&T, JLL)
+2. Check if "Enable multi-source comparison" checkbox appears for each guide
+3. Test if checkbox state persists through wizard steps
+4. Verify if additional guide selection interface exists
+5. Document current data flow and state management
+6. Identify where backend integration points should be added
+```
+
+### 2. Current Implementation Audit
+**Document exactly what exists:**
+- [ ] Multi-source comparison checkbox functionality
+- [ ] Additional guide selection interface after checkbox enabled
+- [ ] State management for selected comparison guides
+- [ ] API endpoints for multi-guide data fetching
+- [ ] Budget summary page comparison display area
+
+## Backend Implementation Strategy
+
+### Phase 1: Complete the Multi-Source Selection Workflow
+
+**1. Enhance Guide Selection State Management**
+```javascript
+// Add to existing state management:
+const [comparisonEnabled, setComparisonEnabled] = useState(false);
+const [primaryGuide, setPrimaryGuide] = useState(''); // User's main choice
+const [comparisonGuides, setComparisonGuides] = useState([]); // Additional guides
+
+// When "Enable multi-source comparison" is checked:
+function handleComparisonToggle(enabled) {
+  setComparisonEnabled(enabled);
+  if (enabled) {
+    // Show additional guide selection interface
+    showAdditionalGuideSelection();
+  }
+}
+```
+
+**2. Build Additional Guide Selection Interface**
+```javascript
+// Add after main guide selection when comparison enabled:
+<div className="additional-guides-selection">
+  <h4>Select Additional Guides for Comparison</h4>
+  <p>Your primary guide: {primaryGuide}</p>
+  
+  <div className="guide-checkboxes">
+    {availableGuides
+      .filter(guide => guide.id !== primaryGuide)
+      .map(guide => (
+        <label key={guide.id}>
+          <input 
+            type="checkbox" 
+            value={guide.id}
+            onChange={(e) => handleComparisonGuideToggle(guide.id, e.target.checked)}
+          />
+          {guide.name}
+          <span className="coverage-indicator">
+            {guide.hasDataForCountry(selectedCountry) ? '✓' : 'Limited data'}
+          </span>
+        </label>
+      ))
+    }
+  </div>
+</div>
+```
+
+### Phase 2: Backend API Enhancement
+
+**3. Create Multi-Guide Calculation Endpoint**
+```javascript
+// Add to server.js or routes:
+app.post('/api/calculate-multi-guide', async (req, res) => {
+  const { 
+    primaryGuide, 
+    comparisonGuides, 
+    projectData 
+  } = req.body;
+  
+  try {
+    // Calculate primary guide (existing logic)
+    const primaryResult = await calculateGuide(primaryGuide, projectData);
+    
+    // Calculate comparison guides with mapping
+    const comparisonResults = await Promise.all(
+      comparisonGuides.map(async (guideId) => {
+        const guideData = await calculateGuideWithMapping(guideId, projectData);
+        return {
+          guideId,
+          guideName: getGuideName(guideId),
+          result: guideData.result,
+          assumptions: guideData.assumptions, // Key: document mapping assumptions
+          dataAvailability: guideData.coverage
+        };
+      })
+    );
+    
+    res.json({
+      primary: {
+        guideId: primaryGuide,
+        result: primaryResult
+      },
+      comparisons: comparisonResults,
+      mappingNotes: generateMappingNotes(primaryGuide, comparisonGuides)
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+**4. Implement Guide Mapping Logic**
+```javascript
+// Create comprehensive mapping between guide nomenclatures:
+const guideMapping = {
+  specificationLevels: {
+    'cbre': { 'Low': 'Bronze', 'Medium': 'Silver', 'High': 'Gold' },
+    'tt': { 'Low': 'Basic', 'Medium': 'Standard', 'High': 'Premium' },
+    'jll': { 'Low': 'Essential', 'Medium': 'Professional', 'High': 'Executive' }
+  },
+  componentMapping: {
+    'cbre': ['Construction', 'Furniture', 'Technology', 'Professional Fees'],
+    'tt': ['Base Build', 'FF&E', 'IT/AV', 'Design Fees'],
+    'jll': ['Fit-out', 'Furniture', 'Technology', 'Consultancy']
+  }
+};
+
+async function calculateGuideWithMapping(guideId, projectData) {
+  // Check country data availability first
+  const hasCountryData = await checkCountryDataAvailability(guideId, projectData.country);
+  
+  if (!hasCountryData) {
+    return {
+      result: null,
+      assumptions: [`No data available for ${projectData.country} in ${getGuideName(guideId)}`],
+      coverage: 'unavailable'
+    };
+  }
+  
+  // Map specification levels
+  const mappedSpec = mapSpecificationLevel(projectData.specLevel, guideId);
+  const mappedProject = {
+    ...projectData,
+    specLevel: mappedSpec
+  };
+  
+  // Calculate with mapped parameters
+  const result = await calculateGuide(guideId, mappedProject);
+  
+  // Document assumptions made
+  const assumptions = [
+    `Specification mapping: ${projectData.specLevel} → ${mappedSpec}`,
+    `Component mapping: ${documentComponentMapping(guideId)}`,
+    `Currency: ${result.currency}`,
+    `Data vintage: ${getDataVintage(guideId)}`
+  ];
+  
+  return {
+    result,
+    assumptions,
+    coverage: 'available'
+  };
+}
+```
+
+### Phase 3: Budget Summary Page Comparison Display
+
+**5. Enhance Budget Summary with Comparison Table**
+```javascript
+// Add to existing budget summary component:
+const BudgetSummaryWithComparison = ({ primaryResult, comparisonData }) => {
+  return (
+    <div className="budget-summary-enhanced">
+      {/* Existing primary result display */}
+      <div className="primary-result">
+        <h3>Budget Estimate - {primaryResult.guideName}</h3>
+        {/* Existing budget breakdown display */}
+      </div>
+      
+      {/* NEW: Comparison analysis section */}
+      {comparisonData && comparisonData.length > 0 && (
+        <div className="comparison-analysis">
+          <h4>Multi-Guide Comparison Analysis</h4>
+          
+          {/* Comparison table */}
+          <table className="guide-comparison-table">
+            <thead>
+              <tr>
+                <th>Guide</th>
+                <th>Total Cost</th>
+                <th>Currency</th>
+                <th>Variance from Primary</th>
+                <th>Data Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="primary-row">
+                <td>{primaryResult.guideName} (Primary)</td>
+                <td>{formatCurrency(primaryResult.totalCost)}</td>
+                <td>{primaryResult.currency}</td>
+                <td>Base</td>
+                <td>✓ Complete</td>
+              </tr>
+              {comparisonData.map(comparison => (
+                <ComparisonRow 
+                  key={comparison.guideId}
+                  comparison={comparison}
+                  primaryCost={primaryResult.totalCost}
+                  primaryCurrency={primaryResult.currency}
+                />
+              ))}
+            </tbody>
+          </table>
+          
+          {/* Assumptions and mapping notes */}
+          <div className="mapping-assumptions">
+            <h5>Guide Mapping Assumptions</h5>
+            {comparisonData.map(comparison => (
+              <div key={comparison.guideId} className="guide-assumptions">
+                <strong>{comparison.guideName}:</strong>
+                <ul>
+                  {comparison.assumptions.map((assumption, index) => (
+                    <li key={index}>{assumption}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+**6. Country-Level Data Availability Check**
+```javascript
+// Implement data availability checking:
+const countryDataMatrix = {
+  'cbre': ['UK', 'USA', 'Singapore', 'Australia', 'Germany', 'France', /* ... */],
+  'tt': ['UK', 'USA', 'Singapore', 'Australia', 'UAE', /* ... */],
+  'jll': ['UK', 'USA', 'Singapore', 'Australia', 'Japan', /* ... */]
+};
+
+function checkCountryDataAvailability(guideId, country) {
+  return countryDataMatrix[guideId]?.includes(country) || false;
+}
+
+// Display data availability warnings:
+function generateDataAvailabilityWarnings(comparisonGuides, country) {
+  const warnings = [];
+  
+  comparisonGuides.forEach(guideId => {
+    if (!checkCountryDataAvailability(guideId, country)) {
+      warnings.push(`${getGuideName(guideId)}: No data available for ${country}`);
+    }
+  });
+  
+  return warnings;
+}
+```
+
+### Phase 4: Professional Variance Analysis
+
+**7. Add Currency-Aware Comparison**
+```javascript
+// Handle currency differences in comparison:
+function calculateVariance(primaryCost, primaryCurrency, comparisonCost, comparisonCurrency) {
+  if (!comparisonCost) return 'No data';
+  
+  // Convert to common currency if different
+  let normalizedComparison = comparisonCost;
+  if (primaryCurrency !== comparisonCurrency) {
+    normalizedComparison = convertCurrency(comparisonCost, comparisonCurrency, primaryCurrency);
+  }
+  
+  const variance = ((normalizedComparison - primaryCost) / primaryCost) * 100;
+  return {
+    variance: variance.toFixed(1) + '%',
+    direction: variance > 0 ? 'higher' : 'lower',
+    converted: primaryCurrency !== comparisonCurrency,
+    note: primaryCurrency !== comparisonCurrency ? 
+      `Converted from ${comparisonCurrency} to ${primaryCurrency}` : null
+  };
+}
+```
+
+## Implementation Priority & Testing
+
+### Immediate Tasks:
+1. **Test existing UI** - Document current multi-source comparison checkbox behavior
+2. **Implement backend endpoints** - Add multi-guide calculation API
+3. **Create guide mapping logic** - Handle nomenclature differences
+4. **Enhance budget summary** - Add comparison table display
+
+### Testing Scenarios:
+1. **UK Project** - Test CBRE vs T&T vs JLL (all should have data)
+2. **Singapore Project** - Test data availability across guides
+3. **Specification Mapping** - Verify CBRE Low = T&T Basic = JLL Essential
+4. **Currency Handling** - Test GBP vs USD comparisons
+
+### Success Criteria:
+- ✅ User can enable multi-source comparison from any primary guide
+- ✅ Additional guide selection works with data availability indicators
+- ✅ Budget summary shows primary result + comparison table
+- ✅ Clear assumptions documented for each guide mapping
+- ✅ "No data available" shown for guides lacking country coverage
+
+**This approach maintains the existing workflow while adding professional comparison capabilities exactly where users need them - on the final budget summary page.**
