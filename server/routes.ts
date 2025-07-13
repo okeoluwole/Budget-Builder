@@ -70,7 +70,27 @@ const countryDataMatrix = {
 };
 
 function checkCountryDataAvailability(guideId: string, country: string): boolean {
-  return countryDataMatrix[guideId]?.includes(country) || false;
+  // Normalize the country name for intelligent matching
+  const normalizedCountry = normalizeCountryName(country);
+  
+  // Check normalized country name first
+  if (countryDataMatrix[guideId]?.includes(normalizedCountry)) {
+    return true;
+  }
+  
+  // Fallback to original country name
+  if (countryDataMatrix[guideId]?.includes(country)) {
+    return true;
+  }
+  
+  // Additional check for common variations
+  const variations = [country, normalizedCountry, country.toLowerCase(), normalizedCountry.toLowerCase()];
+  return countryDataMatrix[guideId]?.some(availableCountry => 
+    variations.some(variation => 
+      availableCountry.toLowerCase().includes(variation.toLowerCase()) ||
+      variation.toLowerCase().includes(availableCountry.toLowerCase())
+    )
+  ) || false;
 }
 
 function getGuideName(guideId: string): string {
