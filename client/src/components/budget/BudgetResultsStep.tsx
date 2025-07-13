@@ -417,26 +417,42 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           setLoadingComparison(true);
           
           // Call multi-guide API
-          const multiGuideResult = await apiRequest('/api/calculate-multi-guide', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              primaryGuide: budgetForCalculation.primaryDataSource,
-              comparisonGuides: state.budget.comparisonSources,
-              project: projectForCalculation,
-              budget: budgetForCalculation
-            })
+          console.log('🚀 Making multi-guide API call:', {
+            endpoint: '/api/calculate-multi-guide',
+            primaryGuide: budgetForCalculation.primaryDataSource,
+            comparisonGuides: state.budget.comparisonSources,
+            project: { country: projectForCalculation.country, city: projectForCalculation.city }
+          });
+          
+          const multiGuideResponse = await apiRequest('POST', '/api/calculate-multi-guide', {
+            primaryGuide: budgetForCalculation.primaryDataSource,
+            comparisonGuides: state.budget.comparisonSources,
+            project: projectForCalculation,
+            budget: budgetForCalculation
+          });
+          
+          const multiGuideResult = await multiGuideResponse.json();
+          
+          console.log('📊 Multi-guide API response:', multiGuideResult);
+          console.log('🔧 Checking for assumptions in results:', {
+            hasData: !!multiGuideResult.data,
+            hasComparisons: !!multiGuideResult.data?.comparisons,
+            comparisonsCount: multiGuideResult.data?.comparisons?.length || 0,
+            firstComparison: multiGuideResult.data?.comparisons?.[0],
+            assumptions: multiGuideResult.data?.comparisons?.[0]?.assumptions
           });
 
-          console.log('Multi-guide calculation result:', multiGuideResult);
-          setMultiGuideResults(multiGuideResult);
-          setLoadingComparison(false);
-          setShowComparison(true);
-          
-          // Use primary result for display
-          result = multiGuideResult.primary.result;
+          if (multiGuideResult.success && multiGuideResult.data) {
+            setMultiGuideResults(multiGuideResult.data);
+            setLoadingComparison(false);
+            setShowComparison(true);
+            
+            // Use primary result for display
+            result = multiGuideResult.data.primary.result;
+          } else {
+            console.error('❌ Multi-guide API call failed:', multiGuideResult);
+            throw new Error('Multi-guide calculation failed');
+          }
         } else {
           // Single guide calculation
           result = await calculateBudget({
