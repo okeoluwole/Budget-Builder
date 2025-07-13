@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useToast } from '@/hooks/use-toast';
 import BudgetSummary from './BudgetSummary';
+import MultiSourceComparison from './MultiSourceComparison';
 import { calculateBudget } from '@/utils/budgetCalculator';
 import { formatCurrency } from '@/utils/formatters';
 import { apiRequest } from '@/lib/queryClient';
@@ -34,6 +35,8 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
   // Multi-source comparison state
   const [comparisonResults, setComparisonResults] = useState<{[source: string]: any} | null>(null);
   const [showComparison, setShowComparison] = useState(false);
+  const [multiGuideResults, setMultiGuideResults] = useState<any | null>(null);
+  const [loadingComparison, setLoadingComparison] = useState(false);
 
   // Fetch currency rates for the project country
   useEffect(() => {
@@ -403,11 +406,44 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
           budgetStructure: budgetTemplateStructure.length
         });
         
-        const result = await calculateBudget({
-          project: projectForCalculation,
-          budget: budgetForCalculation,
-          budgetStructure: budgetTemplateStructure
-        });
+        // Check if multi-source comparison is enabled
+        const isComparisonEnabled = state.budget?.isComparisonEnabled && state.budget?.comparisonSources?.length > 0;
+        
+        let result;
+        
+        if (isComparisonEnabled) {
+          console.log('Multi-source comparison enabled, calculating comparison results...');
+          setLoadingComparison(true);
+          
+          // Call multi-guide API
+          const multiGuideResult = await apiRequest('/api/calculate-multi-guide', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              primaryGuide: budgetForCalculation.primaryDataSource,
+              comparisonGuides: state.budget.comparisonSources,
+              project: projectForCalculation,
+              budget: budgetForCalculation
+            })
+          });
+
+          console.log('Multi-guide calculation result:', multiGuideResult);
+          setMultiGuideResults(multiGuideResult);
+          setLoadingComparison(false);
+          setShowComparison(true);
+          
+          // Use primary result for display
+          result = multiGuideResult.primary.result;
+        } else {
+          // Single guide calculation
+          result = await calculateBudget({
+            project: projectForCalculation,
+            budget: budgetForCalculation,
+            budgetStructure: budgetTemplateStructure
+          });
+        }
         
         console.log("Budget calculation result:", result);
         
@@ -1635,6 +1671,19 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Multi-Source Comparison Section */}
+                {showComparison && multiGuideResults && (
+                  <div className="mt-6">
+                    <MultiSourceComparison 
+                      results={multiGuideResults} 
+                      projectArea={state.project?.totalArea || 1}
+                      projectCurrency={state.project?.currency || 'USD'}
+                      areaUnit={state.project?.areaUnit || 'sqm'}
+                      onToggle={() => setShowComparison(!showComparison)}
+                    />
                   </div>
                 )}
 

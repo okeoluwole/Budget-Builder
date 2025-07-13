@@ -42,6 +42,115 @@ import {
   initializeTestUsers
 } from './userService';
 
+// Guide mapping utilities
+const guideMapping = {
+  specificationLevels: {
+    'CBRE': { 'Low': 'Low (Bronze)', 'Medium': 'Medium (Silver)', 'High': 'High (Gold)' },
+    'TT': { 'Low': 'Low', 'Medium': 'Medium', 'High': 'High' },
+    'JLL': { 'Low': 'baseline', 'Medium': 'medium', 'High': 'high' }
+  },
+  componentMapping: {
+    'CBRE': ['Construction', 'Furniture', 'Technology', 'Professional Fees'],
+    'TT': ['Construction', 'Loose Furniture', 'Audio-Visual', 'Professional Fees'],
+    'JLL': ['Builders Works', 'M&E Services', 'Security/IT/AV', 'Project Management']
+  }
+};
+
+// Country data availability matrix
+const countryDataMatrix = {
+  'CBRE': ['United Kingdom', 'United States', 'Singapore', 'Australia', 'Germany', 'France', 'Japan', 'Canada', 'India', 'China', 'Brazil', 'Mexico', 'South Africa', 'Nigeria', 'UAE', 'Netherlands', 'Italy', 'Spain', 'Sweden', 'Denmark', 'Norway', 'Belgium', 'Austria', 'Switzerland', 'Poland', 'Czech Republic', 'Hungary', 'Romania', 'Bulgaria', 'Croatia', 'Greece', 'Portugal', 'Ireland', 'Finland', 'Estonia', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta', 'Cyprus', 'Slovakia', 'Slovenia', 'Israel', 'Turkey', 'Egypt', 'Morocco', 'Kenya', 'Ghana', 'Ethiopia', 'Tanzania', 'Uganda', 'Angola', 'Zambia', 'Zimbabwe', 'Botswana', 'Namibia', 'Mozambique', 'Madagascar', 'Mauritius', 'Seychelles', 'Comoros', 'Djibouti', 'Eritrea', 'Somalia', 'South Sudan', 'Sudan', 'Chad', 'Central African Republic', 'Cameroon', 'Equatorial Guinea', 'Gabon', 'Republic of the Congo', 'Democratic Republic of the Congo', 'Burundi', 'Rwanda', 'Malawi', 'Swaziland', 'Lesotho', 'Liberia', 'Sierra Leone', 'Guinea', 'Guinea-Bissau', 'Gambia', 'Senegal', 'Mali', 'Burkina Faso', 'Niger', 'Ivory Coast', 'Togo', 'Benin', 'Cape Verde', 'Sao Tome and Principe', 'Algeria', 'Tunisia', 'Libya', 'Mauritania', 'Western Sahara', 'Morocco', 'Egypt', 'Sudan', 'South Sudan', 'Chad', 'Central African Republic', 'Cameroon', 'Equatorial Guinea', 'Gabon', 'Republic of the Congo', 'Democratic Republic of the Congo', 'Burundi', 'Rwanda', 'Uganda', 'Kenya', 'Tanzania', 'Malawi', 'Zambia', 'Zimbabwe', 'Botswana', 'Namibia', 'South Africa', 'Swaziland', 'Lesotho', 'Mozambique', 'Madagascar', 'Mauritius', 'Seychelles', 'Comoros', 'Djibouti', 'Eritrea', 'Somalia', 'Ethiopia', 'Angola', 'Liberia', 'Sierra Leone', 'Guinea', 'Guinea-Bissau', 'Gambia', 'Senegal', 'Mali', 'Burkina Faso', 'Niger', 'Ivory Coast', 'Ghana', 'Togo', 'Benin', 'Nigeria', 'Cape Verde', 'Sao Tome and Principe'],
+  'TT': ['United Kingdom', 'United States', 'Singapore', 'Australia', 'Germany', 'France', 'Canada', 'New York', 'Toronto', 'Vancouver', 'London', 'Paris', 'Munich', 'Sydney'],
+  'JLL': ['United Kingdom', 'United States', 'Singapore', 'Australia', 'Hong Kong', 'France', 'Germany', 'Japan', 'Canada', 'India', 'China', 'Brazil', 'Mexico', 'South Africa', 'UAE', 'Netherlands', 'Italy', 'Spain', 'Sweden', 'Denmark', 'Norway', 'Belgium', 'Austria', 'Switzerland', 'Poland', 'Czech Republic', 'Hungary', 'Romania', 'Bulgaria', 'Croatia', 'Greece', 'Portugal', 'Ireland', 'Finland', 'Estonia', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta', 'Cyprus', 'Slovakia', 'Slovenia', 'Israel', 'Turkey', 'Egypt', 'Morocco', 'Kenya', 'Ghana', 'Ethiopia', 'Tanzania', 'Uganda', 'Angola', 'Zambia', 'Zimbabwe', 'Botswana', 'Namibia', 'Mozambique', 'Madagascar', 'Mauritius', 'Seychelles']
+};
+
+function checkCountryDataAvailability(guideId: string, country: string): boolean {
+  return countryDataMatrix[guideId]?.includes(country) || false;
+}
+
+function getGuideName(guideId: string): string {
+  const names = {
+    'CBRE': 'CBRE Global Fit-Out Cost Guide',
+    'TT': 'Turner & Townsend Global Office Fit-Out Cost Guide',
+    'JLL': 'JLL Global Office Fit-Out Guide'
+  };
+  return names[guideId] || guideId;
+}
+
+function mapSpecificationLevel(originalSpec: string, targetGuide: string): string {
+  // Handle compound specification names
+  const baseSpec = originalSpec.includes('Low') || originalSpec.includes('Bronze') ? 'Low' : 
+                  originalSpec.includes('High') || originalSpec.includes('Gold') ? 'High' : 'Medium';
+  
+  return guideMapping.specificationLevels[targetGuide]?.[baseSpec] || originalSpec;
+}
+
+async function calculateGuideWithMapping(guideId: string, project: any, budget: any) {
+  // Check country data availability first
+  const hasCountryData = checkCountryDataAvailability(guideId, project.country);
+  
+  if (!hasCountryData) {
+    return {
+      result: null,
+      assumptions: [`No data available for ${project.country} in ${getGuideName(guideId)}`],
+      coverage: 'unavailable'
+    };
+  }
+  
+  // Map specification levels
+  const mappedSpec = mapSpecificationLevel(budget.specification, guideId);
+  const mappedBudget = {
+    ...budget,
+    specification: mappedSpec,
+    primaryDataSource: guideId
+  };
+  
+  // Calculate with mapped parameters
+  const result = await performServerSideBudgetCalculation(project, mappedBudget, []);
+  
+  // Document assumptions made
+  const assumptions = [
+    `Specification mapping: ${budget.specification} → ${mappedSpec}`,
+    `Component mapping: ${documentComponentMapping(guideId)}`,
+    `Currency: ${result.localCurrencyCode || 'USD'}`,
+    `Data vintage: ${getDataVintage(guideId)}`
+  ];
+  
+  return {
+    result,
+    assumptions,
+    coverage: 'available'
+  };
+}
+
+function documentComponentMapping(guideId: string): string {
+  const components = guideMapping.componentMapping[guideId] || [];
+  return components.join(', ');
+}
+
+function getDataVintage(guideId: string): string {
+  const vintages = {
+    'CBRE': '2024/25',
+    'TT': '2025',
+    'JLL': '2025'
+  };
+  return vintages[guideId] || 'Unknown';
+}
+
+function generateMappingNotes(primaryGuide: string, comparisonGuides: string[]): string[] {
+  const notes = [];
+  
+  notes.push(`Primary guide: ${getGuideName(primaryGuide)}`);
+  
+  if (comparisonGuides.length > 0) {
+    notes.push(`Comparison guides: ${comparisonGuides.map(g => getGuideName(g)).join(', ')}`);
+    notes.push('Specification levels mapped between guides for consistency');
+    notes.push('Component categories aligned where possible');
+    notes.push('Currency differences handled with appropriate conversion rates');
+  }
+  
+  return notes;
+}
+
 // Server-side budget calculation function
 async function performServerSideBudgetCalculation(project: any, budget: any, budgetStructure: any) {
   console.log("=== SERVER-SIDE BUDGET CALCULATION ===");
@@ -1830,6 +1939,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Failed to get dataset warnings', 
         error: error.message
       });
+    }
+  });
+
+  // Multi-source comparison endpoint
+  app.post('/api/calculate-multi-guide', isAuthenticated, async (req: any, res) => {
+    try {
+      const { 
+        primaryGuide, 
+        comparisonGuides, 
+        project,
+        budget
+      } = req.body;
+
+      console.log('Multi-guide calculation request:', { primaryGuide, comparisonGuides, project, budget });
+
+      // Calculate primary guide result
+      const primaryResult = await performServerSideBudgetCalculation(project, { ...budget, primaryDataSource: primaryGuide }, []);
+      
+      // Calculate comparison guides with mapping
+      const comparisonResults = await Promise.all(
+        comparisonGuides.map(async (guideId: string) => {
+          try {
+            const guideData = await calculateGuideWithMapping(guideId, project, budget);
+            return {
+              guideId,
+              guideName: getGuideName(guideId),
+              result: guideData.result,
+              assumptions: guideData.assumptions,
+              dataAvailability: guideData.coverage,
+              error: null
+            };
+          } catch (error) {
+            return {
+              guideId,
+              guideName: getGuideName(guideId),
+              result: null,
+              assumptions: [],
+              dataAvailability: 'error',
+              error: error.message
+            };
+          }
+        })
+      );
+
+      res.json({
+        primary: {
+          guideId: primaryGuide,
+          guideName: getGuideName(primaryGuide),
+          result: primaryResult
+        },
+        comparisons: comparisonResults,
+        mappingNotes: generateMappingNotes(primaryGuide, comparisonGuides)
+      });
+
+    } catch (error) {
+      console.error('Multi-guide calculation error:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
