@@ -21,25 +21,23 @@ const LevelingAssumptions: React.FC<LevelingAssumptionsProps> = ({
 
   // Extract assumptions from comparison results
   const getAllAssumptions = () => {
-    const assumptions: { guide: string, assumptions: string[], warnings: string[] } = {
-      guide: '',
-      assumptions: [],
-      warnings: []
-    };
+    const allAssumptions: string[] = [];
 
-    if (multiGuideResults.comparisons) {
+    if (multiGuideResults?.comparisons) {
       multiGuideResults.comparisons.forEach((comp: any) => {
         if (comp.assumptions && comp.assumptions.length > 0) {
-          assumptions.assumptions.push(...comp.assumptions.map((a: string) => `${comp.guideName}: ${a}`));
+          comp.assumptions.forEach((assumption: string) => {
+            allAssumptions.push(`${comp.guideName || comp.guideId}: ${assumption}`);
+          });
         }
       });
     }
 
-    return assumptions;
+    return allAssumptions;
   };
 
   const assumptions = getAllAssumptions();
-  const hasTransformations = assumptions.assumptions.length > 0;
+  const hasTransformations = assumptions.length > 0;
   const hasMappingNotes = mappingNotes && mappingNotes.length > 0;
 
   // Categorize assumptions
@@ -73,7 +71,7 @@ const LevelingAssumptions: React.FC<LevelingAssumptionsProps> = ({
     return categories;
   };
 
-  const categorized = categorizeAssumptions(assumptions.assumptions);
+  const categorized = categorizeAssumptions(assumptions);
 
   if (!hasTransformations && !hasMappingNotes) {
     return null;
