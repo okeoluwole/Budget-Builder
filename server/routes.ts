@@ -192,6 +192,15 @@ function generateMappingNotes(primaryGuide: string, comparisonGuides: string[]):
     notes.push('Specification levels mapped between guides for consistency');
     notes.push('Component categories aligned where possible');
     notes.push('Currency differences handled with appropriate conversion rates');
+    
+    // Add layout-specific notes
+    if (comparisonGuides.includes('TT')) {
+      notes.push('T&T uses universal rates - no layout variations (Activity/Team/Event like CBRE)');
+    }
+    
+    if (primaryGuide === 'CBRE' || comparisonGuides.includes('CBRE')) {
+      notes.push('CBRE supports layout-specific rates: Activity, Team, Event layouts');
+    }
   }
   
   return notes;
@@ -490,6 +499,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
     } else if (primaryDataSource === 'TT') {
       // Handle T&T calculation using the same successful pattern as CBRE
       console.log("=== T&T SERVER-SIDE CALCULATION ===");
+      console.log(`T&T does NOT use layout variations - ignoring layout parameter: ${layout}`);
       
       // Import T&T 2025 data
       const { TT2025_COST_DATA } = await import('../client/src/utils/tt2025Data');
@@ -527,6 +537,7 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
       }
       
       console.log("Found T&T location data:", locationData);
+      console.log("T&T uses universal rates - no layout-specific adjustments needed");
       
       let totalCost = 0;
       let costsBreakdown: { [key: string]: number } = {};
@@ -596,7 +607,8 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
             source: 'T&T',
             location: `${project.city}, ${project.country}`,
             specification,
-            region: locationData.region
+            region: locationData.region,
+            layoutNote: 'T&T uses universal rates - no layout variations (Activity/Team/Event)'
           }
         };
         
