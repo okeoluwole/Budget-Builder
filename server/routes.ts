@@ -21,6 +21,14 @@ import {
   findBestLocationMatch, 
   validateAndNormalizeLocation 
 } from './utils/locationNormalizer';
+import {
+  DATA_SOURCE_PROFILES,
+  levelSpecifications,
+  levelLayouts,
+  levelComponents,
+  validateDataSourceCompatibility,
+  generateLevelingReport
+} from './utils/dataSourceLeveling';
 
 // Authentication imports
 import { sessionConfig } from './sessionConfig';
@@ -114,47 +122,61 @@ async function calculateGuideWithMapping(guideId: string, project: any, budget: 
   console.log(`🔧 calculateGuideWithMapping: Starting calculation for ${guideId}`);
   console.log(`📍 Location: ${project.city}, ${project.country}`);
   
-  // Check country data availability first with normalization
-  const normalizedCountry = normalizeCountryName(project.country);
-  console.log(`🌍 Country normalization: ${project.country} → ${normalizedCountry}`);
+  // Validate data source compatibility
+  const compatibility = validateDataSourceCompatibility(
+    budget.primaryDataSource || 'CBRE', 
+    guideId, 
+    { country: project.country, city: project.city }
+  );
   
-  const hasCountryData = checkCountryDataAvailability(guideId, project.country);
-  console.log(`📊 Data availability for ${guideId} in ${project.country}: ${hasCountryData}`);
+  console.log(`🔍 Compatibility check for ${guideId}:`, {
+    compatible: compatibility.compatible,
+    issues: compatibility.issues.length,
+    adjustments: compatibility.adjustments.length
+  });
   
-  if (!hasCountryData) {
-    console.log(`❌ No data available for ${project.country} in ${getGuideName(guideId)}`);
+  if (!compatibility.compatible) {
+    console.log(`❌ Compatibility issues for ${guideId}:`, compatibility.issues);
     return {
       result: null,
-      assumptions: [`No data available for ${project.country} in ${getGuideName(guideId)}`],
+      assumptions: compatibility.issues,
       coverage: 'unavailable'
     };
   }
   
-  // Map specification levels
-  const mappedSpec = mapSpecificationLevel(budget.specification, guideId);
-  console.log(`🔄 Specification mapping: ${budget.specification} → ${mappedSpec}`);
+  // Generate comprehensive leveling report
+  const levelingReport = generateLevelingReport(
+    budget.primaryDataSource || 'CBRE',
+    guideId,
+    budget
+  );
   
-  const mappedBudget = {
-    ...budget,
-    specification: mappedSpec,
+  console.log(`🔄 Leveling transformations for ${guideId}:`, levelingReport.transformations);
+  if (levelingReport.warnings.length > 0) {
+    console.log(`⚠️ Leveling warnings for ${guideId}:`, levelingReport.warnings);
+  }
+  
+  // Use leveled budget for calculation
+  const leveledBudget = {
+    ...levelingReport.leveledBudget,
     primaryDataSource: guideId
   };
   
   try {
-    console.log(`⚙️ Performing calculation for ${guideId}...`);
-    // Calculate with mapped parameters
-    const result = await performServerSideBudgetCalculation(project, mappedBudget, []);
+    console.log(`⚙️ Performing calculation for ${guideId} with leveled parameters...`);
+    const result = await performServerSideBudgetCalculation(project, leveledBudget, []);
     console.log(`✅ Calculation complete for ${guideId}:`, {
       totalCost: result?.totalCost,
       currency: result?.localCurrencyCode
     });
     
-    // Document assumptions made
+    // Document comprehensive assumptions
     const assumptions = [
-      `Specification mapping: ${budget.specification} → ${mappedSpec}`,
-      `Component mapping: ${documentComponentMapping(guideId)}`,
+      ...levelingReport.transformations,
+      ...levelingReport.warnings,
+      ...compatibility.adjustments,
       `Currency: ${result.localCurrencyCode || 'USD'}`,
-      `Data vintage: ${getDataVintage(guideId)}`
+      `Data vintage: ${DATA_SOURCE_PROFILES[guideId]?.characteristics.dataVintage || 'Unknown'}`
     ];
     
     return {
@@ -189,18 +211,36 @@ function generateMappingNotes(primaryGuide: string, comparisonGuides: string[]):
   
   if (comparisonGuides.length > 0) {
     notes.push(`Comparison guides: ${comparisonGuides.map(g => getGuideName(g)).join(', ')}`);
-    notes.push('Specification levels mapped between guides for consistency');
-    notes.push('Component categories aligned where possible');
-    notes.push('Currency differences handled with appropriate conversion rates');
     
-    // Add layout-specific notes
-    if (comparisonGuides.includes('TT')) {
-      notes.push('T&T uses universal rates - no layout variations (Activity/Team/Event like CBRE)');
+    // Data source-specific characteristics
+    const allGuides = [primaryGuide, ...comparisonGuides];
+    
+    // Layout compatibility notes
+    const layoutSupportedGuides = allGuides.filter(g => DATA_SOURCE_PROFILES[g]?.layouts.supported);
+    const layoutUnsupportedGuides = allGuides.filter(g => !DATA_SOURCE_PROFILES[g]?.layouts.supported);
+    
+    if (layoutSupportedGuides.length > 0 && layoutUnsupportedGuides.length > 0) {
+      notes.push(`Layout variations: ${layoutSupportedGuides.join(', ')} support layouts | ${layoutUnsupportedGuides.join(', ')} use universal rates`);
     }
     
-    if (primaryGuide === 'CBRE' || comparisonGuides.includes('CBRE')) {
-      notes.push('CBRE supports layout-specific rates: Activity, Team, Event layouts');
+    // Specification format notes
+    const compoundGuides = allGuides.filter(g => DATA_SOURCE_PROFILES[g]?.specifications.format === 'compound');
+    const simpleGuides = allGuides.filter(g => DATA_SOURCE_PROFILES[g]?.specifications.format === 'simple');
+    
+    if (compoundGuides.length > 0 && simpleGuides.length > 0) {
+      notes.push(`Specification formats: ${compoundGuides.join(', ')} use compound names | ${simpleGuides.join(', ')} use simple names`);
     }
+    
+    // Data vintage notes
+    const vintages = [...new Set(allGuides.map(g => DATA_SOURCE_PROFILES[g]?.characteristics.dataVintage).filter(Boolean))];
+    if (vintages.length > 1) {
+      notes.push(`Data vintages: ${allGuides.map(g => `${g}(${DATA_SOURCE_PROFILES[g]?.characteristics.dataVintage})`).join(', ')}`);
+    }
+    
+    // Component mapping notes
+    notes.push('Component categories intelligently mapped between different naming conventions');
+    notes.push('Currency handling: All comparisons normalized to USD for consistency');
+    notes.push('Geographic coverage validated for selected location');
   }
   
   return notes;

@@ -3,6 +3,7 @@ import { useBudget } from '@/contexts/BudgetContext';
 import { useToast } from '@/hooks/use-toast';
 import BudgetSummary from './BudgetSummary';
 import MultiSourceComparison from './MultiSourceComparison';
+import LevelingAssumptions from './LevelingAssumptions';
 import { calculateBudget } from '@/utils/budgetCalculator';
 import { formatCurrency } from '@/utils/formatters';
 import { apiRequest } from '@/lib/queryClient';
@@ -1683,6 +1684,13 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                       projectCurrency={state.project?.currency || 'USD'}
                       areaUnit={state.project?.areaUnit || 'sqm'}
                       onToggle={() => setShowComparison(!showComparison)}
+                    />
+                    
+                    {/* Leveling Assumptions Display */}
+                    <LevelingAssumptions 
+                      multiGuideResults={multiGuideResults}
+                      mappingNotes={multiGuideResults?.mappingNotes}
+                      isComparisonEnabled={showComparison}
                     />
                   </div>
                 )}
