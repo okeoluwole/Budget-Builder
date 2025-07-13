@@ -18,7 +18,7 @@ import DatasetValidator from "@/components/DatasetValidator";
 import { useAuth } from "@/hooks/useAuth";
 import { LandingPage } from "@/pages/LandingPage";
 import { Navigation } from "@/components/auth/Navigation";
-import { UserManagement } from "@/components/auth/UserManagement";
+import AdminPage from "@/pages/AdminPage";
 import { useState } from "react";
 
 function AuthenticatedApp() {
@@ -41,7 +41,7 @@ function AuthenticatedApp() {
           <Route path="/projects" component={Projects} />
           <Route path="/reports" component={Reports} />
           <Route path="/settings" component={Settings} />
-          <Route path="/admin/users" component={UserManagement} />
+          <Route path="/admin/users" component={AdminPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
