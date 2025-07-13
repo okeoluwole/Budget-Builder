@@ -111,10 +111,18 @@ function mapSpecificationLevel(originalSpec: string, targetGuide: string): strin
 }
 
 async function calculateGuideWithMapping(guideId: string, project: any, budget: any) {
-  // Check country data availability first
+  console.log(`🔧 calculateGuideWithMapping: Starting calculation for ${guideId}`);
+  console.log(`📍 Location: ${project.city}, ${project.country}`);
+  
+  // Check country data availability first with normalization
+  const normalizedCountry = normalizeCountryName(project.country);
+  console.log(`🌍 Country normalization: ${project.country} → ${normalizedCountry}`);
+  
   const hasCountryData = checkCountryDataAvailability(guideId, project.country);
+  console.log(`📊 Data availability for ${guideId} in ${project.country}: ${hasCountryData}`);
   
   if (!hasCountryData) {
+    console.log(`❌ No data available for ${project.country} in ${getGuideName(guideId)}`);
     return {
       result: null,
       assumptions: [`No data available for ${project.country} in ${getGuideName(guideId)}`],
@@ -124,28 +132,40 @@ async function calculateGuideWithMapping(guideId: string, project: any, budget: 
   
   // Map specification levels
   const mappedSpec = mapSpecificationLevel(budget.specification, guideId);
+  console.log(`🔄 Specification mapping: ${budget.specification} → ${mappedSpec}`);
+  
   const mappedBudget = {
     ...budget,
     specification: mappedSpec,
     primaryDataSource: guideId
   };
   
-  // Calculate with mapped parameters
-  const result = await performServerSideBudgetCalculation(project, mappedBudget, []);
-  
-  // Document assumptions made
-  const assumptions = [
-    `Specification mapping: ${budget.specification} → ${mappedSpec}`,
-    `Component mapping: ${documentComponentMapping(guideId)}`,
-    `Currency: ${result.localCurrencyCode || 'USD'}`,
-    `Data vintage: ${getDataVintage(guideId)}`
-  ];
-  
-  return {
-    result,
-    assumptions,
-    coverage: 'available'
-  };
+  try {
+    console.log(`⚙️ Performing calculation for ${guideId}...`);
+    // Calculate with mapped parameters
+    const result = await performServerSideBudgetCalculation(project, mappedBudget, []);
+    console.log(`✅ Calculation complete for ${guideId}:`, {
+      totalCost: result?.totalCost,
+      currency: result?.localCurrencyCode
+    });
+    
+    // Document assumptions made
+    const assumptions = [
+      `Specification mapping: ${budget.specification} → ${mappedSpec}`,
+      `Component mapping: ${documentComponentMapping(guideId)}`,
+      `Currency: ${result.localCurrencyCode || 'USD'}`,
+      `Data vintage: ${getDataVintage(guideId)}`
+    ];
+    
+    return {
+      result,
+      assumptions,
+      coverage: 'available'
+    };
+  } catch (error) {
+    console.error(`❌ Error in calculateGuideWithMapping for ${guideId}:`, error);
+    throw error;
+  }
 }
 
 function documentComponentMapping(guideId: string): string {
@@ -2033,16 +2053,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         budget
       } = req.body;
 
-      console.log('Multi-guide calculation request:', { primaryGuide, comparisonGuides, project, budget });
+      console.log('🔍 Multi-guide calculation request:', { 
+        primaryGuide, 
+        comparisonGuides, 
+        project: { country: project.country, city: project.city }, 
+        budget: { specification: budget.specification, scope: budget.scope }
+      });
+
+      // Validate input parameters
+      if (!primaryGuide || !comparisonGuides || !project || !budget) {
+        throw new Error('Missing required parameters');
+      }
 
       // Calculate primary guide result
+      console.log('📊 Calculating primary guide:', primaryGuide);
       const primaryResult = await performServerSideBudgetCalculation(project, { ...budget, primaryDataSource: primaryGuide }, []);
+      console.log('✅ Primary guide calculation complete:', {
+        totalCost: primaryResult?.totalCost,
+        currency: primaryResult?.localCurrencyCode
+      });
       
       // Calculate comparison guides with mapping
+      console.log('🔄 Calculating comparison guides:', comparisonGuides);
       const comparisonResults = await Promise.all(
         comparisonGuides.map(async (guideId: string) => {
           try {
+            console.log(`📈 Processing comparison guide: ${guideId}`);
             const guideData = await calculateGuideWithMapping(guideId, project, budget);
+            console.log(`✅ ${guideId} calculation complete:`, {
+              totalCost: guideData.result?.totalCost,
+              coverage: guideData.coverage
+            });
             return {
               guideId,
               guideName: getGuideName(guideId),
@@ -2052,6 +2093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               error: null
             };
           } catch (error) {
+            console.error(`❌ Error calculating ${guideId}:`, error.message);
             return {
               guideId,
               guideName: getGuideName(guideId),
@@ -2064,7 +2106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
-      res.json({
+      const response = {
         primary: {
           guideId: primaryGuide,
           guideName: getGuideName(primaryGuide),
@@ -2072,10 +2114,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         comparisons: comparisonResults,
         mappingNotes: generateMappingNotes(primaryGuide, comparisonGuides)
+      };
+
+      console.log('🎯 Multi-guide calculation response prepared:', {
+        primaryTotal: primaryResult?.totalCost,
+        comparisonsCount: comparisonResults.length,
+        successfulComparisons: comparisonResults.filter(c => c.dataAvailability === 'available').length
       });
 
+      res.json(response);
+
     } catch (error) {
-      console.error('Multi-guide calculation error:', error);
+      console.error('❌ Multi-guide calculation error:', error);
       res.status(500).json({ error: error.message });
     }
   });
