@@ -304,13 +304,18 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           
           // Build the field name based on layout, specification, and area unit
           const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
+          
+          // Use individual component specification for fitout if available, fallback to general specification
+          const fitoutSpec = budget.fitoutSpecification || specification;
+          console.log(`Using fitout specification: ${fitoutSpec} (from fitoutSpecification: ${budget.fitoutSpecification}, general: ${specification})`);
+          
           // Handle compound specification names like "Low (Bronze)", "Medium (Silver)", "High (Gold)"
-          const specLevel = specification.includes('Low') || specification === 'Bronze' ? 'Low' : 
-                          specification.includes('High') || specification === 'Gold' ? 'High' : 'Medium';
+          const specLevel = fitoutSpec.includes('Low') || fitoutSpec === 'Bronze' ? 'Low' : 
+                          fitoutSpec.includes('High') || fitoutSpec === 'Gold' ? 'High' : 'Medium';
           const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
           
           const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
-          console.log(`Looking for field: ${fieldName}`);
+          console.log(`Looking for fitout field: ${fieldName} (spec level: ${specLevel})`);
           
           // Get the rate from the database record
           const rate = parseFloat(locationRecord[fieldName] as string);
@@ -365,13 +370,18 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           
           // Build the field name based on layout, specification, and area unit
           const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
+          
+          // Use individual component specification for technology if available, fallback to general specification
+          const techSpec = budget.technologySpecification || specification;
+          console.log(`Using technology specification: ${techSpec} (from technologySpecification: ${budget.technologySpecification}, general: ${specification})`);
+          
           // Handle compound specification names like "Low (Bronze)", "Medium (Silver)", "High (Gold)"
-          const specLevel = specification.includes('Low') || specification === 'Bronze' ? 'Low' : 
-                          specification.includes('High') || specification === 'Gold' ? 'High' : 'Medium';
+          const specLevel = techSpec.includes('Low') || techSpec === 'Bronze' ? 'Low' : 
+                          techSpec.includes('High') || techSpec === 'Gold' ? 'High' : 'Medium';
           const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
           
           const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
-          console.log(`Looking for tech field: ${fieldName}`);
+          console.log(`Looking for tech field: ${fieldName} (spec level: ${specLevel})`);
           
           // Get the rate from the database record
           const rate = parseFloat(locationRecord[fieldName] as string);
@@ -424,13 +434,18 @@ async function performServerSideBudgetCalculation(project: any, budget: any, bud
           
           // Build the field name based on layout, specification, and area unit
           const layoutPrefix = layout.toLowerCase(); // 'activity', 'team', 'event'
+          
+          // Use individual component specification for furniture if available, fallback to general specification
+          const furnitureSpec = budget.furnitureSpecification || specification;
+          console.log(`Using furniture specification: ${furnitureSpec} (from furnitureSpecification: ${budget.furnitureSpecification}, general: ${specification})`);
+          
           // Handle compound specification names like "Low (Bronze)", "Medium (Silver)", "High (Gold)"
-          const specLevel = specification.includes('Low') || specification === 'Bronze' ? 'Low' : 
-                          specification.includes('High') || specification === 'Gold' ? 'High' : 'Medium';
+          const specLevel = furnitureSpec.includes('Low') || furnitureSpec === 'Bronze' ? 'Low' : 
+                          furnitureSpec.includes('High') || furnitureSpec === 'Gold' ? 'High' : 'Medium';
           const areaUnit = project.areaUnit === 'sqm' ? 'Sqm' : 'Sqft';
           
           const fieldName = `${layoutPrefix}${specLevel}${areaUnit}`;
-          console.log(`Looking for furniture field: ${fieldName}`);
+          console.log(`Looking for furniture field: ${fieldName} (spec level: ${specLevel})`);
           
           // Get the rate from the database record
           const rate = parseFloat(locationRecord[fieldName] as string);
