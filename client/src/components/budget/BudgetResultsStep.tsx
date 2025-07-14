@@ -447,16 +447,29 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
             }))
           });
 
+          // Check if we have a valid response structure
           if (multiGuideResult.success && multiGuideResult.data) {
+            console.log('✅ Multi-guide calculation successful - processing results');
             setMultiGuideResults(multiGuideResult.data);
             setLoadingComparison(false);
             setShowComparison(true);
             
             // Use primary result for display
             result = multiGuideResult.data.primary.result;
+            console.log('📊 Using primary result for display:', { totalCost: result?.totalCost });
+          } else if (multiGuideResult.primary && multiGuideResult.comparisons) {
+            // Handle case where response doesn't have success wrapper
+            console.log('✅ Multi-guide calculation successful - processing direct response');
+            setMultiGuideResults(multiGuideResult);
+            setLoadingComparison(false);
+            setShowComparison(true);
+            
+            // Use primary result for display
+            result = multiGuideResult.primary.result;
+            console.log('📊 Using primary result for display:', { totalCost: result?.totalCost });
           } else {
-            console.error('❌ Multi-guide API call failed:', multiGuideResult);
-            throw new Error('Multi-guide calculation failed');
+            console.error('❌ Multi-guide API response structure unexpected:', multiGuideResult);
+            throw new Error(`Multi-guide calculation failed: ${JSON.stringify(multiGuideResult)}`);
           }
         } else {
           // Single guide calculation
@@ -471,6 +484,12 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
         
         // Validate calculation result
         if (!result || typeof result.totalCost !== 'number' || result.totalCost <= 0) {
+          console.error('❌ Invalid calculation result:', {
+            hasResult: !!result,
+            totalCost: result?.totalCost,
+            totalCostType: typeof result?.totalCost,
+            resultKeys: result ? Object.keys(result) : 'No result object'
+          });
           throw new Error(`Invalid calculation result: totalCost=${result?.totalCost}`);
         }
         
