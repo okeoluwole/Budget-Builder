@@ -3,25 +3,62 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TrendingUp, TrendingDown, AlertTriangle, Info } from 'lucide-react';
-import { MultiSourceBudget } from '@/utils/componentMapping';
+
+interface MultiGuideResult {
+  primary: {
+    result: {
+      totalCost: number;
+      costsBreakdown: Record<string, number>;
+      localCurrencyCode: string;
+      datasetInfo: {
+        source: string;
+        location: string;
+        specification: string;
+      };
+    };
+  };
+  comparisons: Array<{
+    guideId: string;
+    result: {
+      totalCost: number;
+      costsBreakdown: Record<string, number>;
+      localCurrencyCode: string;
+      datasetInfo: {
+        source: string;
+        location: string;
+        specification: string;
+      };
+    };
+    assumptions: string[];
+    coverage: string;
+  }>;
+}
 
 interface MultiSourceComparisonProps {
-  comparison: MultiSourceBudget;
-  currency: string;
-  area: number;
+  results: MultiGuideResult;
+  projectArea: number;
+  projectCurrency: string;
   areaUnit: string;
+  onToggle: () => void;
 }
 
 const MultiSourceComparison: React.FC<MultiSourceComparisonProps> = ({
-  comparison,
-  currency,
-  area,
-  areaUnit
+  results,
+  projectArea,
+  projectCurrency,
+  areaUnit,
+  onToggle
 }) => {
+  // Calculate variance between primary and first comparison
+  const primaryCost = results.primary?.result?.totalCost || 0;
+  const firstComparison = results.comparisons?.[0];
+  const comparisonCost = firstComparison?.result?.totalCost || 0;
+  const percentageVariance = primaryCost > 0 ? ((comparisonCost - primaryCost) / primaryCost) * 100 : 0;
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency,
+      currency: projectCurrency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -30,7 +67,7 @@ const MultiSourceComparison: React.FC<MultiSourceComparisonProps> = ({
   const formatRate = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency,
+      currency: projectCurrency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -64,20 +101,20 @@ const MultiSourceComparison: React.FC<MultiSourceComparisonProps> = ({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {comparison.comparison.percentageVariance.toFixed(1)}%
+              <div className={`text-2xl font-bold ${getVarianceColor(percentageVariance)}`}>
+                {percentageVariance.toFixed(1)}%
               </div>
               <div className="text-sm text-gray-600">Overall Variance</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(Math.min(comparison.tt.total, comparison.cbre.total))}
+                {formatCurrency(Math.min(primaryCost, comparisonCost))}
               </div>
               <div className="text-sm text-gray-600">Lower Estimate</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {formatCurrency(Math.max(comparison.tt.total, comparison.cbre.total))}
+                {formatCurrency(Math.max(primaryCost, comparisonCost))}
               </div>
               <div className="text-sm text-gray-600">Higher Estimate</div>
             </div>
@@ -89,124 +126,141 @@ const MultiSourceComparison: React.FC<MultiSourceComparisonProps> = ({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Data Source Notice:</strong> CBRE calculations use supplemented data. 
-          Construction & Furniture from CBRE Global Fit-Out Cost Guide, 
-          Audio-Visual & Professional Fees from Turner & Townsend Guide (temporary).
+          <strong>Multi-Source Comparison:</strong> Comparing {results.primary?.result?.datasetInfo?.source} with{' '}
+          {results.comparisons?.map(c => c.result?.datasetInfo?.source).join(', ')} data sources.
+          Variance calculations include intelligent parameter leveling and component mapping.
         </AlertDescription>
       </Alert>
 
       {/* Detailed Comparison Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Component-by-Component Comparison</CardTitle>
+          <CardTitle>Source-by-Source Comparison</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4">Component</th>
-                  <th className="text-right py-3 px-4">T&T Guide</th>
-                  <th className="text-right py-3 px-4">CBRE Guide*</th>
+                  <th className="text-left py-3 px-4">Data Source</th>
+                  <th className="text-right py-3 px-4">Total Cost</th>
+                  <th className="text-right py-3 px-4">Cost per {areaUnit}</th>
                   <th className="text-right py-3 px-4">Variance</th>
-                  <th className="text-right py-3 px-4">% Diff</th>
-                  <th className="text-center py-3 px-4">Data Source</th>
+                  <th className="text-center py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {comparison.tt.components.map((ttComponent, index) => {
-                  const cbreComponent = comparison.cbre.components.find(c => 
-                    c.component === ttComponent.component ||
-                    (ttComponent.component === 'Loose Furniture' && c.component === 'Furniture') ||
-                    (ttComponent.component === 'Construction' && c.component === 'Construction')
-                  );
+                {/* Primary Source Row */}
+                <tr className="border-b bg-blue-50">
+                  <td className="py-3 px-4 font-medium">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">Primary</Badge>
+                      {results.primary?.result?.datasetInfo?.source}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {results.primary?.result?.datasetInfo?.specification} | {results.primary?.result?.datasetInfo?.location}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-right font-semibold">
+                    {formatCurrency(primaryCost)}
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    {formatRate(primaryCost / projectArea)}
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <div className="text-gray-500">—</div>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <Badge variant="outline" className="bg-green-50 text-green-700">
+                      Baseline
+                    </Badge>
+                  </td>
+                </tr>
 
-                  if (!cbreComponent) return null;
-
-                  const variance = cbreComponent.cost - ttComponent.cost;
-                  const percentageVariance = (Math.abs(variance) / Math.min(ttComponent.cost, cbreComponent.cost)) * 100;
-                  const reliableComparison = cbreComponent.dataSource === 'CBRE';
+                {/* Comparison Sources */}
+                {results.comparisons?.map((comparison, index) => {
+                  const compCost = comparison.result?.totalCost || 0;
+                  const variance = compCost - primaryCost;
+                  const percentVariance = primaryCost > 0 ? (variance / primaryCost) * 100 : 0;
 
                   return (
                     <tr key={index} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4 font-medium">
-                        {ttComponent.component}
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">Comparison</Badge>
+                          {comparison.result?.datasetInfo?.source}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {comparison.result?.datasetInfo?.specification} | {comparison.result?.datasetInfo?.location}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold">
+                        {formatCurrency(compCost)}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div>{formatCurrency(ttComponent.cost)}</div>
-                        <div className="text-xs text-gray-500">
-                          {formatRate(ttComponent.rate)}/{areaUnit}
-                        </div>
+                        {formatRate(compCost / projectArea)}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div>{formatCurrency(cbreComponent.cost)}</div>
+                        <div className={`flex items-center justify-end gap-1 ${getVarianceColor(percentVariance)}`}>
+                          {getVarianceIcon(percentVariance)}
+                          <span className="font-medium">{percentVariance.toFixed(1)}%</span>
+                        </div>
                         <div className="text-xs text-gray-500">
-                          {formatRate(cbreComponent.rate)}/{areaUnit}
+                          {variance > 0 ? '+' : ''}{formatCurrency(variance)}
                         </div>
-                      </td>
-                      <td className={`py-3 px-4 text-right ${getVarianceColor(percentageVariance)}`}>
-                        <div className="flex items-center justify-end gap-1">
-                          {getVarianceIcon(variance)}
-                          {formatCurrency(Math.abs(variance))}
-                        </div>
-                      </td>
-                      <td className={`py-3 px-4 text-right font-medium ${getVarianceColor(percentageVariance)}`}>
-                        {reliableComparison ? `±${percentageVariance.toFixed(1)}%` : '0%**'}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <Badge variant={cbreComponent.dataSource === 'CBRE' ? 'default' : 'secondary'}>
-                          {cbreComponent.dataSource === 'CBRE' ? 'CBRE' : 'T&T*'}
+                        <Badge 
+                          variant="outline" 
+                          className={comparison.coverage === 'available' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}
+                        >
+                          {comparison.coverage === 'available' ? 'Available' : 'Limited'}
                         </Badge>
                       </td>
                     </tr>
                   );
                 })}
-                
-                {/* Total Row */}
-                <tr className="border-t-2 border-gray-300 bg-gray-50">
-                  <td className="py-4 px-4 font-bold">TOTAL PROJECT COST</td>
-                  <td className="py-4 px-4 text-right font-bold">
-                    <div>{formatCurrency(comparison.tt.total)}</div>
-                    <div className="text-xs text-gray-500">
-                      {formatRate(comparison.tt.costPerSqm)}/{areaUnit}
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-right font-bold">
-                    <div>{formatCurrency(comparison.cbre.total)}</div>
-                    <div className="text-xs text-gray-500">
-                      {formatRate(comparison.cbre.costPerSqm)}/{areaUnit}
-                    </div>
-                  </td>
-                  <td className={`py-4 px-4 text-right font-bold ${getVarianceColor(comparison.comparison.percentageVariance)}`}>
-                    <div className="flex items-center justify-end gap-1">
-                      {getVarianceIcon(comparison.comparison.totalVariance)}
-                      {formatCurrency(comparison.comparison.totalVariance)}
-                    </div>
-                  </td>
-                  <td className={`py-4 px-4 text-right font-bold ${getVarianceColor(comparison.comparison.percentageVariance)}`}>
-                    ±{comparison.comparison.percentageVariance.toFixed(1)}%
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <Badge variant="outline">Mixed</Badge>
-                  </td>
-                </tr>
               </tbody>
             </table>
-          </div>
-
-          <div className="mt-4 space-y-2 text-xs text-gray-600">
-            <div>* CBRE estimate uses mixed data sources</div>
-            <div>** Same data source used - no variance expected</div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Insights Panel */}
+      {/* Leveling Assumptions Integration */}
+      {firstComparison?.assumptions && firstComparison.assumptions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="w-5 h-5 text-blue-600" />
+              Data Source Leveling Applied
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                The following transformations were applied to ensure accurate comparison between data sources:
+              </p>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <ul className="space-y-2">
+                  {firstComparison.assumptions.map((assumption, index) => (
+                    <li key={index} className="text-sm flex items-start gap-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                      <span>{assumption}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Summary Panel */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-600" />
-            Comparison Insights
+            Multi-Source Analysis Summary
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -214,10 +268,10 @@ const MultiSourceComparison: React.FC<MultiSourceComparisonProps> = ({
             <div>
               <h4 className="font-semibold mb-2">Key Findings</h4>
               <ul className="space-y-2 text-sm text-gray-700">
-                <li>• Overall variance: {comparison.comparison.percentageVariance.toFixed(1)}% between sources</li>
-                <li>• {comparison.tt.total < comparison.cbre.total ? 'T&T' : 'CBRE'} provides lower estimate ({formatCurrency(Math.min(comparison.tt.total, comparison.cbre.total))})</li>
-                <li>• {comparison.tt.total > comparison.cbre.total ? 'T&T' : 'CBRE'} provides higher estimate ({formatCurrency(Math.max(comparison.tt.total, comparison.cbre.total))})</li>
-                <li>• Construction & Furniture show direct comparison using native CBRE data</li>
+                <li>• Overall variance: {percentageVariance.toFixed(1)}% between sources</li>
+                <li>• {primaryCost < comparisonCost ? results.primary?.result?.datasetInfo?.source : firstComparison?.result?.datasetInfo?.source} provides lower estimate ({formatCurrency(Math.min(primaryCost, comparisonCost))})</li>
+                <li>• {primaryCost > comparisonCost ? results.primary?.result?.datasetInfo?.source : firstComparison?.result?.datasetInfo?.source} provides higher estimate ({formatCurrency(Math.max(primaryCost, comparisonCost))})</li>
+                <li>• {firstComparison?.assumptions?.length || 0} leveling transformations applied for accurate comparison</li>
               </ul>
             </div>
             
@@ -226,7 +280,7 @@ const MultiSourceComparison: React.FC<MultiSourceComparisonProps> = ({
               <ul className="space-y-2 text-sm text-gray-700">
                 <li>• Consider average of both estimates for budget planning</li>
                 <li>• Both estimates fall within acceptable industry range (±15%)</li>
-                <li>• Validate technology requirements separately due to data borrowing</li>
+                <li>• Review leveling assumptions to understand data transformations</li>
                 <li>• Consider local market validation for final budgeting</li>
               </ul>
             </div>
@@ -237,7 +291,7 @@ const MultiSourceComparison: React.FC<MultiSourceComparisonProps> = ({
             <AlertDescription>
               <strong>Important Notes:</strong> Different data collection periods may affect comparison. 
               Regional market conditions vary between survey methodologies. 
-              Audio-Visual and Professional Fees use T&T data pending CBRE availability.
+              Intelligent parameter leveling ensures accurate cross-guide comparison.
             </AlertDescription>
           </Alert>
         </CardContent>
