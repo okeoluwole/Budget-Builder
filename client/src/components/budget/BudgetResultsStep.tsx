@@ -1153,7 +1153,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                               
                               // Check for FITOUT COSTS component
                               if (breakdown['FITOUT COSTS']) {
-                                const fitoutSpec = state.budget?.specification || 'High (Gold)';
+                                const fitoutSpec = state.budget?.fitoutSpecification || state.budget?.specification || 'High (Gold)';
                                 const fitoutRate = Math.round(breakdown['FITOUT COSTS'] / area);
                                 console.log("Fitout rate calculation:", breakdown['FITOUT COSTS'], "÷", area, "=", fitoutRate);
                                 componentSpecs.push({
@@ -1165,7 +1165,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                               
                               // Check for FURNITURE COSTS component
                               if (breakdown['FURNITURE COSTS']) {
-                                const furnitureSpec = state.budget?.specification || 'High (Gold)';
+                                const furnitureSpec = state.budget?.furnitureSpecification || state.budget?.specification || 'High (Gold)';
                                 const furnitureRate = Math.round(breakdown['FURNITURE COSTS'] / area);
                                 console.log("Furniture rate calculation:", breakdown['FURNITURE COSTS'], "÷", area, "=", furnitureRate);
                                 componentSpecs.push({
@@ -1177,7 +1177,7 @@ const BudgetResultsStep: React.FC<BudgetResultsStepProps> = ({ onFinish, onBack,
                               
                               // Check for TECHNOLOGY COSTS component
                               if (breakdown['TECHNOLOGY COSTS']) {
-                                const technologySpec = state.budget?.specification || 'High (Gold)';
+                                const technologySpec = state.budget?.technologySpecification || state.budget?.specification || 'High (Gold)';
                                 const technologyRate = Math.round(breakdown['TECHNOLOGY COSTS'] / area);
                                 console.log("Technology rate calculation:", breakdown['TECHNOLOGY COSTS'], "÷", area, "=", technologyRate);
                                 componentSpecs.push({
